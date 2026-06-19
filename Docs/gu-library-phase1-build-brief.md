@@ -50,8 +50,10 @@ Nền kỹ thuật → dữ liệu → đồng bộ → giao diện → xem → 
 ### M3 — Sync status reader (đèn trạng thái)
 **Mục tiêu:** cho người dùng biết "đã an toàn đổi máy chưa".
 **Kết quả mong muốn:** app đọc API trạng thái Syncthing trên chính máy đó và hiện 1 trong 3 trạng thái ở góc phải header: ✓ đã đẩy hết lên mini PC / ⟳ đang đẩy / ⚠ chưa thấy mini PC.
-**Ràng buộc đã chốt:** mốc là "máy này đã đẩy hết lên mini PC chưa", KHÔNG cố báo "cả 3 máy giống nhau chưa"; không có nút "Sync now" (đèn chỉ để yên tâm). Syncthing cài/cấu hình ngoài app.
+**Ràng buộc đã chốt:** mốc là "máy này đã đẩy hết lên mini PC chưa", KHÔNG cố báo "cả 3 máy giống nhau chưa"; không có nút "Sync now" (đèn chỉ để yên tâm). Android = Syncthing-Fork (Catfriend1); mini PC = Syncthing chạy như Windows service; cả hai là Syncthing v2. App đọc REST API local (`http://localhost:8384`) qua **native HTTP (CapacitorHttp)**, KHÔNG `fetch` (né CORS/mixed-content). API key **nhập tay một lần** vào Settings (lưu Preferences); **mini PC chọn từ danh sách devices** app liệt kê (lưu Preferences). Map: "thấy mini PC" = `/rest/system/connections`; "đã đẩy hết" = `/rest/db/completion?folder=<id kho>&device=<minipc>` = 100%; poll ~10s.
+**Tiền đề (việc tay, ngoài app — phải xong TRƯỚC khi nghiệm thu):** cài + ghép cặp + share folder kho theo `gu-library-syncthing-setup.md`. Tối thiểu **1 điện thoại dev + mini PC** để code + test; CC cần instance v2 thật để soi field REST API (đừng theo doc v1).
 **Nghiệm thu:**
+- [ ] Nhập API key + chọn mini PC trong Settings → app đọc được trạng thái Syncthing local.
 - [ ] Còn file đang truyền lên mini PC → hiện ⟳.
 - [ ] Hết file chờ + thấy mini PC → hiện ✓.
 - [ ] Ngắt mạng / mini PC tắt → hiện ⚠.

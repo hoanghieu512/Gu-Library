@@ -39,8 +39,12 @@ App Android lưu trữ tập trung và xem tài liệu học luật cho **một 
 
 ### 3.1 Cơ chế
 - **Syncthing** chạy ngầm trên cả 3 thiết bị + mini PC, đồng bộ folder kho.
+  - **Android (2 điện thoại + tablet):** **Syncthing-Fork (Catfriend1)** — app Syncthing Android chính thức đã ngừng phát triển (bản cuối 12/2024); fork là bản còn maintain. Cần cho phép chạy nền (tắt battery optimization) kẻo bị Android kill.
+  - **Mini PC (Windows, 24/7):** Syncthing chạy như **Windows service** (vd qua installer Bill Stewart), KHÔNG dùng SyncTrayzor — service mới sync được cả khi chưa ai đăng nhập.
+  - Cả hai đều là **Syncthing v2** (đổi cấu trúc DB/config so với v1, có một lần migration). REST API code theo v2 thật trên instance đang chạy.
 - **Mini PC là node neo 24/7:** giải bài toán hai điện thoại không bao giờ bật cùng lúc — chúng đồng bộ gián tiếp qua con neo.
 - App chỉ đọc/ghi folder kho; **không tự viết logic sync**.
+- **Setup Syncthing (cài + ghép cặp + share folder kho + versioning) là việc TAY làm ngoài app** — xem hướng dẫn `gu-library-syncthing-setup.md`. Là **tiền đề để nghiệm thu M3**.
 
 ### 3.2 Đèn trạng thái đồng bộ
 App đọc API trạng thái của Syncthing và hiển thị **góc phải header**. Mốc an toàn là **"máy này đã đẩy hết lên mini PC chưa"** (KHÔNG cố báo "cả 3 máy đã giống nhau chưa" — không trả lời thành thật được vì máy kia có thể đang tắt). Ba trạng thái:
@@ -52,6 +56,13 @@ App đọc API trạng thái của Syncthing và hiển thị **góc phải head
 | ⚠ Chưa thấy mini PC | Data còn kẹt ở máy này, về nhà mới đẩy được | Ngoài mạng / mini PC tắt |
 
 - Không có nút "Sync now" để ra lệnh (Syncthing luôn tự chạy ngầm) — đèn chỉ để *yên tâm*, không phải để *ra lệnh*.
+
+**Cách app đọc trạng thái (đã chốt):**
+- App đọc REST API của Syncthing chạy trên **chính máy đó** (`http://localhost:8384`) — đèn báo "máy NÀY đã đẩy hết chưa" nên hỏi instance local, không phải instance mini PC.
+- Gọi REST bằng **native HTTP (CapacitorHttp)**, KHÔNG `fetch` trong WebView (né CORS + mixed-content).
+- **API key:** nhập tay một lần vào Settings của Gú's Library trên *mỗi* máy (key riêng từng máy), lưu qua Preferences. Không tự đọc `config.xml` của Syncthing.
+- **Đâu là mini PC:** app gọi REST liệt kê devices → người dùng chọn "đây là mini PC" một lần, lưu Preferences.
+- **Map điều kiện:** "thấy mini PC" = `/rest/system/connections` báo device mini PC connected; "đã đẩy hết" = `/rest/db/completion?folder=<id kho>&device=<minipc>` đạt 100%. Poll định kỳ (~10s) đủ cho MVP, không cần event API.
 
 ---
 
