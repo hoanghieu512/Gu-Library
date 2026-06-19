@@ -927,10 +927,12 @@ git commit -m "feat(m2): storage layer verified on device — môn tree, _mon.js
 
 ## Nghiệm thu M2 (đối chiếu build brief, mục M2 đã cập nhật)
 
-- [ ] PoC SAF: chọn folder kho → giữ được quyền sau khi đóng/mở lại app. → Phase 0 Task 0.5 + Task 3.2.
-- [ ] App liệt kê đúng cây môn/chương từ kho mẫu nhiều tầng. → Task 3.2.
-- [ ] Tên môn từ folder name (kể cả tiếng Việt có dấu); màu/thứ tự từ `_mon.json` khi có, default khi thiếu. → Task 1.2 + 2.1 + 3.2.
-- [ ] Phân biệt tài liệu đã xử lý (PDF+JSON) vs chờ xử lý (chỉ gốc). → Task 1.3 + 3.2.
+- [x] PoC SAF: chọn folder kho → giữ được quyền sau khi đóng/mở lại app. → Phase 0 Task 0.5 + Task 3.2. **ĐẠT** (verify trên SM-S908E).
+- [x] App liệt kê đúng cây môn/chương từ kho mẫu nhiều tầng. → Task 3.2. **ĐẠT**.
+- [x] Tên môn từ folder name (kể cả tiếng Việt có dấu); màu/thứ tự từ `_mon.json` khi có, default khi thiếu. → Task 1.2 + 2.1 + 3.2. **ĐẠT**.
+- [x] Phân biệt tài liệu đã xử lý (PDF+JSON) vs chờ xử lý (chỉ gốc). → Task 1.3 + 3.2. **ĐẠT**.
+
+> **M2 ĐÓNG (2026-06-19).** Cả 5 điểm nghiệm thu (4 tiêu chí build brief + cây nhiều tầng/bỏ qua `_inbox`/`_print`) đạt trên thiết bị thật với fixture. SAF custom plugin giữ quyền qua restart; domain model 13 unit test xanh. UI hiện là màn PoC — bộ mặt Home thật là M4.
 
 ## Self-review notes (đã đối chiếu spec sau khi viết)
 
