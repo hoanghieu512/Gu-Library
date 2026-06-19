@@ -15,6 +15,9 @@ dist-ssr
 # Native platform folders (regenerable via `npx cap add`)
 ios/
 
+# Generated test fixture (not committed)
+fixture-kho/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
