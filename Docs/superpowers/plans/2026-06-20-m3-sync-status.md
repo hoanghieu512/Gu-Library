@@ -758,10 +758,12 @@ git add -A && git commit -m "feat(m3): sync status light verified on device (3 s
 
 ## Nghiệm thu M3 (đối chiếu build brief)
 
-- [ ] Nhập API key + chọn mini PC trong Settings → app đọc được trạng thái Syncthing local. → Task C2 + D2 + D3 Step 2.
-- [ ] Còn file đang truyền lên mini PC → hiện ⟳. → D3 Step 3.2.
-- [ ] Hết file chờ + thấy mini PC → hiện ✓. → D3 Step 3.1.
-- [ ] Ngắt mạng / mini PC tắt → hiện ⚠. → D3 Step 3.3.
+- [x] Nhập API key + chọn mini PC trong Settings → app đọc được trạng thái Syncthing local. **ĐẠT** (connection check "Đã kết nối — Syncthing v2" trên SM-S908E).
+- [x] Còn file đang truyền lên mini PC → hiện ⟳. **ĐẠT**.
+- [x] Hết file chờ + thấy mini PC → hiện ✓. **ĐẠT**.
+- [x] Ngắt mạng / mini PC tắt → hiện ⚠. **ĐẠT**.
+
+> **M3 ĐÓNG (2026-06-20).** Đèn 3 trạng thái chạy trên thiết bị thật với Syncthing v2 (phone v2.0.11 ↔ mini PC v2.1.1). Native plugin qua được HTTPS self-signed localhost. Logic suy đèn 7 unit test xanh. Đèn hiện gắn tạm ở header App.tsx — header/Home thật là M4.
 
 ## Self-review notes (đối chiếu spec + field v2 thật)
 
