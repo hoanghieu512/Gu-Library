@@ -6,7 +6,9 @@
 
 **Architecture:** Web app React/TypeScript bằng Vite, UI bằng Ionic React, đóng gói native bằng Capacitor. Build hoàn toàn bằng dòng lệnh: `vite build` → `cap sync` → `./gradlew assembleDebug` (Gradle wrapper, không cần Gradle hệ thống) → `adb install`. Toolchain (JDK 17 + Android SDK command-line tools) là **phụ thuộc cứng** và là Part A của plan.
 
-**Tech Stack:** Node 24 / npm 11 (đã có) · JDK 17 (Temurin) · Android SDK cmdline-tools + platform-tools + platforms;android-35 + build-tools;35.0.0 · Vite + React 18 + TypeScript · @ionic/react 8 · Capacitor 7 · Vitest + Testing Library (web smoke test).
+**Tech Stack:** Node 24 / npm 11 (đã có) · **JDK 21 (Temurin)** · Android SDK cmdline-tools + platform-tools + **platforms;android-36 + build-tools;36.0.0** · Vite + React 18 + TypeScript · @ionic/react 8 · **Capacitor 8** (AGP 8.13, Gradle 8.14.3) · Vitest + Testing Library (web smoke test).
+
+> **Cập nhật khi thực thi (2026-06-19):** Capacitor mới nhất là **8.4.0**, yêu cầu **compileSdk/targetSdk 36** và **Java 21** (project sinh ra đặt `sourceCompatibility VERSION_21`). Vì vậy toolchain thực tế đã cài là **JDK 21 + SDK 36** (không phải 17/35 như bản nháp ban đầu). Cả JDK 17 và 21 cùng nằm trong `~/Library/Java/JavaVirtualMachines/`; `JAVA_HOME` trỏ 21.
 
 **Phạm vi:** CHỈ M1. Không đụng storage layer, sync, viewer, schema sidecar (M2+). App rỗng = một màn Ionic hiển thị tiêu đề "Gú's Library". Mọi quyết định mở ở spec mục 15 để dành M2+.
 
@@ -23,25 +25,22 @@
 
 > Chạy xong Part A là `java -version` ra 17, `sdkmanager --version` chạy, `adb` chạy. Đây là điều kiện để mọi task Part B build được. Một số bước cần huynh thao tác tay (cài JDK .pkg, cắm máy bật USB debugging) — đã ghi rõ.
 
-### Task A1: Cài JDK 17 (Temurin)
+### Task A1: Cài JDK 21 (Temurin) — ĐÃ THỰC THI ✅
 
-**Files:** không có file repo; cài vào hệ thống.
+**Files:** không có file repo; cài vào thư mục user (không sudo).
 
-- [ ] **Step 1: Tải bộ cài Temurin 17 cho macOS Intel (x64)**
+Cách đã dùng (headless tarball, không cần GUI/.pkg, không đụng Java 8 hệ thống):
 
-Mở trình duyệt vào https://adoptium.net/temurin/releases/?version=17&os=mac&arch=x64 → tải gói **macOS x64 `.pkg`** (JDK 17, LTS).
-(Máy này là Intel x86_64 → bắt buộc bản **x64**, KHÔNG lấy aarch64.)
+```bash
+cd /tmp
+curl -L -o temurin21.tar.gz "https://api.adoptium.net/v3/binary/latest/21/ga/mac/x64/jdk/hotspot/normal/eclipse"
+mkdir -p "$HOME/Library/Java/JavaVirtualMachines"
+tar xzf temurin21.tar.gz -C "$HOME/Library/Java/JavaVirtualMachines"
+```
 
-- [ ] **Step 2: Cài đặt**
+(Máy này là Intel x86_64 → URL lấy bản **x64**. Nếu máy Apple Silicon thì đổi `x64`→`aarch64`.)
 
-Double-click file `.pkg` vừa tải, bấm Next tới hết. Bộ cài đặt vào `/Library/Java/JavaVirtualMachines/temurin-17.jdk`.
-
-- [ ] **Step 3: Verify JDK 17 đã nhận**
-
-Run: `/usr/libexec/java_home -v 17`
-Expected: in ra một đường dẫn kết thúc bằng `temurin-17.jdk/Contents/Home` (không lỗi "Unable to find").
-
-Nếu lỗi: kiểm tra lại đã cài đúng gói x64 `.pkg`.
+- [x] **Verify:** `/usr/libexec/java_home -v 21` → trỏ tới `jdk-21.0.11+10/Contents/Home`. `java -version` → `openjdk version "21.0.11"`.
 
 ### Task A2: Cài Android SDK command-line tools + packages
 
@@ -69,15 +68,16 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 ```
 Expected: in ra số version (vd `12.0` hoặc tương tự), không lỗi Java.
 
-- [ ] **Step 4: Cài các package SDK cho Capacitor 7 (compileSdk 35)**
+- [ ] **Step 4: Cài các package SDK cho Capacitor 8 (compileSdk 36)**
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
 SDK="$HOME/Library/Android/sdk"
 yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" \
-  "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+  "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 ```
 Expected: tải về và in `done`. `yes |` để tự chấp nhận license.
+(Đã cài: `platform-tools` 37.0.0, `platforms;android-36`, `build-tools;36.0.0`. SDK 35 cũng có sẵn từ bản nháp, vô hại.)
 
 - [ ] **Step 5: Chấp nhận toàn bộ license**
 
@@ -102,11 +102,13 @@ Thêm các dòng sau vào cuối `~/.zshrc`:
 
 ```bash
 # --- Gú's Library Android toolchain ---
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
 export ANDROID_HOME="$HOME/Library/Android/sdk"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$JAVA_HOME/bin:$PATH"
 ```
+
+> **Đã thực thi:** block trên đã được ghi vào `~/.bash_profile` (login shell máy này là bash, không phải zsh). Nếu sau này huynh đổi sang zsh, copy block sang `~/.zshrc`.
 
 - [ ] **Step 2: Nạp lại shell**
 
@@ -441,8 +443,10 @@ git commit -m "chore(m1): M1 complete — empty Ionic/Capacitor app builds + ins
 
 ## Nghiệm thu M1 (đối chiếu build brief)
 
-- [ ] Lệnh build CLI ra file APK thành công, không mở Android Studio. → Task B4.
-- [ ] APK cài và khởi động trên 1 thiết bị Android thật. → Task B5.
+- [x] Lệnh build CLI ra file APK thành công, không mở Android Studio. → Task B4. **ĐẠT** (`BUILD SUCCESSFUL`, `app-debug.apk` 4.3M, CLI thuần).
+- [x] APK cài và khởi động trên 1 thiết bị Android thật. → Task B5. **ĐẠT** (`adb install` Success trên Samsung SM-S908E; `MainActivity` resumed/foreground, không crash).
+
+> **M1 ĐÓNG (2026-06-19).** Cả hai tiêu chí nghiệm thu đạt trên thiết bị thật. Toolchain thực tế: JDK 21 + Android SDK 36, Capacitor 8.4.0.
 
 ## Self-review notes (đã đối chiếu spec)
 
