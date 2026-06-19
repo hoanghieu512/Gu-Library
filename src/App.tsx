@@ -1,4 +1,5 @@
 import { IonApp, IonHeader, IonToolbar, IonTitle, IonContent, IonPage, setupIonicReact } from '@ionic/react';
+import SafPoc from './poc/SafPoc';
 
 /* Ionic core + theming CSS */
 import '@ionic/react/css/core.css';
@@ -19,6 +20,7 @@ export default function App() {
         </IonHeader>
         <IonContent className="ion-padding">
           <p>Kho tài liệu học luật — M1 khung rỗng.</p>
+          <SafPoc />
         </IonContent>
       </IonPage>
     </IonApp>
