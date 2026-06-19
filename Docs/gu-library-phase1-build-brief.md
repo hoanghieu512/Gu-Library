@@ -35,10 +35,14 @@ Nền kỹ thuật → dữ liệu → đồng bộ → giao diện → xem → 
 ### M2 — Storage layer & data model
 **Mục tiêu:** app đọc/hiểu được cấu trúc kho dạng folder.
 **Kết quả mong muốn:** app xin được quyền truy cập folder kho (scoped storage), đọc cấu trúc *folder = môn (cấp 1) → lồng tự do*, đọc metadata phân tán (`_mon.json`), nhận diện cặp `.pdf` + `.json` là một tài liệu, và nhận ra tài liệu "chờ xử lý" (chỉ có file gốc, chưa có PDF/sidecar).
-**Ràng buộc đã chốt:** metadata phân tán, không file manifest trung tâm; điều hướng phải xử lý độ sâu bất kỳ; index search là derived — KHÔNG đụng ở Phase 1 ngoài việc chừa chỗ.
+**Ràng buộc đã chốt:** metadata phân tán, không file manifest trung tâm; điều hướng phải xử lý độ sâu bất kỳ; index search là derived — KHÔNG đụng ở Phase 1 ngoài việc chừa chỗ. Schema `_mon.json` = **tên hiển thị lấy từ folder name**, `_mon.json` chỉ giữ `color` + `order` (cả hai tùy chọn) — spec 4.1b.
+**Rủi ro / điểm cần thử nghiệm:**
+- **SAF/scoped storage (spike đầu tiên):** folder kho nằm ngoài sandbox app (folder Syncthing ở shared storage). Capacitor Filesystem không đọc folder tùy ý — cần SAF: người dùng chọn folder kho một lần qua document picker, app **giữ persistable URI permission** qua đóng/mở app. **Mở M2 bằng PoC nhỏ** (chọn folder → liệt kê con → giữ được quyền sau restart) trên máy thật TRƯỚC khi xây storage layer đầy đủ. Cùng nhóm spike với highlight PDF (M5) và ghi `_print/` (M9).
+**Kho mẫu (fixture):** plan M2 tự dựng một kho mẫu nhiều tầng (Môn → Chương → Buổi), có `_mon.json`, và **có cả tài liệu "chờ xử lý"** (chỉ file gốc) để test phân biệt — KHÔNG test bằng kho thật của Gú.
 **Nghiệm thu:**
+- [ ] PoC SAF: chọn folder kho → app giữ được quyền truy cập sau khi đóng/mở lại app.
 - [ ] App liệt kê đúng cây môn/chương từ một kho mẫu nhiều tầng.
-- [ ] Đọc đúng tên hiển thị/màu/thứ tự môn từ `_mon.json`.
+- [ ] Tên môn hiển thị đúng từ folder name (kể cả tên tiếng Việt có dấu); đọc đúng màu/thứ tự từ `_mon.json` khi có, dùng mặc định khi thiếu.
 - [ ] Phân biệt đúng: tài liệu đã xử lý (có PDF+JSON) vs chờ xử lý (chỉ gốc).
 
 ---

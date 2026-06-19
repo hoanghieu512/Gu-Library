@@ -58,7 +58,7 @@ App đọc API trạng thái của Syncthing và hiển thị **góc phải head
 ## 4. Mô hình dữ liệu — *đã chốt*
 
 ### 4.1 Cấu trúc kho
-- **Folder = môn học**, cấp 1 là "môn" (nơi gắn metadata tên đẹp / màu). **Lồng tự do** bên dưới (Môn → Chương → Buổi → … tùy môn).
+- **Folder = môn học**, cấp 1 là "môn" (folder name chính là tên hiển thị; `_mon.json` giữ màu + thứ tự — xem 4.1b). **Lồng tự do** bên dưới (Môn → Chương → Buổi → … tùy môn).
 - Metadata **phân tán**, không có file manifest trung tâm (tránh file bị tranh chấp khi sync).
 - Phần điều hướng phải xử lý **độ sâu bất kỳ** (breadcrumb Môn ▸ Chương ▸ …), không hardcode số tầng.
 
@@ -76,6 +76,12 @@ kho/
   Tố tụng Hình sự/
     ...
 ```
+
+### 4.1b Schema `_mon.json` — *đã chốt (option A)*
+- **Tên hiển thị = chính folder name** (vd folder `Tố tụng Hình sự/` → hiển thị "Tố tụng Hình sự"). Không tách slug ASCII; giữ đúng triết lý "mở bằng file manager vẫn hiểu được". Android shared storage + Syncthing xử lý tên Unicode (UTF-8) tốt.
+- **`_mon.json` chỉ giữ phần filesystem không diễn đạt được:** `color` (màu nhấn của môn) và `order` (thứ tự sắp xếp thủ công giữa các môn). Cả hai **tùy chọn** — thiếu thì app dùng mặc định (màu palette + sắp theo alphabet).
+- `_mon.json` **chỉ đặt ở cấp môn (cấp 1)**, không rải ở thư mục con — folder con chỉ là điều hướng (Chương/Buổi), không mang metadata riêng.
+- Trường này M2 *đọc*, M4 *hiển thị* — cùng một schema, là nguồn sự thật chung. Mở rộng thêm trường sau này được, nhưng giữ YAGNI ở Phase 1.
 
 ### 4.2 Mỗi tài liệu = cặp PDF + sidecar JSON
 - **PDF:** bản canonical để xem (Viewer chỉ cần giỏi một việc: render PDF + nhảy trang).
@@ -273,6 +279,6 @@ Auto-download elearning (Moodle API) · Nguồn luật công khai (vbpl.vn) · O
 
 - Thư viện render PDF cụ thể trên Capacitor/Android.
 - Engine index search cụ thể (vd SQLite FTS5 local) — đã chốt *nguyên tắc* derived/không-sync, chưa chốt thư viện.
-- Định dạng/schema chi tiết của `_mon.json` và sidecar (các trường chính đã liệt kê ở mục 4).
+- Định dạng/schema chi tiết của **sidecar** (các trường chính đã liệt kê ở mục 4.2; schema `_mon.json` đã chốt ở mục 4.1b). Chốt trước M7.
 - Cơ chế cụ thể mini PC watch `_inbox/` (script + trigger).
 - Cơ chế dọn `_print/` ở mức C (app xoá khi tick "xong" vs dọn định kỳ).
