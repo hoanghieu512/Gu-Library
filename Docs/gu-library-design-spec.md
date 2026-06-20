@@ -116,8 +116,9 @@ kho/
 ## 5. Đường nhập liệu (Import) — *đã chốt*
 
 ### 5.1 Đường chính: Share Intent
-- Từ trình duyệt / Files sau khi tải file → **Share → Gú's Library** → app hỏi **chọn môn ngay** (gợi ý môn vừa dùng) + nút "Chưa phân loại" làm lối thoát nhanh.
-- File gốc rơi vào `_inbox/` → Syncthing đẩy lên mini PC.
+- Từ trình duyệt / Files sau khi tải file → **Share → Gú's Library** → app bật **sheet trượt lên** (không mở màn riêng — ít thao tác) hỏi **chọn môn ngay** (gợi ý môn vừa dùng) + nút "Chưa phân loại" làm lối thoát nhanh.
+- File gốc rơi vào `_inbox/`, **tên gắn tiền tố môn đích** (vd `[Tố tụng Hình sự] file.pdf`; "Chưa phân loại" → tiền tố `[Chưa phân loại]`) → Syncthing đẩy lên mini PC.
+- **Tiền tố môn là interface M6↔M7:** app chỉ biết môn đích lúc Gú chọn ở sheet, nhưng mini PC (M7) mới là nơi đặt cặp PDF+JSON vào đúng môn sau convert. Tiền tố tải môn đích kèm file qua `_inbox/` để M7 đọc — KHÔNG đẻ file phụ, tái dùng đúng cơ chế đặt tên của `_print/` (mục 5b).
 
 ### 5.2 Đường phụ: Watch folder
 - Lúc ngồi máy tính: copy file thẳng vào `_inbox/` → mini PC tự nuốt.
@@ -127,9 +128,10 @@ kho/
 
 ### 5.4 Xử lý ở mini PC (xưởng convert + extract)
 Mini PC watch `_inbox/`, với mỗi file:
+0. **Đọc tiền tố môn** từ tên file (`[<môn>] ...`) để biết môn đích; tiền tố `[Chưa phân loại]` → để ở khu chưa phân loại.
 1. **Convert sang PDF** bằng LibreOffice headless (fidelity desktop-class). PDF giữ nguyên; PPTX/Word → PDF.
 2. **Extract sidecar** từ *file gốc* (gốc giữ cấu trúc sạch hơn PDF): rút text + cấu trúc Điều/Khoản + vị trí trang.
-3. Đặt cặp `.pdf` + `.json` vào đúng môn, **bỏ file gốc**.
+3. Đặt cặp `.pdf` + `.json` vào **đúng môn (từ tiền tố)**, bỏ tiền tố khỏi tên cuối, **bỏ file gốc**.
 4. Syncthing rải về 3 máy.
 
 > **Đánh đổi đã chấp nhận:** import "xịn" cần đi qua mini PC. Ở ngoài thì file gốc vào trạng thái ⏳, convert khi về nhà.
@@ -298,7 +300,7 @@ Auto-download elearning (Moodle API) · Nguồn luật công khai (vbpl.vn) · O
 4. **Sync friendly** — giữ dữ liệu dạng nhiều file nhỏ, metadata phân tán; tránh mọi file tập trung bị nhiều máy ghi.
 5. **Phụ thuộc mini PC cho import "xịn"** — chấp nhận được trong mô hình "về nhà tự sync", nhưng cần trạng thái ⏳ rõ ràng.
 6. **Moodle Web Services** có thể bị trường tắt → cần đường lùi (tải thủ công + Share).
-7. **Scoped storage phần GHI** — app cần copy/ghi/xoá trong `_print/` (mục 5b), không chỉ đọc cây kho. Xếp cùng nhóm "cần thử nghiệm" với highlight PDF (mục 1).
+7. **Scoped storage phần GHI** — app cần ghi/copy/xoá trong kho (`_inbox/` ở M6 khi Share, `_print/` ở M9 khi gom in), không chỉ đọc cây kho. Xếp cùng nhóm "cần thử nghiệm" với highlight PDF (mục 1); spike phần ghi trước khi xây luồng (M6 + M9).
 
 ---
 

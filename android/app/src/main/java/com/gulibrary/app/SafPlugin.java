@@ -122,4 +122,47 @@ public class SafPlugin extends Plugin {
             call.reject("read failed: " + e.getMessage());
         }
     }
+
+    /* TEMP M6 spike */
+    @PluginMethod
+    public void ensureDir(PluginCall call) {
+        String parentUri = call.getString("parentUri");
+        String name = call.getString("name");
+        if (parentUri == null || name == null) { call.reject("parentUri+name required"); return; }
+        try {
+            androidx.documentfile.provider.DocumentFile parent =
+                androidx.documentfile.provider.DocumentFile.fromTreeUri(getContext(), android.net.Uri.parse(parentUri));
+            if (parent == null) { call.reject("bad parent"); return; }
+            androidx.documentfile.provider.DocumentFile child = parent.findFile(name);
+            if (child == null || !child.isDirectory()) child = parent.createDirectory(name);
+            if (child == null) { call.reject("createDirectory returned null"); return; }
+            com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+            ret.put("uri", child.getUri().toString());
+            call.resolve(ret);
+        } catch (Exception e) { call.reject("ensureDir failed: " + e.getMessage()); }
+    }
+
+    /* TEMP M6 spike */
+    @PluginMethod
+    public void writeFile(PluginCall call) {
+        String dirUri = call.getString("dirUri");
+        String name = call.getString("name");
+        String content = call.getString("content", "");
+        if (dirUri == null || name == null) { call.reject("dirUri+name required"); return; }
+        try {
+            androidx.documentfile.provider.DocumentFile dir =
+                androidx.documentfile.provider.DocumentFile.fromTreeUri(getContext(), android.net.Uri.parse(dirUri));
+            if (dir == null || !dir.isDirectory()) { call.reject("not a directory"); return; }
+            androidx.documentfile.provider.DocumentFile existing = dir.findFile(name);
+            if (existing != null) existing.delete();
+            androidx.documentfile.provider.DocumentFile f = dir.createFile("application/octet-stream", name);
+            if (f == null) { call.reject("createFile returned null"); return; }
+            java.io.OutputStream os = getContext().getContentResolver().openOutputStream(f.getUri());
+            os.write(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            os.flush(); os.close();
+            com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+            ret.put("uri", f.getUri().toString());
+            call.resolve(ret);
+        } catch (Exception e) { call.reject("write failed: " + e.getMessage()); }
+    }
 }

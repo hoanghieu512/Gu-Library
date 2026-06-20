@@ -85,12 +85,16 @@ Nền kỹ thuật → dữ liệu → đồng bộ → giao diện → xem → 
 
 ### M6 — Import qua Share Intent
 **Mục tiêu:** thêm tài liệu với ít thao tác nhất.
-**Kết quả mong muốn:** từ trình duyệt/Files, Share một file (PDF/Word/PPTX) → Gú's Library → app hỏi chọn môn ngay (gợi ý môn vừa dùng) + nút "Chưa phân loại" → file gốc rơi vào `_inbox/` để Syncthing đẩy lên mini PC. Tài liệu hiện trạng thái ⏳ cho tới khi mini PC xử lý xong.
-**Ràng buộc đã chốt:** Share Intent là đường chính; watch-folder (copy vào `_inbox/` từ máy tính) là đường phụ; nút "+" trong app là dự phòng.
+**Kết quả mong muốn:** từ trình duyệt/Files, Share một file (PDF/Word/PPTX) → Gú's Library → **sheet trượt lên** hỏi chọn môn ngay (gợi ý môn vừa dùng) + nút "Chưa phân loại" → file gốc rơi vào `_inbox/` với **tên gắn tiền tố môn đích** để Syncthing đẩy lên mini PC. Tài liệu hiện trạng thái ⏳ cho tới khi mini PC xử lý xong.
+**Ràng buộc đã chốt:** Share Intent là đường chính; watch-folder (copy vào `_inbox/` từ máy tính) là đường phụ; nút "+" trong app là dự phòng. Chọn môn bằng **sheet trượt lên** (không màn riêng). **Môn đích lưu bằng tiền tố tên file** `[<môn>] ...` (interface M6↔M7, nhất quán `_print/` — spec 5.1, 5.4); "Chưa phân loại" → tiền tố `[Chưa phân loại]`.
+**Rủi ro / điểm cần thử nghiệm — spike tách đôi TRƯỚC khi viết plan đầy đủ (như M5):**
+- **Spike A — SAF *ghi*:** app tạo thử file vào `_inbox/` trong kho đã cấp quyền → file thật xuất hiện + Syncthing nuốt. M2 mới validate quyền *đọc* cây kho; ghi qua content-URI là vùng spec gắn cờ "cần thử nghiệm" (spec 14.7, cùng nhóm M9).
+- **Spike B — Share Intent:** từ Files/Chrome share 1 PDF vào app → app *nhận được* file (chưa cần lưu/chọn môn). Cần intent-filter trong Android manifest + bắt file qua vòng đời app khi khởi động từ cú share — phần native, react không thấy, phải thử trên máy.
 **Nghiệm thu:**
-- [ ] Share file từ app khác vào → chọn môn → file nằm đúng trong `_inbox/`.
+- [ ] Spike A + B pass trên máy thật trước khi xây luồng đầy đủ.
+- [ ] Share file từ app khác → sheet chọn môn → file nằm đúng `_inbox/`, tên có tiền tố môn.
 - [ ] Tài liệu vừa thêm hiện ⏳ ở đúng môn.
-- [ ] Chọn "Chưa phân loại" cũng lưu được, không kẹt luồng.
+- [ ] Chọn "Chưa phân loại" cũng lưu được (tiền tố `[Chưa phân loại]`), không kẹt luồng.
 
 ---
 

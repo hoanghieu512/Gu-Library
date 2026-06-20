@@ -12,6 +12,9 @@ export interface SafPlugin {
   listFolder(options: { uri: string }): Promise<{ entries: SafEntry[] }>;
   readFile(options: { uri: string }): Promise<{ data: string }>;
   readFileBase64(options: { uri: string }): Promise<{ data: string }>;
+  /* TEMP M6 spike */
+  ensureDir(options: { parentUri: string; name: string }): Promise<{ uri: string }>;
+  writeFile(options: { dirUri: string; name: string; content: string }): Promise<{ uri: string }>;
 }
 
 export const Saf = registerPlugin<SafPlugin>('Saf');
