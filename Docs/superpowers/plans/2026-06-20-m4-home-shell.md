@@ -998,10 +998,16 @@ git add -A && git commit -m "feat(m4): UI shell verified on device — Home, nav
 
 ## Nghiệm thu M4 (đối chiếu build brief)
 
-- [ ] Home hiện đúng card "đang đọc dở" và danh sách môn từ kho mẫu. → C3 + E2.
-- [ ] Bấm card đang đọc dở → mở đúng tài liệu, đúng trang dừng. → D2 (placeholder ghi/đọc progress) + E2.
-- [ ] Điều hướng được vào môn lồng nhiều tầng, breadcrumb đúng. → D1 + E2.
-- [ ] Tài liệu chờ xử lý hiện mờ + nhãn ⏳, không bấm xem được. → D1 + E2.
+- [x] Home hiện đúng card "đang đọc dở" và danh sách môn từ kho mẫu. **ĐẠT**.
+- [x] Bấm card đang đọc dở → mở đúng tài liệu, đúng trang dừng. **ĐẠT** (sau fix khôi phục trang).
+- [x] Điều hướng được vào môn lồng nhiều tầng, breadcrumb đúng. **ĐẠT** (sau fix base64url route param).
+- [x] Tài liệu chờ xử lý hiện mờ + nhãn ⏳, không bấm xem được. **ĐẠT**.
+
+> **M4 ĐÓNG (2026-06-20).** Verify trên SM-S908E với kho thật + fixture. 3 bug phát hiện & sửa lúc nghiệm thu:
+> 1. Folder ẩn Syncthing (`.stfolder`/`.stversions`) hiện như môn → `classifyEntries`+`listMon` lọc folder dot.
+> 2. Điều hướng kẹt "Đang tải…" → content-URI bị double-decode qua route param → dùng base64url (`src/storage/uriParam.ts`).
+> 3. Card đang-đọc-dở mở lại trang 1 → viewer placeholder khôi phục trang đã lưu (`getProgressFor`).
+> Home chỉ hiện môn (folder cấp 1); file lẻ ở gốc kho không hiển thị (đúng data model). 33 unit test xanh. Viewer vẫn là placeholder — M5 thay bằng PDF thật.
 
 ## Self-review notes (đối chiếu spec 9.1/9.3/9.4)
 
