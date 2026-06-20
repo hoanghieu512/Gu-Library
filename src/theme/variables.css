@@ -1,0 +1,36 @@
+/* Tông "nâu giấy" — spec 9.3/9.4 */
+:root {
+  --gu-cream: #E9E5CD;
+  --gu-paper: #FBF7F0;
+  --gu-paper-2: #FFFDF8;
+  --gu-white: #FFFFFF;
+  --gu-brown: #75420E;
+  --gu-brown-deep: #553B08;
+  --gu-grey: #AAAAAA;
+  --gu-pending: #B5651D;
+
+  --ion-font-family: 'Montserrat', system-ui, sans-serif;
+  --gu-serif: 'Merriweather', Georgia, serif;
+
+  --ion-background-color: var(--gu-cream);
+  --ion-background-color-rgb: 233, 229, 205;
+  --ion-text-color: #2b2b2b;
+  --ion-text-color-rgb: 43, 43, 43;
+
+  /* primary = nâu nhấn */
+  --ion-color-primary: #75420E;
+  --ion-color-primary-rgb: 117,66,14;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255,255,255;
+  --ion-color-primary-shade: #553B08;
+  --ion-color-primary-tint: #855a2a;
+
+  --ion-toolbar-background: var(--gu-paper-2);
+  --ion-tab-bar-background: var(--gu-paper-2);
+  --ion-item-background: var(--gu-paper);
+  --ion-card-background: var(--gu-paper-2);
+}
+
+/* tiêu đề/nội dung đọc = serif */
+.gu-serif { font-family: var(--gu-serif); }
+.gu-title { font-family: var(--gu-serif); font-weight: 700; color: var(--gu-brown-deep); }

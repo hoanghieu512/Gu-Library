@@ -14,6 +14,8 @@
     "@capacitor/android": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/preferences": "^8.0.1",
+    "@fontsource/merriweather": "^5.2.11",
+    "@fontsource/montserrat": "^5.2.8",
     "@ionic/react": "^8.8.11",
     "@ionic/react-router": "^8.8.11",
     "ionicons": "^8.0.13",
