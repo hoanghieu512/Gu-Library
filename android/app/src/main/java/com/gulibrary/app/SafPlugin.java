@@ -123,6 +123,34 @@ public class SafPlugin extends Plugin {
         }
     }
 
+    // Copy nhị phân từ một content-URI nguồn (vd file share) vào một dir trong kho.
+    // Dùng cho PDF/Word/PPTX — KHÁC writeFile (text). createFile tự thêm hậu tố nếu trùng.
+    @PluginMethod
+    public void copyToDir(PluginCall call) {
+        String srcUri = call.getString("srcUri");
+        String dirUri = call.getString("dirUri");
+        String name = call.getString("name");
+        if (srcUri == null || dirUri == null || name == null) { call.reject("srcUri+dirUri+name required"); return; }
+        try {
+            androidx.documentfile.provider.DocumentFile dir =
+                androidx.documentfile.provider.DocumentFile.fromTreeUri(getContext(), android.net.Uri.parse(dirUri));
+            if (dir == null || !dir.isDirectory()) { call.reject("not a directory"); return; }
+            androidx.documentfile.provider.DocumentFile f = dir.createFile("application/octet-stream", name);
+            if (f == null) { call.reject("createFile returned null"); return; }
+            java.io.InputStream is = getContext().getContentResolver().openInputStream(android.net.Uri.parse(srcUri));
+            java.io.OutputStream os = getContext().getContentResolver().openOutputStream(f.getUri());
+            if (is == null || os == null) { call.reject("open stream failed"); return; }
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = is.read(buf)) != -1) os.write(buf, 0, n);
+            os.flush(); os.close(); is.close();
+            com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+            ret.put("uri", f.getUri().toString());
+            ret.put("name", f.getName());
+            call.resolve(ret);
+        } catch (Exception e) { call.reject("copy failed: " + e.getMessage()); }
+    }
+
     /* TEMP M6 spike */
     @PluginMethod
     public void ensureDir(PluginCall call) {
