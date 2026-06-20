@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.5.1] — 2026-06-20 — Android back navigation
+### Fixed
+- Android hardware/gesture back nay lùi **một cấp** (folder → cha → Home, viewer → folder) thay vì thoát app. Ở **Home** mới hỏi nhấn back lần nữa ("Nhấn back lần nữa để thoát") rồi thoát — chống thoát nhầm.
+- Sửa **double-pop**: `IonTabs` đăng ký `ionBackButton` ở priority 0 (pop một lần + gọi `processNextHandler`), nên handler ở -1 pop lần hai (folder → ông bà, viewer → sai folder). Chuyển handler lên **priority 50** (trên IonTabs, dưới overlay 100/menu 99) → handler của ta là người duy nhất điều hướng.
+### Added
+- `decideBackAction` (pure, có unit test) + `useAndroidBackButton` hook (gắn `ionBackButton`, overlay-safe) + `BackButtonHandler` mount trong `IonReactRouter`.
+- `@capacitor/app`.
+> Verify trên SM-S908E (debug build): back chạy đúng, KHÔNG dính bug debug-build #26599 — bỏ qua Task 6 (release diagnostic).
+
 ## [0.5.0] — 2026-06-20 — M5: Viewer (xem PDF + nhảy trang)
 - Viewer PDF thật (react-pdf / pdf.js, pinned 5.4.296): mở PDF từ kho qua SAF content-URI (`Saf.readFileBase64` → bytes), cuộn nhiều trang, nhảy tới trang N, nhớ + khôi phục trang đang đọc (nối card "đang đọc dở").
 - Plugin `Saf.readFileBase64` cho file nhị phân; `src/storage/bytes.ts` + `safFile.ts`; `src/components/PdfView.tsx` (copy buffer tránh detach, theo dõi trang qua IntersectionObserver); `src/pages/ViewerPage.tsx` (header gọn + footer "Trang X / Y" + ô nhảy trang).
