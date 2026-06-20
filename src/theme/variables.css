@@ -27,6 +27,9 @@
 
   --ion-toolbar-background: var(--gu-paper-2);
   --ion-tab-bar-background: var(--gu-paper-2);
+  /* bottom nav: active nâu, inactive xám (spec 9.4) — không để xanh Ionic mặc định */
+  --ion-tab-bar-color: var(--gu-grey);
+  --ion-tab-bar-color-selected: var(--gu-brown);
   --ion-item-background: var(--gu-paper);
   --ion-card-background: var(--gu-paper-2);
 }

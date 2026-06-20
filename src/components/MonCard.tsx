@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IonIcon } from '@ionic/react';
-import { chevronForward } from 'ionicons/icons';
+import { chevronForward, hourglassOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import MonSwatch from './MonSwatch';
 import type { Mon } from '../storage/types';
@@ -31,7 +31,11 @@ export default function MonCard({ mon }: { mon: Mon }) {
         <span style={{
           background: 'var(--gu-pending)', color: '#fff', borderRadius: 999,
           padding: '2px 10px', fontSize: 12, whiteSpace: 'nowrap',
-        }}>⏳ {sum.pending} chờ</span>
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+        }}>
+          <IonIcon icon={hourglassOutline} style={{ fontSize: 13 }} />
+          {sum.pending} chờ
+        </span>
       )}
       <IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)' }} />
     </div>

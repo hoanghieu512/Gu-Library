@@ -5,7 +5,9 @@ import {
 } from '@ionic/react';
 import { useParams } from 'react-router-dom';
 import { setProgress, getProgressFor } from '../reading/progress';
+import { getRootUri } from '../storage/repo';
 import { decodeUriParam } from '../storage/uriParam';
+import { monNameFromUris } from '../storage/monPath';
 
 const TOTAL = 10; // giả lập — M5 lấy số trang thật từ PDF
 
@@ -22,19 +24,26 @@ export default function ViewerPlaceholderPage() {
   const name = baseName(docUri);
   // page = null khi đang nạp tiến độ đã lưu (để khôi phục đúng trang đang đọc dở).
   const [page, setPage] = useState<number | null>(null);
+  const [monName, setMonName] = useState('Tài liệu');
 
-  // Nạp trang đã lưu của đúng tài liệu này (mặc định 1 nếu chưa đọc).
+  // Nạp trang đã lưu + suy tên môn của tài liệu này.
   useEffect(() => {
     let alive = true;
-    getProgressFor(docUri).then((p) => { if (alive) setPage(p?.page ?? 1); });
+    (async () => {
+      const [prog, root] = await Promise.all([getProgressFor(docUri), getRootUri()]);
+      if (!alive) return;
+      setPage(prog?.page ?? 1);
+      const mn = (root && monNameFromUris(root, docUri)) || prog?.monName || 'Tài liệu';
+      setMonName(mn);
+    })();
     return () => { alive = false; };
   }, [docUri]);
 
   // Ghi tiến độ mỗi khi đổi trang (M5 thay placeholder này bằng PDF thật).
   useEffect(() => {
     if (page == null) return;
-    setProgress({ docUri, name, monName: 'Đang đọc', page, total: TOTAL });
-  }, [docUri, name, page]);
+    setProgress({ docUri, name, monName, page, total: TOTAL });
+  }, [docUri, name, monName, page]);
 
   return (
     <IonPage>

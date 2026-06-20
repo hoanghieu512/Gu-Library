@@ -3,7 +3,7 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonList, IonItem, IonLabel, IonIcon, IonBadge,
 } from '@ionic/react';
-import { folderOutline, documentTextOutline, chevronForward } from 'ionicons/icons';
+import { folderOutline, documentTextOutline, chevronForward, hourglassOutline } from 'ionicons/icons';
 import { useParams, useHistory } from 'react-router-dom';
 import { listFolder } from '../storage/repo';
 import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
@@ -55,7 +55,10 @@ export default function FolderPage() {
             {listing.pending.map((p) => (
               <IonItem key={p.sourceUri} disabled>
                 <IonLabel color="medium">{p.name}</IonLabel>
-                <IonBadge slot="end" style={{ background: 'var(--gu-pending)' }}>⏳ chờ xử lý</IonBadge>
+                <IonBadge slot="end" style={{ background: 'var(--gu-pending)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <IonIcon icon={hourglassOutline} style={{ fontSize: 13 }} />
+                  chờ xử lý
+                </IonBadge>
               </IonItem>
             ))}
           </IonList>
