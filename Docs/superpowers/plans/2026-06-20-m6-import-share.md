@@ -375,9 +375,11 @@ Trong `src/pages/HomePage.tsx`:
 
 ## Nghiệm thu M6 (đối chiếu build brief)
 - [x] Spike A + B pass trên máy thật trước khi xây luồng. → Phase 0 (commit 510f4e8).
-- [ ] Share file → sheet chọn môn → file nằm đúng `_inbox/`, tên có tiền tố môn. → Phase 3 + 5.2.
-- [ ] Tài liệu vừa thêm hiện ⏳ ở đúng môn. → Phase 4 + 5.2.
-- [ ] Chọn "Chưa phân loại" cũng lưu được (tiền tố `[Chưa phân loại]`), không kẹt. → Phase 3 + 5.2.
+- [x] Share file → sheet chọn môn → file nằm đúng `_inbox/`, tên có tiền tố môn. **ĐẠT** (adb: `[Luật Công chứng] arc_whitepaper.pdf` 359KB nhị phân; dedupe `(1)` giữ tiền tố).
+- [x] Tài liệu vừa thêm hiện ⏳ ở đúng môn. **ĐẠT**.
+- [x] Chọn "Chưa phân loại" cũng lưu được (tiền tố `[Chưa phân loại]`), không kẹt. **ĐẠT** + thêm chip "Chưa phân loại — N chờ" trên Home (vá khoảng hở hiển thị).
+
+> **M6 ĐÓNG (2026-06-21, v0.6.0).** Verify trên SM-S908E: share cold+warm, copy nhị phân, tiền tố, ⏳ theo môn, chip chưa-phân-loại. Convert/extract + sắp file vào môn = M7 (mini PC).
 
 ## Self-review notes
 - **Spec 5.1 (sheet trượt lên, gợi ý môn vừa dùng, Chưa phân loại):** ChooseMonSheet (IonModal breakpoints, last-used đầu danh sách). ✓

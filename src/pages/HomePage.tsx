@@ -15,6 +15,9 @@ import { getContinueReading } from '../reading/progress';
 import type { Progress } from '../reading/progress';
 import type { Mon } from '../storage/types';
 import { listInboxByMon } from '../import/inboxRepo';
+import { UNFILED } from '../import/prefix';
+import { hourglassOutline } from 'ionicons/icons';
+import { IonIcon } from '@ionic/react';
 
 export default function HomePage() {
   const history = useHistory();
@@ -68,6 +71,25 @@ export default function HomePage() {
             {mons.length === 0
               ? <p style={{ color: 'var(--gu-grey)' }}>Chưa có môn nào trong kho.</p>
               : mons.map((m) => <MonCard key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} />)}
+
+            {(inboxMap.get(UNFILED) ?? 0) > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, marginTop: 8,
+                background: 'var(--gu-paper-2)', borderRadius: 12, padding: 12,
+              }}>
+                <div style={{ flex: 1, color: 'var(--gu-grey)', fontStyle: 'italic' }}>
+                  Chưa phân loại
+                </div>
+                <span style={{
+                  background: 'var(--gu-pending)', color: '#fff', borderRadius: 999,
+                  padding: '2px 10px', fontSize: 12, whiteSpace: 'nowrap',
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                }}>
+                  <IonIcon icon={hourglassOutline} style={{ fontSize: 13 }} />
+                  {inboxMap.get(UNFILED)} chờ
+                </span>
+              </div>
+            )}
           </>
         )}
       </IonContent>

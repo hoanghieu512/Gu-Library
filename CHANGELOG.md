@@ -2,6 +2,12 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.6.0] — 2026-06-21 — M6: Import qua Share Intent
+- Share file (PDF/Word/PPTX) từ app khác → Gú's Library → **sheet trượt lên** chọn môn (môn vừa dùng ở đầu) + "Chưa phân loại" → copy vào `_inbox/` tên `[<môn>] <gốc>` (tiền tố = interface M6↔M7).
+- Native `ShareTargetPlugin` (ACTION_SEND intent-filter, bắt EXTRA_STREAM cold + warm qua `@capacitor/app` resume); `Saf.copyToDir` copy nhị phân qua content-URI; `Saf.ensureDir`.
+- Logic tiền tố thuần (`makeInboxName`/`parseInboxPrefix`, có test). Home gộp ⏳ từ `_inbox/` vào đúng môn; thêm chip "Chưa phân loại — N chờ".
+- Nền tảng de-risk bằng 2 spike trên máy thật (SAF ghi + Share Intent) trước khi xây luồng (commit 510f4e8).
+
 ## [0.5.1] — 2026-06-20 — Android back navigation
 ### Fixed
 - Android hardware/gesture back nay lùi **một cấp** (folder → cha → Home, viewer → folder) thay vì thoát app. Ở **Home** mới hỏi nhấn back lần nữa ("Nhấn back lần nữa để thoát") rồi thoát — chống thoát nhầm.
