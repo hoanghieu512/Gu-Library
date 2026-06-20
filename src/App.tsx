@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { Redirect, Route } from 'react-router-dom';
 import {
-  IonApp, IonHeader, IonToolbar, IonTitle, IonContent, IonPage, IonButtons, setupIonicReact,
+  IonApp, IonRouterOutlet, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel,
+  setupIonicReact,
 } from '@ionic/react';
-import SafPoc from './poc/SafPoc';
-import SyncSettings from './sync/SyncSettings';
-import SyncLight from './sync/SyncLight';
-import { useSyncStatus } from './sync/useSyncStatus';
+import { IonReactRouter } from '@ionic/react-router';
+import { home, search, add, settings } from 'ionicons/icons';
+
+import HomePage from './pages/HomePage';
+import FolderPage from './pages/FolderPage';
+import ViewerPlaceholderPage from './pages/ViewerPlaceholderPage';
+import SearchStubPage from './pages/SearchStubPage';
+import AddStubPage from './pages/AddStubPage';
+import SettingsPage from './pages/SettingsPage';
 
 /* Ionic core + theming CSS */
 import '@ionic/react/css/core.css';
@@ -16,25 +22,35 @@ import '@ionic/react/css/typography.css';
 setupIonicReact();
 
 export default function App() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const { light, refresh } = useSyncStatus();
   return (
     <IonApp>
-      <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Gú's Library</IonTitle>
-            <IonButtons slot="end">
-              <SyncLight state={light} onClick={() => setSettingsOpen(true)} />
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent className="ion-padding">
-          <p>Kho tài liệu học luật — M1 khung rỗng.</p>
-          <SafPoc />
-        </IonContent>
-        <SyncSettings isOpen={settingsOpen} onClose={() => { setSettingsOpen(false); refresh(); }} />
-      </IonPage>
+      <IonReactRouter>
+        <IonTabs>
+          <IonRouterOutlet>
+            <Route exact path="/home" component={HomePage} />
+            <Route exact path="/folder/:uri" component={FolderPage} />
+            <Route exact path="/viewer/:uri" component={ViewerPlaceholderPage} />
+            <Route exact path="/search" component={SearchStubPage} />
+            <Route exact path="/add" component={AddStubPage} />
+            <Route exact path="/settings" component={SettingsPage} />
+            <Route exact path="/"><Redirect to="/home" /></Route>
+          </IonRouterOutlet>
+          <IonTabBar slot="bottom">
+            <IonTabButton tab="home" href="/home">
+              <IonIcon icon={home} /><IonLabel>Trang chủ</IonLabel>
+            </IonTabButton>
+            <IonTabButton tab="search" href="/search">
+              <IonIcon icon={search} /><IonLabel>Tìm</IonLabel>
+            </IonTabButton>
+            <IonTabButton tab="add" href="/add">
+              <IonIcon icon={add} /><IonLabel>Thêm</IonLabel>
+            </IonTabButton>
+            <IonTabButton tab="settings" href="/settings">
+              <IonIcon icon={settings} /><IonLabel>Cài đặt</IonLabel>
+            </IonTabButton>
+          </IonTabBar>
+        </IonTabs>
+      </IonReactRouter>
     </IonApp>
   );
 }
