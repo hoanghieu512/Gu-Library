@@ -11,6 +11,7 @@ export interface SafPlugin {
   hasPermission(options: { uri: string }): Promise<{ granted: boolean }>;
   listFolder(options: { uri: string }): Promise<{ entries: SafEntry[] }>;
   readFile(options: { uri: string }): Promise<{ data: string }>;
+  readFileBase64(options: { uri: string }): Promise<{ data: string }>;
 }
 
 export const Saf = registerPlugin<SafPlugin>('Saf');

@@ -103,4 +103,23 @@ public class SafPlugin extends Plugin {
             call.reject("read failed: " + e.getMessage());
         }
     }
+
+    // Đọc file nhị phân (PDF) -> base64. readFile cũ chỉ hợp text UTF-8.
+    @PluginMethod
+    public void readFileBase64(PluginCall call) {
+        String uriStr = call.getString("uri");
+        if (uriStr == null) { call.reject("uri required"); return; }
+        try (java.io.InputStream is = getContext().getContentResolver().openInputStream(android.net.Uri.parse(uriStr))) {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = is.read(buf)) != -1) bos.write(buf, 0, n);
+            String b64 = android.util.Base64.encodeToString(bos.toByteArray(), android.util.Base64.NO_WRAP);
+            com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+            ret.put("data", b64);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("read failed: " + e.getMessage());
+        }
+    }
 }
