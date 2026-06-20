@@ -2,6 +2,12 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.5.0] — 2026-06-20 — M5: Viewer (xem PDF + nhảy trang)
+- Viewer PDF thật (react-pdf / pdf.js, pinned 5.4.296): mở PDF từ kho qua SAF content-URI (`Saf.readFileBase64` → bytes), cuộn nhiều trang, nhảy tới trang N, nhớ + khôi phục trang đang đọc (nối card "đang đọc dở").
+- Plugin `Saf.readFileBase64` cho file nhị phân; `src/storage/bytes.ts` + `safFile.ts`; `src/components/PdfView.tsx` (copy buffer tránh detach, theo dõi trang qua IntersectionObserver); `src/pages/ViewerPage.tsx` (header gọn + footer "Trang X / Y" + ô nhảy trang).
+- Viewer code-split (lazy) — không nằm trong bundle chính, không vỡ test jsdom.
+- Gỡ placeholder viewer + spike. Highlight passage để Phase 2.
+
 ## [0.4.2] — 2026-06-20
 - Card "đang đọc dở": tên môn (dòng 2) nay được **suy tươi từ docUri lúc render** (không phụ thuộc `monName` đã lưu cũ) — sửa việc card vẫn hiện "Đang đọc" với progress lưu trước bản 0.4.1.
 
