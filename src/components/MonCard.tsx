@@ -7,10 +7,12 @@ import type { Mon } from '../storage/types';
 import { summarizeMon, type MonSummary } from '../storage/summary';
 import { encodeUriParam } from '../storage/uriParam';
 
-export default function MonCard({ mon }: { mon: Mon }) {
+export default function MonCard({ mon, inboxPending = 0 }: { mon: Mon; inboxPending?: number }) {
   const history = useHistory();
   const [sum, setSum] = useState<MonSummary | null>(null);
   useEffect(() => { summarizeMon(mon.uri).then(setSum).catch(() => setSum({ documents: 0, pending: 0 })); }, [mon.uri]);
+
+  const pending = (sum?.pending ?? 0) + (inboxPending ?? 0);
 
   return (
     <div
@@ -27,14 +29,14 @@ export default function MonCard({ mon }: { mon: Mon }) {
           {sum ? `${sum.documents} tài liệu` : 'Đang đếm…'}
         </div>
       </div>
-      {sum && sum.pending > 0 && (
+      {pending > 0 && (
         <span style={{
           background: 'var(--gu-pending)', color: '#fff', borderRadius: 999,
           padding: '2px 10px', fontSize: 12, whiteSpace: 'nowrap',
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}>
           <IonIcon icon={hourglassOutline} style={{ fontSize: 13 }} />
-          {sum.pending} chờ
+          {pending} chờ
         </span>
       )}
       <IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)' }} />
