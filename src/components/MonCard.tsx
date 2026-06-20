@@ -5,6 +5,7 @@ import { useHistory } from 'react-router-dom';
 import MonSwatch from './MonSwatch';
 import type { Mon } from '../storage/types';
 import { summarizeMon, type MonSummary } from '../storage/summary';
+import { encodeUriParam } from '../storage/uriParam';
 
 export default function MonCard({ mon }: { mon: Mon }) {
   const history = useHistory();
@@ -13,7 +14,7 @@ export default function MonCard({ mon }: { mon: Mon }) {
 
   return (
     <div
-      onClick={() => history.push(`/folder/${encodeURIComponent(mon.uri)}`)}
+      onClick={() => history.push(`/folder/${encodeUriParam(mon.uri)}`)}
       style={{
         display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gu-paper-2)',
         borderRadius: 12, padding: 12, margin: '8px 0', cursor: 'pointer',

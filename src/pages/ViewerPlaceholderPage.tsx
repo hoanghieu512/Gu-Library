@@ -5,17 +5,20 @@ import {
 } from '@ionic/react';
 import { useParams } from 'react-router-dom';
 import { setProgress } from '../reading/progress';
+import { decodeUriParam } from '../storage/uriParam';
 
 const TOTAL = 10; // giả lập — M5 lấy số trang thật từ PDF
 
-function baseName(uri: string): string {
-  const last = decodeURIComponent(uri).split('/').pop() ?? uri;
+function baseName(contentUri: string): string {
+  // content-URI: .../document/primary%3ADownload%2Fkho%2Fslide-buoi-2.pdf
+  const decoded = decodeURIComponent(contentUri); // %2F -> /, %3A -> :
+  const last = decoded.split('/').pop() ?? decoded;
   return last.replace(/\.[^.]+$/, '');
 }
 
 export default function ViewerPlaceholderPage() {
   const { uri } = useParams<{ uri: string }>();
-  const docUri = decodeURIComponent(uri);
+  const docUri = decodeUriParam(uri);
   const name = baseName(docUri);
   const [page, setPage] = useState(1);
 

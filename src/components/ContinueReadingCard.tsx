@@ -2,13 +2,14 @@ import { IonIcon } from '@ionic/react';
 import { bookOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import type { Progress } from '../reading/progress';
+import { encodeUriParam } from '../storage/uriParam';
 
 export default function ContinueReadingCard({ progress }: { progress: Progress }) {
   const history = useHistory();
   const pct = progress.total > 0 ? Math.round((progress.page / progress.total) * 100) : 0;
   return (
     <div
-      onClick={() => history.push(`/viewer/${encodeURIComponent(progress.docUri)}`)}
+      onClick={() => history.push(`/viewer/${encodeUriParam(progress.docUri)}`)}
       style={{
         background: 'var(--gu-brown-deep)', color: '#fff', borderRadius: 16,
         padding: 16, margin: '12px 0', display: 'flex', gap: 14, cursor: 'pointer',

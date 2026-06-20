@@ -6,15 +6,22 @@ import {
 import { folderOutline, documentTextOutline, chevronForward } from 'ionicons/icons';
 import { useParams, useHistory } from 'react-router-dom';
 import { listFolder } from '../storage/repo';
+import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
 import type { FolderListing } from '../storage/types';
 
 export default function FolderPage() {
   const { uri } = useParams<{ uri: string }>();
-  const decoded = decodeURIComponent(uri);
+  const decoded = decodeUriParam(uri);
   const history = useHistory();
   const [listing, setListing] = useState<FolderListing | null>(null);
+  const [error, setError] = useState<string>('');
 
-  useEffect(() => { listFolder(decoded).then(setListing).catch(() => setListing(null)); }, [decoded]);
+  useEffect(() => {
+    setListing(null); setError('');
+    listFolder(decoded)
+      .then(setListing)
+      .catch((e) => setError(String(e?.message ?? e)));
+  }, [decoded]);
 
   return (
     <IonPage>
@@ -25,18 +32,22 @@ export default function FolderPage() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        {!listing && <p>Đang tải…</p>}
+        {!listing && !error && <p>Đang tải…</p>}
+        {error && <p style={{ color: 'var(--ion-color-danger)' }}>Không đọc được thư mục: {error}</p>}
+        {listing && listing.folders.length === 0 && listing.documents.length === 0 && listing.pending.length === 0 && (
+          <p style={{ color: 'var(--gu-grey)' }}>Thư mục trống.</p>
+        )}
         {listing && (
           <IonList>
             {listing.folders.map((f) => (
-              <IonItem key={f.uri} button onClick={() => history.push(`/folder/${encodeURIComponent(f.uri)}`)}>
+              <IonItem key={f.uri} button onClick={() => history.push(`/folder/${encodeUriParam(f.uri)}`)}>
                 <IonIcon icon={folderOutline} slot="start" />
                 <IonLabel className="gu-serif">{f.name}</IonLabel>
                 <IonIcon icon={chevronForward} slot="end" />
               </IonItem>
             ))}
             {listing.documents.map((d) => (
-              <IonItem key={d.pdfUri} button onClick={() => history.push(`/viewer/${encodeURIComponent(d.pdfUri)}`)}>
+              <IonItem key={d.pdfUri} button onClick={() => history.push(`/viewer/${encodeUriParam(d.pdfUri)}`)}>
                 <IonIcon icon={documentTextOutline} slot="start" />
                 <IonLabel className="gu-serif">{d.name}</IonLabel>
               </IonItem>
