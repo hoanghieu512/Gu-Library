@@ -13,6 +13,7 @@ import SearchStubPage from './pages/SearchStubPage';
 import AddStubPage from './pages/AddStubPage';
 import SettingsPage from './pages/SettingsPage';
 import { useAndroidBackButton } from './nav/useAndroidBackButton';
+import ShareReceiver from './import/ShareReceiver';
 
 // Lazy: react-pdf (pdf.js) is a heavy bundle + needs DOMMatrix (crashes in jsdom tests).
 // Code-split so it's not imported when App is evaluated (keeps smoke test green).
@@ -36,6 +37,7 @@ export default function App() {
     <IonApp>
       <IonReactRouter>
         <BackButtonHandler />
+        <ShareReceiver />
         <IonTabs>
           <IonRouterOutlet>
             <Route exact path="/home" component={HomePage} />
