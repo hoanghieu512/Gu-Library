@@ -12,6 +12,7 @@ import FolderPage from './pages/FolderPage';
 import SearchStubPage from './pages/SearchStubPage';
 import AddStubPage from './pages/AddStubPage';
 import SettingsPage from './pages/SettingsPage';
+import { useAndroidBackButton } from './nav/useAndroidBackButton';
 
 // Lazy: react-pdf (pdf.js) is a heavy bundle + needs DOMMatrix (crashes in jsdom tests).
 // Code-split so it's not imported when App is evaluated (keeps smoke test green).
@@ -25,10 +26,16 @@ import '@ionic/react/css/typography.css';
 
 setupIonicReact();
 
+function BackButtonHandler() {
+  useAndroidBackButton();
+  return null;
+}
+
 export default function App() {
   return (
     <IonApp>
       <IonReactRouter>
+        <BackButtonHandler />
         <IonTabs>
           <IonRouterOutlet>
             <Route exact path="/home" component={HomePage} />
