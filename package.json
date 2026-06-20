@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
+    "@capacitor/app": "^8.1.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/preferences": "^8.0.1",
     "@fontsource/merriweather": "^5.2.11",
