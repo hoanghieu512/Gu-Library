@@ -10,7 +10,7 @@ vi.mock('@capacitor/preferences', () => ({
   },
 }));
 
-import { setProgress, getContinueReading, clearProgress } from './progress';
+import { setProgress, getContinueReading, getProgressFor, clearProgress } from './progress';
 
 beforeEach(() => mem.clear());
 
@@ -32,6 +32,12 @@ describe('reading progress', () => {
     await setProgress({ docUri: 'content://a', name: 'A', monName: 'm', page: 1, total: 5 });
     await setProgress({ docUri: 'content://a', name: 'A', monName: 'm', page: 4, total: 5 });
     expect((await getContinueReading())?.page).toBe(4);
+  });
+  it('getProgressFor returns the saved page for a specific doc (restore reading position)', async () => {
+    await setProgress({ docUri: 'content://a', name: 'A', monName: 'm', page: 5, total: 10 });
+    await setProgress({ docUri: 'content://b', name: 'B', monName: 'm', page: 2, total: 10 });
+    expect((await getProgressFor('content://a'))?.page).toBe(5);
+    expect(await getProgressFor('content://zzz')).toBeNull();
   });
   it('clearProgress removes it', async () => {
     await setProgress({ docUri: 'content://a', name: 'A', monName: 'm', page: 1, total: 5 });

@@ -45,6 +45,11 @@ export async function getContinueReading(): Promise<Progress | null> {
   return all.sort((a, b) => b.lastReadAt - a.lastReadAt)[0];
 }
 
+export async function getProgressFor(docUri: string): Promise<Progress | null> {
+  const s = await load();
+  return s[docUri] ?? null;
+}
+
 export async function clearProgress(docUri: string): Promise<void> {
   const s = await load();
   delete s[docUri];
