@@ -19,7 +19,7 @@
     "@ionic/react": "^8.8.11",
     "@ionic/react-router": "^8.8.11",
     "ionicons": "^8.0.13",
-    "pdfjs-dist": "^6.0.227",
+    "pdfjs-dist": "^5.4.296",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-pdf": "^10.4.1",
