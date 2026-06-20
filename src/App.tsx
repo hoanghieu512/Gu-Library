@@ -9,6 +9,7 @@ import { home, search, add, settings } from 'ionicons/icons';
 import HomePage from './pages/HomePage';
 import FolderPage from './pages/FolderPage';
 import ViewerPlaceholderPage from './pages/ViewerPlaceholderPage';
+import ViewerSpike from './pages/ViewerSpike'; /* TEMP M5 spike */
 import SearchStubPage from './pages/SearchStubPage';
 import AddStubPage from './pages/AddStubPage';
 import SettingsPage from './pages/SettingsPage';
@@ -30,6 +31,8 @@ export default function App() {
             <Route exact path="/home" component={HomePage} />
             <Route exact path="/folder/:uri" component={FolderPage} />
             <Route exact path="/viewer/:uri" component={ViewerPlaceholderPage} />
+            {/* TEMP M5 spike — remove in Phase 3 */}
+            <Route exact path="/spike" component={ViewerSpike} />
             <Route exact path="/search" component={SearchStubPage} />
             <Route exact path="/add" component={AddStubPage} />
             <Route exact path="/settings" component={SettingsPage} />

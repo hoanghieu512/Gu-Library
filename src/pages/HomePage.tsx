@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonContent, useIonViewWillEnter,
+  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonContent, IonButton, useIonViewWillEnter,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import SyncPill from '../components/SyncPill';
@@ -45,6 +45,9 @@ export default function HomePage() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
+        {/* TEMP M5 spike — remove in Phase 3 */}
+        <IonButton expand="block" color="warning" style={{ marginBottom: 12 }} onClick={() => history.push('/spike')}>SPIKE M5 — PDF viewer test</IonButton>
+
         <SearchShortcut />
 
         {cont && <ContinueReadingCard progress={cont} />}
