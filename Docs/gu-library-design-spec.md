@@ -58,11 +58,11 @@ App đọc API trạng thái của Syncthing và hiển thị **góc phải head
 - Không có nút "Sync now" để ra lệnh (Syncthing luôn tự chạy ngầm) — đèn chỉ để *yên tâm*, không phải để *ra lệnh*.
 
 **Cách app đọc trạng thái (đã chốt):**
-- App đọc REST API của Syncthing chạy trên **chính máy đó** (`http://localhost:8384`) — đèn báo "máy NÀY đã đẩy hết chưa" nên hỏi instance local, không phải instance mini PC.
-- Gọi REST bằng **native HTTP (CapacitorHttp)**, KHÔNG `fetch` trong WebView (né CORS + mixed-content).
+- App đọc REST API của Syncthing chạy trên **chính máy đó** — đèn báo "máy NÀY đã đẩy hết chưa" nên hỏi instance local, không phải instance mini PC.
+- **Cách gọi (as-built M3):** GUI Syncthing v2 chạy **HTTPS + cert tự ký**, redirect HTTP→307. Nên app gọi `https://localhost:8384` qua **native plugin riêng (SyncthingPlugin) trust cert self-signed localhost-only** — KHÔNG dùng CapacitorHttp/`fetch` (không qua được self-signed cert ở tầng JS, lại dính CORS/mixed-content). Trust cert phải làm ở tầng native.
 - **API key:** nhập tay một lần vào Settings của Gú's Library trên *mỗi* máy (key riêng từng máy), lưu qua Preferences. Không tự đọc `config.xml` của Syncthing.
 - **Đâu là mini PC:** app gọi REST liệt kê devices → người dùng chọn "đây là mini PC" một lần, lưu Preferences.
-- **Map điều kiện:** "thấy mini PC" = `/rest/system/connections` báo device mini PC connected; "đã đẩy hết" = `/rest/db/completion?folder=<id kho>&device=<minipc>` đạt 100%. Poll định kỳ (~10s) đủ cho MVP, không cần event API.
+- **Map điều kiện (field v2 thật):** "thấy mini PC" = `/rest/system/connections` báo device mini PC connected (v2 có primary/secondary — chỉ đọc `connected`); "đã đẩy hết" = `/rest/db/completion?folder=<id kho>&device=<minipc>` đạt 100% (`completion` là number). Poll định kỳ (~10s) đủ cho MVP, không cần event API.
 
 ---
 
@@ -220,6 +220,22 @@ Thứ tự trên màn:
 **Lấy từ cảm hứng (phần thẩm mỹ):** bảng màu nâu giấy; cặp font sans/serif; card "đang đọc dở" kiểu Currently Reading (cover + tiến độ + progress bar); search bar bo tròn ở đầu; bottom nav; layout màn Cài đặt (nhóm dày + ô tìm setting).
 
 **KHÔNG lấy (phần xã hội — Gú không có):** Home kiểu feed (Latest Reviews / Trending / Discussion); Profile với Friends/Following/Clubs; Notifications xã hội; Reviews/Ratings sao; kệ xếp theo trạng thái đọc (Want to Read / Read) — Gú xếp theo **môn**, không theo trạng thái.
+
+### 9.4 Layout Home chi tiết — *đã chốt qua mockup*
+
+Năm khối dọc (trên → dưới):
+
+1. **Header:** tên "Gú's Library" (serif, đậm, nâu đậm `#553B08`) bên trái; **đèn sync dạng pill có CHỮ** bên phải (không chỉ chấm màu) — icon + nhãn đọc được: ✓ "Đã đồng bộ" (xanh trầm), ⟳ "Đang đẩy…" (nâu/amber), ⚠ "Chưa thấy mini PC" (đỏ trầm). Đổi cả màu + chữ theo trạng thái.
+2. **Ô search:** input giả bo tròn (pill), icon kính lúp + placeholder "Tìm trong tài liệu…". Lối tắt gõ nhanh (mục 9.2).
+3. **"Đang đọc dở":** **MỘT card lớn duy nhất** (tài liệu chạm gần nhất), nền nâu đậm để nổi. Gồm: khối cover/icon trái, tên tài liệu (serif), tên môn, progress bar + "Trang X / Y · chạm để đọc tiếp". Bấm card = mở đúng tài liệu ở đúng trang dừng (0 chạm phụ). *(Nhiều card cuộn ngang để dành nếu sau này cần — MVP một card.)*
+4. **"Môn học":** **list 1 cột** (không lưới — tên môn luật dài, lưới cắt chữ). Mỗi môn một card: **swatch màu vuông** (lấy `color` từ `_mon.json`, default palette nếu thiếu) chứa chữ cái đầu môn; tên môn (serif); số tài liệu; **badge ⏳ pill "N chờ"** (cam đất) nếu có tài liệu chờ xử lý; chevron phải.
+5. **Bottom nav:** Trang chủ / Tìm / Thêm / Cài đặt (icon + nhãn); mục active màu nâu, còn lại xám.
+
+**Font (theo 9.3):** Merriweather (serif) cho tên tài liệu/môn + tiêu đề; Montserrat (sans) cho phần UI còn lại.
+
+**Empty states (đề xuất, CC làm theo trừ khi đổi):**
+- *Chưa đọc tài liệu nào:* ẩn hẳn khối "Đang đọc dở" (gọn hơn placeholder rỗng).
+- *Kho rỗng / chưa cấp quyền folder:* màn Home hiện hướng dẫn ngắn dẫn vào Cài đặt để chọn folder kho (SAF) — vì chưa cấp quyền thì không có gì để liệt kê.
 
 ---
 

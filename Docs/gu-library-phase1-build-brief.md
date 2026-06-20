@@ -63,7 +63,7 @@ Nền kỹ thuật → dữ liệu → đồng bộ → giao diện → xem → 
 ### M4 — UI shell (Home lai + điều hướng)
 **Mục tiêu:** bộ mặt app, mở ra dùng được ngay với ít thao tác.
 **Kết quả mong muốn:** màn Home lai gồm (theo thứ tự) header + đèn sync, ô search (lối tắt), card "Đang đọc dở" (0 chạm để đọc tiếp, có tiến độ trang), danh sách môn (số tài liệu + badge ⏳ nếu có file chờ), bottom nav Trang chủ/Tìm/Thêm/Cài đặt. Điều hướng vào môn → chương → … bằng breadcrumb độ sâu bất kỳ.
-**Ràng buộc đã chốt:** tông nâu giấy (palette + cặp font sans/serif ở spec mục 9.3); serif cho phần nội dung/tiêu đề đọc; lấy cảm hứng thẩm mỹ Goodreads-redesign, KHÔNG bê chức năng xã hội; badge ⏳ hiện ở cả cấp môn và cấp tài liệu.
+**Ràng buộc đã chốt:** tông nâu giấy (palette + cặp font sans/serif ở spec mục 9.3); **layout Home chi tiết đã chốt qua mockup — theo spec mục 9.4**: đèn sync là pill có chữ (không chỉ chấm); "Đang đọc dở" = MỘT card lớn; danh sách môn = list 1 cột với swatch màu + chữ cái đầu; badge ⏳ pill "N chờ" ở cấp môn (và cấp tài liệu). Serif (Merriweather) cho tên tài liệu/môn + tiêu đề. KHÔNG bê chức năng xã hội của Goodreads. Cắm `repo.listMon()` (M2) + đèn sync (M3) vào giao diện thật, thay `SafPoc.tsx`.
 **Nghiệm thu:**
 - [ ] Home hiện đúng card "đang đọc dở" và danh sách môn từ kho mẫu.
 - [ ] Bấm card đang đọc dở → mở đúng tài liệu, đúng trang dừng.
