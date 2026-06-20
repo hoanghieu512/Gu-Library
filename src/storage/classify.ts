@@ -15,6 +15,8 @@ export function classifyEntries(entries: SafEntry[]): FolderListing {
 
   for (const en of entries) {
     if (en.isDirectory) {
+      // Bỏ qua folder ẩn (vd .stfolder / .stversions do Syncthing tạo).
+      if (en.name.startsWith('.')) continue;
       folders.push({ name: en.name, uri: en.uri });
       continue;
     }

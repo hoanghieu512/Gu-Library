@@ -46,7 +46,11 @@ export async function listMon(): Promise<Mon[]> {
   if (!root) return [];
   const { entries } = await Saf.listFolder({ uri: root });
   const monDirs = entries.filter(
-    (e) => e.isDirectory && e.name !== '_inbox' && e.name !== '_print'
+    (e) =>
+      e.isDirectory &&
+      !e.name.startsWith('.') && // folder ẩn Syncthing (.stfolder/.stversions)
+      e.name !== '_inbox' &&
+      e.name !== '_print'
   );
   const mons: Mon[] = [];
   for (const d of monDirs) {

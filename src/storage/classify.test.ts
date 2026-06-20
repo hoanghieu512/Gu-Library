@@ -43,6 +43,13 @@ describe('classifyEntries', () => {
     expect(r.documents).toHaveLength(1);
   });
 
+  it('skips hidden (dot) folders like .stfolder / .stversions', () => {
+    const r = classifyEntries([
+      e('.stfolder', true), e('.stversions', true), e('Chương 1', true),
+    ]);
+    expect(r.folders.map((f) => f.name)).toEqual(['Chương 1']);
+  });
+
   it('sets hasPending true when any pending exists at this level', () => {
     const r = classifyEntries([e('x.docx', false)]);
     expect(r.hasPending).toBe(true);
