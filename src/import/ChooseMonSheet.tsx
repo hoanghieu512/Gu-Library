@@ -46,7 +46,7 @@ export default function ChooseMonSheet({ isOpen, fileName, onPick, onCancel }: P
         <IonList>
           {ordered.map((m) => (
             <IonItem key={m.uri} button onClick={() => onPick(m.name)}>
-              <MonSwatch name={m.name} color={m.meta.color} />
+              <MonSwatch name={m.name} color={m.meta.color} icon={m.meta.icon} />
               <IonLabel className="gu-serif" style={{ marginLeft: 12 }}>
                 {m.name}{m.name === last ? '  · vừa dùng' : ''}
               </IonLabel>

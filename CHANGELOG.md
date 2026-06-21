@@ -2,6 +2,13 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.6.1] — 2026-06-21 — Sửa môn seed "Aa Dân sự" → "Luật Đất đai"
+### Fixed
+- Đổi tên môn placeholder seed sai **"Aa Dân sự" → "Luật Đất đai"**. Vì tên môn = tên folder (khóa), migrate an toàn bằng **rename folder** trên đĩa — tài liệu trong môn (`giao-trinh`, `de-cuong.pptx`) giữ nguyên, không tạo môn mới. `_inbox/` không có tiền tố cũ nên không cần migrate prefix.
+### Added
+- `_mon.json` field tùy chọn **`icon`** (override chữ swatch). "Luật Đất đai" → icon "Đ" + màu xanh `#3F6B2E` để **không trùng** ô icon với "Luật Công chứng" ("L" nâu). Các môn khác vẫn dùng chữ cái đầu mặc định (không phải cơ chế icon tổng quát).
+- Fixture (`make-fixture.mjs`) cập nhật theo để khỏi tái tạo placeholder.
+
 ## [0.6.0] — 2026-06-21 — M6: Import qua Share Intent
 - Share file (PDF/Word/PPTX) từ app khác → Gú's Library → **sheet trượt lên** chọn môn (môn vừa dùng ở đầu) + "Chưa phân loại" → copy vào `_inbox/` tên `[<môn>] <gốc>` (tiền tố = interface M6↔M7).
 - Native `ShareTargetPlugin` (ACTION_SEND intent-filter, bắt EXTRA_STREAM cold + warm qua `@capacitor/app` resume); `Saf.copyToDir` copy nhị phân qua content-URI; `Saf.ensureDir`.

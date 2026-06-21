@@ -17,4 +17,10 @@ describe('parseMonMeta', () => {
   it('keeps only known fields', () => {
     expect(parseMonMeta('{"color":"#000","order":1,"junk":true}')).toEqual({ color: '#000', order: 1 });
   });
+  it('reads optional icon override', () => {
+    expect(parseMonMeta('{"icon":"Đ","color":"#3F6B2E"}')).toEqual({ icon: 'Đ', color: '#3F6B2E' });
+  });
+  it('ignores non-string icon', () => {
+    expect(parseMonMeta('{"icon":5}')).toEqual({});
+  });
 });

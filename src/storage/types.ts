@@ -27,6 +27,8 @@ export interface FolderListing {
 export interface MonMeta {
   color?: string;
   order?: number;
+  /** Optional override for the swatch character (default = first letter of folder name). */
+  icon?: string;
 }
 
 export interface Mon {

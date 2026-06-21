@@ -22,7 +22,7 @@ export default function MonCard({ mon, inboxPending = 0 }: { mon: Mon; inboxPend
         borderRadius: 12, padding: 12, margin: '8px 0', cursor: 'pointer',
       }}
     >
-      <MonSwatch name={mon.name} color={mon.meta.color} />
+      <MonSwatch name={mon.name} color={mon.meta.color} icon={mon.meta.icon} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)' }}>{mon.name}</div>
         <div style={{ fontSize: 13, color: 'var(--gu-grey)' }}>

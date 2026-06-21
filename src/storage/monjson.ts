@@ -12,5 +12,6 @@ export function parseMonMeta(text: string): MonMeta {
   const meta: MonMeta = {};
   if (typeof obj.color === 'string') meta.color = obj.color;
   if (typeof obj.order === 'number') meta.order = obj.order;
+  if (typeof obj.icon === 'string') meta.icon = obj.icon;
   return meta;
 }

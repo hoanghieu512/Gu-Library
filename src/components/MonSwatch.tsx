@@ -7,9 +7,11 @@ function colorFor(name: string, explicit?: string): string {
   return PALETTE[h % PALETTE.length];
 }
 
-export default function MonSwatch({ name, color }: { name: string; color?: string }) {
+export default function MonSwatch({ name, color, icon }: { name: string; color?: string; icon?: string }) {
   const bg = colorFor(name, color);
-  const initial = (name.trim()[0] ?? '?').toUpperCase();
+  // icon override (từ _mon.json) cho phép một môn dùng chữ khác chữ cái đầu —
+  // vd "Luật Đất đai" → "Đ" để khỏi đụng "Luật Công chứng" ("L").
+  const initial = (icon?.trim() || name.trim()[0] || '?').toUpperCase();
   return (
     <div style={{
       width: 44, height: 44, borderRadius: 8, background: bg, color: '#fff',

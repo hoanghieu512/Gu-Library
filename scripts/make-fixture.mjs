@@ -27,7 +27,8 @@ const m2 = dir('Luật Công chứng');
 mon(m2, { order: 2 });
 doc(m2, 'luat-cong-chung-2024');
 
-const m3 = dir('Aa Dân sự');
+const m3 = dir('Luật Đất đai');
+mon(m3, { icon: 'Đ', color: '#3F6B2E' }); // icon override để khỏi đụng 'L' của Luật Công chứng
 doc(m3, 'giao-trinh');
 src(m3, 'de-cuong.pptx');
 
