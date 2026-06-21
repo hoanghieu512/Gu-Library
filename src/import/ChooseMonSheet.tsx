@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel,
-  IonButton, IonNote,
+  IonNote,
 } from '@ionic/react';
 import { listMon } from '../storage/repo';
 import { getLastMon } from './inboxRepo';
 import { UNFILED } from './prefix';
 import MonSwatch from '../components/MonSwatch';
+import UnfiledSwatch from '../components/UnfiledSwatch';
 import type { Mon } from '../storage/types';
 
 interface Props {
@@ -40,9 +41,7 @@ export default function ChooseMonSheet({ isOpen, fileName, onPick, onCancel }: P
       </IonHeader>
       <IonContent className="ion-padding">
         {fileName && <IonNote>{fileName}</IonNote>}
-        <IonButton expand="block" fill="outline" style={{ margin: '10px 0' }} onClick={() => onPick(UNFILED)}>
-          Chưa phân loại
-        </IonButton>
+        {/* Môn thật = lựa chọn nổi bật, lên trên */}
         <IonList>
           {ordered.map((m) => (
             <IonItem key={m.uri} button onClick={() => onPick(m.name)}>
@@ -52,6 +51,13 @@ export default function ChooseMonSheet({ isOpen, fileName, onPick, onCancel }: P
               </IonLabel>
             </IonItem>
           ))}
+          {/* Fallback = visual nhẹ (xám, italic, ô viền đứt), đặt cuối */}
+          <IonItem button detail={false} onClick={() => onPick(UNFILED)}>
+            <UnfiledSwatch />
+            <IonLabel color="medium" style={{ marginLeft: 12, fontStyle: 'italic' }}>
+              Chưa phân loại
+            </IonLabel>
+          </IonItem>
         </IonList>
       </IonContent>
     </IonModal>

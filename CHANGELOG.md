@@ -2,6 +2,12 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.6.2] — 2026-06-21 — UI "Chưa phân loại" hòa tông + nhất quán
+### Changed
+- Sheet chọn môn: bỏ nút "CHƯA PHÂN LOẠI" outlined xanh/all-caps (lạc Material). Thay bằng item mờ **xám in nghiêng, title case**, đặt **cuối** danh sách → môn thật là lựa chọn nổi bật (sửa hierarchy ngược).
+- Concept "Chưa phân loại" dùng chung visual giữa Home + sheet qua component `UnfiledSwatch` (ô xám viền đứt) — cùng tông + casing.
+- Không đụng logic lưu/phân loại/share; badge "Đã đồng bộ" xanh lá giữ nguyên (semantic success).
+
 ## [0.6.1] — 2026-06-21 — Sửa môn seed "Aa Dân sự" → "Luật Đất đai"
 ### Fixed
 - Đổi tên môn placeholder seed sai **"Aa Dân sự" → "Luật Đất đai"**. Vì tên môn = tên folder (khóa), migrate an toàn bằng **rename folder** trên đĩa — tài liệu trong môn (`giao-trinh`, `de-cuong.pptx`) giữ nguyên, không tạo môn mới. `_inbox/` không có tiền tố cũ nên không cần migrate prefix.

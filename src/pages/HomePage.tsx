@@ -18,6 +18,7 @@ import { listInboxByMon } from '../import/inboxRepo';
 import { UNFILED } from '../import/prefix';
 import { hourglassOutline } from 'ionicons/icons';
 import { IonIcon } from '@ionic/react';
+import UnfiledSwatch from '../components/UnfiledSwatch';
 
 export default function HomePage() {
   const history = useHistory();
@@ -74,9 +75,10 @@ export default function HomePage() {
 
             {(inboxMap.get(UNFILED) ?? 0) > 0 && (
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, marginTop: 8,
+                display: 'flex', alignItems: 'center', gap: 12, marginTop: 8,
                 background: 'var(--gu-paper-2)', borderRadius: 12, padding: 12,
               }}>
+                <UnfiledSwatch />
                 <div style={{ flex: 1, color: 'var(--gu-grey)', fontStyle: 'italic' }}>
                   Chưa phân loại
                 </div>
