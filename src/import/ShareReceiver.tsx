@@ -1,21 +1,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useIonToast } from '@ionic/react';
 import { App } from '@capacitor/app';
-import { ShareTarget } from '../plugins/shareTarget';
+import { ShareTarget, type SharedFile } from '../plugins/shareTarget';
 import ChooseMonSheet from './ChooseMonSheet';
 import { importSharedFile } from './inboxRepo';
+import { emitKhoChanged } from '../lib/khoEvents';
 
-interface Pending { uri: string; name: string; }
-
-// Bắt file share (cold-start + khi app resume), mở sheet chọn môn, copy vào _inbox.
+// Bắt file share (cold-start + khi app resume), mở sheet chọn MỘT môn, copy CẢ LÔ
+// vào _inbox với tiền tố môn đó. Một lô = một môn (thiết kế đã chốt).
 export default function ShareReceiver() {
-  const [pending, setPending] = useState<Pending | null>(null);
+  const [batch, setBatch] = useState<SharedFile[]>([]);
   const [presentToast] = useIonToast();
 
   const check = useCallback(async () => {
     try {
-      const r = await ShareTarget.getSharedFile();
-      if (r.uri && r.name) setPending({ uri: r.uri, name: r.name });
+      const { files } = await ShareTarget.getSharedFiles();
+      if (files.length > 0) setBatch(files);
     } catch { /* ignore */ }
   }, []);
 
@@ -26,23 +26,47 @@ export default function ShareReceiver() {
   }, [check]);
 
   const pick = async (monName: string) => {
-    if (!pending) return;
-    const file = pending;
-    setPending(null);
-    try {
-      await importSharedFile(file.uri, file.name, monName);
-      await presentToast({ message: `Đã thêm "${file.name}" vào ${monName} (chờ xử lý)`, duration: 2500 });
-    } catch (e: unknown) {
-      await presentToast({ message: 'Lỗi thêm file: ' + String(e instanceof Error ? e.message : e), duration: 3500, color: 'danger' });
+    const files = batch;
+    setBatch([]);
+    if (files.length === 0) return;
+    let ok = 0;
+    const fails: string[] = [];
+    // Tuần tự để file trùng tên gốc được createFile tự thêm hậu tố "(1)" đúng thứ tự.
+    for (const f of files) {
+      try {
+        await importSharedFile(f.uri, f.name, monName);
+        ok += 1;
+      } catch {
+        fails.push(f.name);
+      }
+    }
+    if (ok > 0) emitKhoChanged(); // Home cập nhật badge ⏳ / "Chưa phân loại" ngay
+    if (fails.length === 0) {
+      await presentToast({
+        message: `Đã thêm ${ok} file vào ${monName} (chờ xử lý)`,
+        duration: 2500,
+      });
+    } else {
+      await presentToast({
+        message: `Thêm ${ok}/${files.length} file vào ${monName}; lỗi: ${fails.join(', ')}`,
+        duration: 3500,
+        color: 'danger',
+      });
     }
   };
 
+  const note = batch.length === 0
+    ? null
+    : batch.length === 1
+      ? batch[0].name
+      : `${batch.length} file`;
+
   return (
     <ChooseMonSheet
-      isOpen={pending !== null}
-      fileName={pending?.name ?? null}
+      isOpen={batch.length > 0}
+      note={note}
       onPick={pick}
-      onCancel={() => setPending(null)}
+      onCancel={() => setBatch([])}
     />
   );
 }

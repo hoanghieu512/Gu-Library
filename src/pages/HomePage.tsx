@@ -19,6 +19,7 @@ import { UNFILED } from '../import/prefix';
 import { hourglassOutline } from 'ionicons/icons';
 import { IonIcon } from '@ionic/react';
 import UnfiledSwatch from '../components/UnfiledSwatch';
+import { onKhoChanged } from '../lib/khoEvents';
 
 export default function HomePage() {
   const history = useHistory();
@@ -42,6 +43,9 @@ export default function HomePage() {
   useIonViewWillEnter(() => { reload(); });
   useEffect(() => {
     reload();
+    // Refresh ngay khi có file mới vào kho (share) dù đang ở Home (overlay sheet
+    // dismiss không kích hoạt useIonViewWillEnter).
+    return onKhoChanged(() => { reload(); });
   }, []);
 
   return (

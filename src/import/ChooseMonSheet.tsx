@@ -12,12 +12,12 @@ import type { Mon } from '../storage/types';
 
 interface Props {
   isOpen: boolean;
-  fileName: string | null;
+  note: string | null;
   onPick: (monName: string) => void;
   onCancel: () => void;
 }
 
-export default function ChooseMonSheet({ isOpen, fileName, onPick, onCancel }: Props) {
+export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props) {
   const [mons, setMons] = useState<Mon[]>([]);
   const [last, setLast] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export default function ChooseMonSheet({ isOpen, fileName, onPick, onCancel }: P
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        {fileName && <IonNote>{fileName}</IonNote>}
+        {note && <IonNote>{note}</IonNote>}
         {/* Môn thật = lựa chọn nổi bật, lên trên */}
         <IonList>
           {ordered.map((m) => (

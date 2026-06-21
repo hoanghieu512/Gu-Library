@@ -2,6 +2,12 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.6.3] — 2026-06-21 — Share nhiều file (một lô = một môn)
+### Added
+- Nhận **ACTION_SEND_MULTIPLE** (intent-filter + MainActivity) → app xuất hiện trong share sheet khi chọn nhiều file. `ShareTargetPlugin` trả danh sách (`getSharedFiles`), `ShareReceiver` copy cả lô vào `_inbox/` với tiền tố môn đã chọn (một môn áp cho toàn lô). File trùng tên gốc tự thêm hậu tố `(1)` (không đè).
+### Fixed
+- Home cập nhật badge "N chờ" / dòng "Chưa phân loại" **ngay** sau khi import (event `kho-changed`), không phải đợi điều hướng lại tab.
+
 ## [0.6.2] — 2026-06-21 — UI "Chưa phân loại" hòa tông + nhất quán
 ### Changed
 - Sheet chọn môn: bỏ nút "CHƯA PHÂN LOẠI" outlined xanh/all-caps (lạc Material). Thay bằng item mờ **xám in nghiêng, title case**, đặt **cuối** danh sách → môn thật là lựa chọn nổi bật (sửa hierarchy ngược).
