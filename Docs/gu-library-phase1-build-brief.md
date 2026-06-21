@@ -96,16 +96,31 @@ Nền kỹ thuật → dữ liệu → đồng bộ → giao diện → xem → 
 - [ ] Tài liệu vừa thêm hiện ⏳ ở đúng môn.
 - [ ] Chọn "Chưa phân loại" cũng lưu được (tiền tố `[Chưa phân loại]`), không kẹt luồng.
 
+**As-built (v0.6.3 — multi-file share):** manifest khai báo **cả** `ACTION_SEND` (1 file) **và** `ACTION_SEND_MULTIPLE` (≥2 file); thiếu cái sau thì app biến mất khỏi share sheet khi chọn nhiều file. Share một lô (kể cả trộn PDF/Word/PPTX) → sheet hỏi **một** môn → áp tiền tố cho cả lô (đã chốt: một lô một môn, không chọn riêng từng file — spec 5.1b). Trùng tên gốc trong lô → app tự thêm `(1)`. + fix UX: Home cập nhật badge "N chờ" ngay sau import (event `kho-changed`), không cần thoát ra vào lại.
+
 ---
 
 ### M7 — Mini PC worker (convert + extract) — *chạy trên mini PC, không phải app*
 **Mục tiêu:** biến file gốc thành cặp PDF + sidecar chuẩn.
-**Kết quả mong muốn:** worker watch `_inbox/`; mỗi file gốc → (1) convert sang PDF bằng LibreOffice headless, (2) extract sidecar từ *file gốc* gồm text đầy đủ + cấu trúc Điều/Khoản/Điểm + vị trí trang, (3) đặt cặp `.pdf` + `.json` vào đúng môn, (4) bỏ file gốc. Syncthing rải về 3 máy.
-**Ràng buộc đã chốt:** lớp rút text thống nhất (đầu đọc PDF/PPTX/Word → cùng một output: text + vị trí + cấu trúc); sidecar PHẢI có sẵn cấu trúc Điều/Khoản cho Phase 2; PDF chỉ để xem, sidecar để hiểu.
+**Kết quả mong muốn:** worker Python chạy theo nhịp (polling) quét `_inbox/`; mỗi file gốc hợp lệ → (1) convert sang PDF bằng LibreOffice headless (PDF gốc giữ nguyên), (2) extract sidecar theo `gu-library-sidecar-schema.md` gồm text đầy đủ + cấu trúc Điều/Khoản/Điểm + neo trang, (3) đặt cặp `.pdf` + `.json` vào đúng môn (bỏ tiền tố), (4) bỏ file gốc. Syncthing rải về 3 máy.
+
+**Ràng buộc đã chốt (4 trục thiết kế):**
+- **Schema sidecar (trục 1):** theo `gu-library-sidecar-schema.md` — phẳng + `path` tổ tiên; text trong từng đơn vị (không blob tổng); neo `page` (trang bắt đầu, 1-indexed); mỗi loại một `type` (`dieu/khoan/diem/slide/heading/paragraph`) với `paragraph`/`slide` là đáy phổ quát, **degrade sạch** (parse hụt cấu trúc → rơi về `paragraph`, không bao giờ mất text). `bbox` CHƯA thêm (spike highlight quyết — xem dưới).
+- **Ngôn ngữ (trục 2):** **Python** (PyMuPDF / python-docx / python-pptx). Worker là tiến trình riêng trên mini PC, không chia code với app.
+- **Watch + run (trục 3):** **polling vài phút qua Windows Scheduled Task** (KHÔNG daemon/fs-event); **stateless** (trạng thái derive từ `_inbox/`, không sổ "đã xử"). **Cổng lọc đầu vào:** chỉ {pdf,doc,docx,ppt,pptx}; **stability check** (chờ size đứng yên 2 lần) chống đụng file đang-ghi-dở; bỏ đuôi tạm `.tmp`/`.crdownload`/`.syncthing.*`; **file kẹt KHÔNG tự xóa** (để app hiện ⏳ làm tín hiệu dọn tay). **Trùng tên đích cùng môn** → auto-suffix `(1)` cho **cả cặp** (không ghi đè, không để kẹt).
+- **Test (trục 4):** **repo riêng** (`gu-library-worker`, tách app); schema nguồn ở spec (`gu-library-sidecar-schema.md`), mỗi bên tự validate. **Fixture hai tầng:** tổng hợp (assert chặt từng nhánh reader) + 5 file thật của Gú (smoke test = nghiệm thu). **Ba lớp test:** lọc đầu vào · mỗi reader ra đúng hình dạng (không mất text) · đặt file đúng chỗ.
+
+**Bước đầu M7 — spike highlight (quyết bbox TRƯỚC khi khoá schema):** chạy thử highlight overlay trên PDF bằng thư viện Viewer hiện có. Kho còn ~5 file nên "đập kho làm lại" gần như free *lúc này* → tận dụng cửa sổ. Khả thi → thêm field `bbox` vào schema + chạy lại worker trên kho; không khả thi → bỏ highlight khỏi Phase 2, schema chốt ở `page`. KHÔNG khoá schema vào tính năng chưa biết có làm được.
+
 **Nghiệm thu:**
-- [ ] Bỏ 1 file Word luật vào `_inbox/` → ra PDF + JSON đúng môn, gốc bị xóa.
-- [ ] Bỏ 1 file PPTX → ra PDF + JSON, text theo từng slide + vị trí.
-- [ ] Sidecar của văn bản luật chứa đúng ranh giới + nhãn Điều/Khoản và trang tương ứng.
+- [ ] Spike highlight chạy xong → quyết có thêm `bbox` hay không trước khi khoá schema.
+- [ ] Bỏ 1 file Word luật vào `_inbox/` → ra PDF + JSON đúng môn, gốc bị xóa; sidecar có ranh giới + nhãn Điều/Khoản + trang đúng.
+- [ ] Bỏ 1 file PPTX → ra PDF + JSON, mỗi slide một unit `slide` + trang 1-1.
+- [ ] Bỏ 1 PDF luật thật (gốc đã là PDF, không convert) → extract thẳng trên PDF, degrade sạch nếu hụt cấu trúc, không mất text.
+- [ ] File `.tmp` trong `_inbox/` (ca thật) → worker **bỏ qua**, không nuốt nửa vời.
+- [ ] Trùng tên đích cùng môn → cặp thứ hai thành `tên (1).pdf`+`.json`, không đè.
+- [ ] "Chưa phân loại" → vào đúng khu chưa phân loại.
+- [ ] *(Quan sát máy thật)* liếc `_inbox/` lúc đang nhận file: có thấy `.syncthing.*.tmp` chớp qua không → tinh chỉnh bộ lọc đuôi cho khít.
 
 ---
 
@@ -134,6 +149,22 @@ Nền kỹ thuật → dữ liệu → đồng bộ → giao diện → xem → 
 - [ ] Gom → file xuất hiện trong `_print/`, tên có tiền tố môn, không trùng khi 2 môn có file trùng tên; bản gốc trong môn còn nguyên.
 - [ ] Tài liệu đã ở `_print/` hiện "đã gửi đi in"; chưa thì không.
 - [ ] Tick "xong" → file rời `_print/`, cờ "cần in" được clear, badge về trung tính.
+
+---
+
+### M10 — Quản lý kho (đổi tên / chuyển môn / xóa) — *Phase 2, ghi trước để khỏi quên thiết kế*
+**Mục tiêu:** app sửa được cây kho — đổi tên tài liệu, chuyển môn, xóa. Năng lực app *ghi vào folder môn* (vùng Phase 1 chưa đụng).
+**Kết quả mong muốn:** trong app, đổi tên một tài liệu (đổi cặp pdf+json), chuyển nó sang môn khác (move cặp sang folder môn khác), hoặc xóa nó.
+**Ràng buộc đã chốt (thiết kế dữ liệu — hiện thực hóa Phase 2):**
+- **Đổi tên KHÔNG đụng nội dung sidecar:** app hiển thị theo **tên file** (basename), không đọc `title` → rename = đổi tên **cặp** `.pdf`+`.json` cho khớp (lệch một cái là vỡ "cùng basename = một tài liệu"). Không ghi nội dung sidecar worker sở hữu → KHÔNG chạm cảnh báo spec 14.4. (`title` sidecar sẽ lệch — Phase 1 vô hại; M10 quyết: lờ hay bỏ `title`.)
+- **Chuyển môn = move cặp file sang folder khác, zero đụng JSON** (môn = folder name, sidecar không lưu môn — spec 4.1b).
+- **Xóa** đụng rủi ro xóa-nhầm-lan-truyền (spec 10) → versioning mini PC (M8) là lưới đỡ.
+- Cả ba chia chung **spike "app ghi được vào folder môn chưa"** — M2 spike đọc, M6/M9 spike ghi `_inbox/`+`_print/`, **chưa cái nào ghi folder môn**. Spike này mở M10.
+**Nghiệm thu:** *(chi tiết hóa khi mở M10 ở Phase 2)*
+- [ ] Spike ghi folder môn pass trên máy thật.
+- [ ] Đổi tên → cặp pdf+json đổi đồng bộ, app hiện tên mới, mở xem vẫn đúng.
+- [ ] Chuyển môn → cặp file sang folder môn mới, không sửa JSON, app hiện đúng môn.
+- [ ] Xóa → tài liệu biến mất, bản cũ vẫn moi được từ versioning mini PC.
 
 ---
 

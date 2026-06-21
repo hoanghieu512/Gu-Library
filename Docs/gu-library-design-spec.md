@@ -120,19 +120,39 @@ kho/
 - File gốc rơi vào `_inbox/`, **tên gắn tiền tố môn đích** (vd `[Tố tụng Hình sự] file.pdf`; "Chưa phân loại" → tiền tố `[Chưa phân loại]`) → Syncthing đẩy lên mini PC.
 - **Tiền tố môn là interface M6↔M7:** app chỉ biết môn đích lúc Gú chọn ở sheet, nhưng mini PC (M7) mới là nơi đặt cặp PDF+JSON vào đúng môn sau convert. Tiền tố tải môn đích kèm file qua `_inbox/` để M7 đọc — KHÔNG đẻ file phụ, tái dùng đúng cơ chế đặt tên của `_print/` (mục 5b).
 
+### 5.1b Share nhiều file một lúc — *as-built v0.6.3*
+- Share **một lô nhiều file** (kể cả trộn PDF/Word/PPTX) cũng vào được app. Android coi share ≥2 file là `ACTION_SEND_MULTIPLE` (khác `ACTION_SEND` của 1 file) → manifest phải khai báo **cả hai**, thiếu `SEND_MULTIPLE` thì app biến mất khỏi share sheet khi chọn nhiều file.
+- **Một lô = một môn (đã chốt):** sheet trượt lên hỏi **một** môn → áp tiền tố đó cho **toàn bộ** file trong lô. KHÔNG chọn môn riêng từng file (giữ sheet "một câu hỏi", đúng tinh thần ít chạm). Lô lẫn nhiều môn → Gú share nhiều lần theo môn; hoặc quăng cả lô vào "Chưa phân loại" rồi phân loại sau (Phase 2).
+- Mỗi file vào `_inbox/` thành một entry độc lập, tiền tố môn giống nhau; trùng tên gốc trong lô → app tự thêm `(1)` để không đè (đối xứng cơ chế trùng tên của M7, mục 5.4).
+- *(Lý do thiết kế: thói quen thật là gom tài liệu theo môn rồi nạp một lượt; lô đa môn là ca hiếm, không đáng phình sheet thành form N dòng.)*
+
 ### 5.2 Đường phụ: Watch folder
 - Lúc ngồi máy tính: copy file thẳng vào `_inbox/` → mini PC tự nuốt.
 
 ### 5.3 Đường dự phòng: nút "+" trong app
 - Mở app → Thêm → file picker → chọn môn. Không phải đường mặc định.
 
-### 5.4 Xử lý ở mini PC (xưởng convert + extract)
-Mini PC watch `_inbox/`, với mỗi file:
-0. **Đọc tiền tố môn** từ tên file (`[<môn>] ...`) để biết môn đích; tiền tố `[Chưa phân loại]` → để ở khu chưa phân loại.
-1. **Convert sang PDF** bằng LibreOffice headless (fidelity desktop-class). PDF giữ nguyên; PPTX/Word → PDF.
-2. **Extract sidecar** từ *file gốc* (gốc giữ cấu trúc sạch hơn PDF): rút text + cấu trúc Điều/Khoản + vị trí trang.
+### 5.4 Xử lý ở mini PC (xưởng convert + extract) — *worker M7, đã chốt thiết kế*
+
+Worker là **script Python** (PyMuPDF cho PDF kèm toạ độ text, python-docx, python-pptx — hệ parse tài liệu mạnh hơn Node; worker là tiến trình riêng trên mini PC, không chia code với app nên "cùng ngôn ngữ app" không phải lợi thế). **Không nằm trong app.**
+
+**Cơ chế chạy (polling, không daemon):** Scheduled Task của Windows chạy worker **mỗi vài phút**, mỗi lần quét một vòng `_inbox/` rồi thoát. KHÔNG dùng watcher thường trú/fs-event.
+- *Lý do:* mô hình "về nhà tự sync" vốn không cần realtime (spec 1.2); Task Scheduler tự lo restart sau reboot/crash → độ bền lấy gần như miễn phí, ít cơ-phận-để-hỏng hơn daemon; polling nhìn trạng thái tĩnh nên né được tràng fs-event nhiễu của folder Syncthing.
+- **Stateless:** worker KHÔNG giữ sổ "đã xử file nào". Trạng thái derive thẳng từ filesystem — file gốc **còn** trong `_inbox/` = chưa xử xong; xử xong thì worker đã move cặp pdf+json ra môn + bỏ gốc → `_inbox/` tự sạch. Không có state để lệch/hỏng (hợp tư duy file-based, spec mục 4).
+
+**Cổng lọc đầu vào (chặn cửa trước khi đụng file):** chỉ xử file đuôi ∈ {pdf, doc, docx, ppt, pptx}.
+- **Stability check:** trước khi đụng bất kỳ file nào, chờ kích thước **đứng yên qua 2 lần kiểm** (cách nhau vài giây) → chắc Syncthing/trình duyệt đã ghi xong. Đây là lưới bắt ca nguy hiểm nhất: file `.pdf` mà Syncthing **đang ghi dở** trông như PDF hợp lệ, worker nuốt vào extract ra text cụt → sidecar sai âm thầm.
+- **Đuôi tạm bỏ thẳng:** `.tmp`, `.crdownload`, `.syncthing.*.tmp` (tên-đang-ghi, không phải đích). Đuôi lạ hẳn (`.txt`, `.zip`, ảnh) và file ẩn/hệ thống → lờ.
+- **File kẹt KHÔNG tự xóa:** file đuôi-lạ/tmp tồn lại trong `_inbox/`, app vẫn hiện ⏳ → *đó là tín hiệu cho Gú vào dọn tay*. Worker không tự dọn (xóa là việc nhạy, spec 10).
+
+**Với mỗi file hợp lệ:**
+0. **Đọc tiền tố môn** từ tên file (`[<môn>] ...`); tiền tố `[Chưa phân loại]` → khu chưa phân loại.
+1. **Convert sang PDF** bằng LibreOffice headless. **PDF gốc giữ nguyên (không convert);** PPTX/Word → PDF.
+2. **Extract sidecar** theo `gu-library-sidecar-schema.md` (text + cấu trúc Điều/Khoản + neo trang). Extract từ *file gốc* khi gốc là Word/PPTX (cấu trúc sạch hơn PDF); **khi gốc đã là PDF thì extract thẳng trên PDF** — đây là ca khó nhất cho parse cấu trúc, degrade sạch về `paragraph` nếu hụt Điều/Khoản, không bao giờ mất text.
 3. Đặt cặp `.pdf` + `.json` vào **đúng môn (từ tiền tố)**, bỏ tiền tố khỏi tên cuối, **bỏ file gốc**.
 4. Syncthing rải về 3 máy.
+
+**Trùng tên đích trong cùng môn:** nếu sau khi bỏ tiền tố, tên đã tồn tại trong folder môn → worker **tự thêm hậu tố `(1)`** cho **cả cặp** (`tên (1).pdf` + `tên (1).json`, không lệch). KHÔNG ghi đè (mất dữ liệu âm thầm — spec 10), KHÔNG để kẹt câm lặng. Đối xứng cơ chế `(1)` của app ở `_inbox/` (mục 5.1b). Bản trùng dư là "rác thấy được", Gú dọn sau bằng Quản lý kho (M10). Kiểm trùng phải tính cả file đang chờ trong cùng nhịp quét.
 
 > **Đánh đổi đã chấp nhận:** import "xịn" cần đi qua mini PC. Ở ngoài thì file gốc vào trạng thái ⏳, convert khi về nhà.
 
@@ -273,6 +293,7 @@ Hai nguồn thuộc hai thế giới khác hẳn, KHÔNG gộp:
 - **Viewer** — render PDF + nhảy trang + highlight.
 - **UI shell** — Home lai, điều hướng độ sâu bất kỳ, Share Intent handler.
 - **Print outbox** — đánh dấu "cần in" (app-owned per-file, có sync), gom → `_print/` đặt tên có tiền tố môn, dọn khi xong (mục 5b).
+- **Quản lý kho (M10, Phase 2)** — app sửa cây kho trong folder môn: **đổi tên** (rename cặp pdf+json), **chuyển môn** (move cặp sang folder khác), **xóa** tài liệu. Tất cả là năng lực app *ghi vào folder môn* — vùng app chưa từng đụng ở Phase 1 (M6 ghi `_inbox/`, M9 ghi `_print/`).
 
 ---
 
@@ -283,7 +304,13 @@ Data model (folder=môn, lồng tự do, PDF + sidecar) · Sync (Syncthing + min
 → Hết Phase 1 đã là app dùng được: thêm tài liệu, đồng bộ, xem.
 
 ### Phase 2 — Lớp tri thức (chỗ app khác biệt)
-Full-text search (passage-level, index derived) · Cross-link tới đúng Điều.
+Full-text search (passage-level, index derived) · Cross-link tới đúng Điều · **Quản lý kho (M10):** đổi tên / chuyển môn / xóa tài liệu.
+
+> **Quản lý kho (M10) — đã chốt thiết kế dữ liệu (hiện thực hóa ở Phase 2):**
+> - **Đổi tên KHÔNG đụng nội dung sidecar.** App hiển thị tên tài liệu theo **tên file** (basename), không đọc `title` trong sidecar → rename = đổi tên **cặp** `.pdf` + `.json` cho khớp (lệch một cái là vỡ "cùng basename = một tài liệu"). Không ghi *nội dung* sidecar do worker sở hữu → KHÔNG chạm cảnh báo mục 14.4. (Hệ quả: `title` trong sidecar sẽ lệch tên file sau rename; Phase 1 vô hại vì không ai đọc `title`. Khi thiết kế M10 quyết: lờ luôn, hay bỏ `title` khỏi schema.)
+> - **Chuyển môn = move cặp file sang folder môn khác. Zero đụng JSON** — môn là folder name, sidecar không lưu môn (mục 4.1b), nên đổi folder = đổi môn tự động, không trường nào cần sửa. Rẻ nhất trong ba.
+> - **Xóa** đụng đúng rủi ro mục 10 (xóa nhầm lan truyền qua Syncthing) → thiết kế chung cơ chế "app ghi/xóa trong folder môn" cùng rename/move một lượt.
+> - Cả ba chia chung MỘT spike chưa làm: *app ghi được vào folder môn chưa* (M2 spike đọc; M6/M9 spike ghi `_inbox/`+`_print/`, chưa cái nào ghi folder môn).
 
 ### Phase 3 — Tự động hóa nhập liệu
 Auto-download elearning (Moodle API) · Nguồn luật công khai (vbpl.vn) · Off-site backup (Drive) · Print outbox mức A (mini PC tự đẩy `_print/` lên Drive — gộp vào năng lực Drive).
@@ -300,7 +327,9 @@ Auto-download elearning (Moodle API) · Nguồn luật công khai (vbpl.vn) · O
 4. **Sync friendly** — giữ dữ liệu dạng nhiều file nhỏ, metadata phân tán; tránh mọi file tập trung bị nhiều máy ghi.
 5. **Phụ thuộc mini PC cho import "xịn"** — chấp nhận được trong mô hình "về nhà tự sync", nhưng cần trạng thái ⏳ rõ ràng.
 6. **Moodle Web Services** có thể bị trường tắt → cần đường lùi (tải thủ công + Share).
-7. **Scoped storage phần GHI** — app cần ghi/copy/xoá trong kho (`_inbox/` ở M6 khi Share, `_print/` ở M9 khi gom in), không chỉ đọc cây kho. Xếp cùng nhóm "cần thử nghiệm" với highlight PDF (mục 1); spike phần ghi trước khi xây luồng (M6 + M9).
+7. **Scoped storage phần GHI** — app cần ghi/copy/xoá trong kho (`_inbox/` ở M6 khi Share, `_print/` ở M9 khi gom in, **folder môn ở M10** khi rename/move/xóa), không chỉ đọc cây kho. Xếp cùng nhóm "cần thử nghiệm" với highlight PDF (mục 1); spike phần ghi trước khi xây luồng (M6 + M9; M10 cần spike ghi *folder môn* riêng).
+8. **File đang-ghi-dở trong `_inbox/`** (M7) — Syncthing/trình duyệt có thể để lộ file nửa chừng trông như hợp lệ → worker phải **stability check** (chờ size đứng yên) + lọc đuôi tạm trước khi đụng, kẻo extract ra sidecar cụt âm thầm (mục 5.4).
+9. **PDF gốc là ca khó nhất cho extract** (M7) — khi gốc đã là PDF (không qua convert), parse cấu trúc Điều/Khoản kém hơn Word/PPTX (mục 4: "PDF tệ để parse cấu trúc"). Phải degrade sạch về `paragraph`, không bao giờ mất text.
 
 ---
 
@@ -308,6 +337,7 @@ Auto-download elearning (Moodle API) · Nguồn luật công khai (vbpl.vn) · O
 
 - Thư viện render PDF cụ thể trên Capacitor/Android.
 - Engine index search cụ thể (vd SQLite FTS5 local) — đã chốt *nguyên tắc* derived/không-sync, chưa chốt thư viện.
-- Định dạng/schema chi tiết của **sidecar** (các trường chính đã liệt kê ở mục 4.2; schema `_mon.json` đã chốt ở mục 4.1b). Chốt trước M7.
-- Cơ chế cụ thể mini PC watch `_inbox/` (script + trigger).
+- ~~Định dạng/schema chi tiết của sidecar~~ → **ĐÃ CHỐT (trục 1 M7):** xem `gu-library-sidecar-schema.md`. Phẳng + `path` · text trong đơn vị · neo `page` · mỗi loại một `type` + đáy phổ quát `paragraph`/`slide`, degrade sạch.
+- ~~Cơ chế cụ thể mini PC watch `_inbox/`~~ → **ĐÃ CHỐT (trục 3 M7):** polling vài phút qua Windows Scheduled Task, stateless, stability check + lọc đuôi tạm (mục 5.4).
+- **`bbox` (toạ độ highlight) — để ngỏ, spike quyết:** schema hiện chỉ neo `page`. Vì kho còn nhỏ (~5 file), chạy spike highlight overlay Phase-2-sớm để quyết — khả thi thì thêm field `bbox` + chạy lại worker trên kho (rẻ lúc này); không khả thi thì bỏ highlight, schema giữ `page`. Cửa sổ "đập kho rẻ" này đóng dần khi kho lớn lên → quyết sớm.
 - Cơ chế dọn `_print/` ở mức C (app xoá khi tick "xong" vs dọn định kỳ).
