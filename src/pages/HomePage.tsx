@@ -11,8 +11,9 @@ import MonCard from '../components/MonCard';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { listMon } from '../storage/repo';
 import { getRootUri } from '../storage/repo';
-import { getContinueReading } from '../reading/progress';
-import type { Progress } from '../reading/progress';
+import type { ReadingItem } from '../reading/store';
+import { listReading } from '../reading/store';
+import { migrateOnce } from '../reading/migrate';
 import type { Mon } from '../storage/types';
 import { listInboxByMon } from '../import/inboxRepo';
 import { onKhoChanged } from '../lib/khoEvents';
@@ -22,13 +23,14 @@ export default function HomePage() {
   const { light } = useSyncStatus();
   const [mons, setMons] = useState<Mon[]>([]);
   const [hasRoot, setHasRoot] = useState<boolean | null>(null);
-  const [cont, setCont] = useState<Progress | null>(null);
+  const [reading, setReading] = useState<ReadingItem[]>([]);
   const [inboxMap, setInboxMap] = useState<Map<string, number>>(new Map());
 
   const reload = async () => {
     const root = await getRootUri();
     setHasRoot(!!root);
-    setCont(await getContinueReading());
+    await migrateOnce();
+    setReading(await listReading());
     if (root) {
       try { setMons(await listMon()); } catch { setMons([]); }
     } else {
@@ -41,8 +43,11 @@ export default function HomePage() {
     reload();
     // Refresh ngay khi có file mới vào kho (share) dù đang ở Home (overlay sheet
     // dismiss không kích hoạt useIonViewWillEnter).
-    return onKhoChanged(() => { reload(); });
+    const off = onKhoChanged(() => { reload(); });
+    return () => { off(); };
   }, []);
+
+  const cont: ReadingItem | null = reading[0] ?? null;
 
   return (
     <IonPage>
@@ -57,7 +62,7 @@ export default function HomePage() {
       <IonContent className="ion-padding">
         <SearchShortcut />
 
-        {cont && <ContinueReadingCard progress={cont} />}
+        {cont && <ContinueReadingCard item={cont} />}
 
         {hasRoot === false && (
           <div style={{ textAlign: 'center', marginTop: 40, color: 'var(--gu-brown)' }}>
