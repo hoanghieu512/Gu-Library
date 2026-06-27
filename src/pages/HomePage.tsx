@@ -4,6 +4,7 @@ import {
 } from '@ionic/react';
 
 import { useHistory } from 'react-router-dom';
+import { App } from '@capacitor/app';
 import SyncPill from '../components/SyncPill';
 import SearchShortcut from '../components/SearchShortcut';
 import ContinueReadingCard from '../components/ContinueReadingCard';
@@ -47,7 +48,12 @@ export default function HomePage() {
     // Refresh ngay khi có file mới vào kho (share) dù đang ở Home (overlay sheet
     // dismiss không kích hoạt useIonViewWillEnter).
     const off = onKhoChanged(() => { reload(); });
-    return () => { off(); };
+    // Re-scan khi app về foreground (sync từ máy khác, đọc dở ở máy khác, v.v.).
+    const sub = App.addListener('resume', () => { reload(); });
+    return () => {
+      off();
+      sub.then((h) => h.remove());
+    };
   }, []);
 
   const cont: ReadingItem | null = reading[0] ?? null;
