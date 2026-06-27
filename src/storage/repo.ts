@@ -4,6 +4,7 @@ import { classifyEntries } from './classify';
 import { parseMonMeta } from './monjson';
 import type { FolderListing, Mon, MonMeta } from './types';
 import type { SafEntry } from '../plugins/saf';
+import { sortMons } from './sortMon';
 
 const ROOT_KEY = 'saf_root_uri';
 
@@ -58,13 +59,5 @@ export async function listMon(): Promise<Mon[]> {
     const meta = await readMonMeta(children);
     mons.push({ name: d.name, uri: d.uri, meta });
   }
-  mons.sort((a, b) => {
-    const ao = a.meta.order;
-    const bo = b.meta.order;
-    if (ao !== undefined && bo !== undefined && ao !== bo) return ao - bo;
-    if (ao !== undefined && bo === undefined) return -1;
-    if (ao === undefined && bo !== undefined) return 1;
-    return a.name.localeCompare(b.name, 'vi');
-  });
-  return mons;
+  return sortMons(mons);
 }
