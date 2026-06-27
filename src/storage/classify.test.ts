@@ -65,4 +65,15 @@ describe('classifyEntries', () => {
     expect(r.documents).toHaveLength(1);
     expect(r.pending).toHaveLength(0);
   });
+
+  it('ignores _reading-abc.json (and all _-prefixed files) — not document or pending', () => {
+    const r = classifyEntries([
+      e('_reading-abc.json', false),
+      e('_mon.json', false),
+      e('luat.pdf', false),
+      e('luat.json', false),
+    ]);
+    expect(r.documents).toHaveLength(1);
+    expect(r.pending).toHaveLength(0);
+  });
 });

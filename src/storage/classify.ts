@@ -1,8 +1,6 @@
 import type { SafEntry } from '../plugins/saf';
 import type { Document, PendingDoc, SubFolder, FolderListing } from './types';
 
-const MON_JSON = '_mon.json';
-
 function splitExt(name: string): { base: string; ext: string } {
   const i = name.lastIndexOf('.');
   if (i <= 0) return { base: name, ext: '' };
@@ -21,7 +19,7 @@ export function classifyEntries(entries: SafEntry[]): FolderListing {
       continue;
     }
     const name = en.name;
-    if (name === MON_JSON) continue;
+    if (name.startsWith('_')) continue;
     if (name.startsWith('.')) continue;
     const { base, ext } = splitExt(name);
     const slot = byBase.get(base) ?? { others: [] };
