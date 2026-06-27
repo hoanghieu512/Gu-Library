@@ -8,15 +8,17 @@ import SyncPill from '../components/SyncPill';
 import SearchShortcut from '../components/SearchShortcut';
 import ContinueReadingCard from '../components/ContinueReadingCard';
 import MonCard from '../components/MonCard';
+import ReadingListSheet from '../reading/ReadingListSheet';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { listMon } from '../storage/repo';
 import { getRootUri } from '../storage/repo';
 import type { ReadingItem } from '../reading/store';
-import { listReading } from '../reading/store';
+import { listReading, removeReading } from '../reading/store';
 import { migrateOnce } from '../reading/migrate';
 import type { Mon } from '../storage/types';
 import { listInboxByMon } from '../import/inboxRepo';
 import { onKhoChanged } from '../lib/khoEvents';
+import { encodeUriParam } from '../storage/uriParam';
 
 export default function HomePage() {
   const history = useHistory();
@@ -25,6 +27,7 @@ export default function HomePage() {
   const [hasRoot, setHasRoot] = useState<boolean | null>(null);
   const [reading, setReading] = useState<ReadingItem[]>([]);
   const [inboxMap, setInboxMap] = useState<Map<string, number>>(new Map());
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const reload = async () => {
     const root = await getRootUri();
@@ -62,7 +65,15 @@ export default function HomePage() {
       <IonContent className="ion-padding">
         <SearchShortcut />
 
-        {cont && <ContinueReadingCard item={cont} />}
+        {cont && (
+          // Tapping the surrounding area opens the sheet; card tap opens viewer directly.
+          <div onClick={() => setSheetOpen(true)} style={{ cursor: 'pointer' }}>
+            <h2 className="gu-title" style={{ fontSize: 16, margin: '0 0 4px', color: 'var(--gu-brown)' }}>
+              Đang đọc dở
+            </h2>
+            <ContinueReadingCard item={cont} />
+          </div>
+        )}
 
         {hasRoot === false && (
           <div style={{ textAlign: 'center', marginTop: 40, color: 'var(--gu-brown)' }}>
@@ -81,6 +92,14 @@ export default function HomePage() {
           </>
         )}
       </IonContent>
+
+      <ReadingListSheet
+        isOpen={sheetOpen}
+        items={reading}
+        onOpen={(uri) => { setSheetOpen(false); history.push(`/viewer/${encodeUriParam(uri)}`); }}
+        onRemove={async (path) => { await removeReading(path); reload(); }}
+        onClose={() => setSheetOpen(false)}
+      />
     </IonPage>
   );
 }
