@@ -3,9 +3,11 @@ import { IonIcon } from '@ionic/react';
 import { chevronForward, hourglassOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import MonSwatch from './MonSwatch';
+import UnfiledSwatch from './UnfiledSwatch';
 import type { Mon } from '../storage/types';
 import { summarizeMon, type MonSummary } from '../storage/summary';
 import { encodeUriParam } from '../storage/uriParam';
+import { UNFILED } from '../import/prefix';
 
 export default function MonCard({ mon, inboxPending = 0 }: { mon: Mon; inboxPending?: number }) {
   const history = useHistory();
@@ -22,9 +24,11 @@ export default function MonCard({ mon, inboxPending = 0 }: { mon: Mon; inboxPend
         borderRadius: 12, padding: 12, margin: '8px 0', cursor: 'pointer',
       }}
     >
-      <MonSwatch name={mon.name} color={mon.meta.color} icon={mon.meta.icon} />
+      {mon.name === UNFILED ? <UnfiledSwatch /> : <MonSwatch name={mon.name} color={mon.meta.color} icon={mon.meta.icon} />}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)' }}>{mon.name}</div>
+        {mon.name === UNFILED
+          ? <div style={{ fontStyle: 'italic', color: 'var(--gu-grey)' }}>{mon.name}</div>
+          : <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)' }}>{mon.name}</div>}
         <div style={{ fontSize: 13, color: 'var(--gu-grey)' }}>
           {sum ? `${sum.documents} tài liệu` : 'Đang đếm…'}
         </div>
