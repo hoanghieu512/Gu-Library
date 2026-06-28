@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.8.0] — 2026-06-28 — Dedupe "Chưa phân loại" + reading-state đa file & sync
+### Changed
+- **"Chưa phân loại" gộp một dòng** (folder thật, luôn cuối, icon `?` trầm); bỏ mục ảo. Sheet import cũng chỉ còn một (folder bị lọc khỏi danh sách, giữ nút fallback). `classify` bỏ qua mọi file `_`-prefix.
+### Added
+- **Reading-state đa tài liệu + sync đa máy (Option D):** mỗi máy ghi `_reading-<deviceId>.json` ở root kho; app render = **union** mọi file (key = đường dẫn tương đối; tombstone last-action-wins → vuốt-xoá/đọc-xong đồng bộ, đọc-lại hiện-lại). Conflict Syncthing = 0. `deviceId` uuid lưu Preferences.
+- **Sheet "Đang đọc dở":** card lớn = mới nhất (tap mở đúng trang); tap khu vực → sheet liệt kê đầy đủ (sort mới→cũ), vuốt một dòng = bỏ khỏi danh sách (file/tiến độ giữ nguyên). Vào list khi mở; tự rời khi đọc hết trang.
+- Viewer khôi phục trang từ union (đa máy). Migration một lần từ Preferences cũ.
+- **Home re-scan khi về foreground** (`@capacitor/app` resume): badge ⏳ + số tài liệu + danh sách đọc dở cập nhật không cần tắt-mở.
+
 ## [0.6.3] — 2026-06-21 — Share nhiều file (một lô = một môn)
 ### Added
 - Nhận **ACTION_SEND_MULTIPLE** (intent-filter + MainActivity) → app xuất hiện trong share sheet khi chọn nhiều file. `ShareTargetPlugin` trả danh sách (`getSharedFiles`), `ShareReceiver` copy cả lô vào `_inbox/` với tiền tố môn đã chọn (một môn áp cho toàn lô). File trùng tên gốc tự thêm hậu tố `(1)` (không đè).

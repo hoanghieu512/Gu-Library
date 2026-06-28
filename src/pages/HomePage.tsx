@@ -29,6 +29,9 @@ export default function HomePage() {
   const [reading, setReading] = useState<ReadingItem[]>([]);
   const [inboxMap, setInboxMap] = useState<Map<string, number>>(new Map());
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
+  // vì key=uri ổn định nên MonCard không tự remount.
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const reload = async () => {
     const root = await getRootUri();
@@ -41,6 +44,7 @@ export default function HomePage() {
       setMons([]);
     }
     try { setInboxMap(await listInboxByMon()); } catch { setInboxMap(new Map()); }
+    setRefreshTick((t) => t + 1);
   };
   useIonViewWillEnter(() => { reload(); });
   useEffect(() => {
@@ -93,7 +97,7 @@ export default function HomePage() {
             <h2 className="gu-title" style={{ fontSize: 18, marginTop: 16 }}>Môn học</h2>
             {mons.length === 0
               ? <p style={{ color: 'var(--gu-grey)' }}>Chưa có môn nào trong kho.</p>
-              : mons.map((m) => <MonCard key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} />)}
+              : mons.map((m) => <MonCard key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} refreshKey={refreshTick} />)}
 
           </>
         )}

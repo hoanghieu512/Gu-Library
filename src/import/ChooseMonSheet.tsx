@@ -29,8 +29,10 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
     })();
   }, [isOpen]);
 
-  // Đưa môn vừa dùng lên đầu.
-  const ordered = [...mons].sort((a, b) => (a.name === last ? -1 : b.name === last ? 1 : 0));
+  // Bỏ folder "Chưa phân loại" khỏi danh sách (nút fallback cuối đã lo) + đưa môn vừa dùng lên đầu.
+  const ordered = mons
+    .filter((m) => m.name !== UNFILED)
+    .sort((a, b) => (a.name === last ? -1 : b.name === last ? 1 : 0));
 
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onCancel} breakpoints={[0, 0.6, 0.95]} initialBreakpoint={0.6}>

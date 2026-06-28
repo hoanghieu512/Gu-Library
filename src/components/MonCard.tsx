@@ -9,10 +9,10 @@ import { summarizeMon, type MonSummary } from '../storage/summary';
 import { encodeUriParam } from '../storage/uriParam';
 import { UNFILED } from '../import/prefix';
 
-export default function MonCard({ mon, inboxPending = 0 }: { mon: Mon; inboxPending?: number }) {
+export default function MonCard({ mon, inboxPending = 0, refreshKey = 0 }: { mon: Mon; inboxPending?: number; refreshKey?: number }) {
   const history = useHistory();
   const [sum, setSum] = useState<MonSummary | null>(null);
-  useEffect(() => { summarizeMon(mon.uri).then(setSum).catch(() => setSum({ documents: 0, pending: 0 })); }, [mon.uri]);
+  useEffect(() => { summarizeMon(mon.uri).then(setSum).catch(() => setSum({ documents: 0, pending: 0 })); }, [mon.uri, refreshKey]);
 
   const pending = (sum?.pending ?? 0) + (inboxPending ?? 0);
 
