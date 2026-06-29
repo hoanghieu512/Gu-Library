@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonContent, useIonViewWillEnter,
+  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, useIonViewWillEnter,
 } from '@ionic/react';
+import { add } from 'ionicons/icons';
 
 import { useHistory } from 'react-router-dom';
 import { App } from '@capacitor/app';
@@ -10,8 +11,9 @@ import SearchShortcut from '../components/SearchShortcut';
 import ContinueReadingCard from '../components/ContinueReadingCard';
 import MonCard from '../components/MonCard';
 import ReadingListSheet from '../reading/ReadingListSheet';
+import CreateFolderModal from '../components/CreateFolderModal';
 import { useSyncStatus } from '../sync/useSyncStatus';
-import { listMon } from '../storage/repo';
+import { listMon, createMon } from '../storage/repo';
 import { getRootUri } from '../storage/repo';
 import type { ReadingItem } from '../reading/store';
 import { listReading, removeReading } from '../reading/store';
@@ -29,6 +31,7 @@ export default function HomePage() {
   const [reading, setReading] = useState<ReadingItem[]>([]);
   const [inboxMap, setInboxMap] = useState<Map<string, number>>(new Map());
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [createMonOpen, setCreateMonOpen] = useState(false);
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
   // vì key=uri ổn định nên MonCard không tự remount.
   const [refreshTick, setRefreshTick] = useState(0);
@@ -94,7 +97,12 @@ export default function HomePage() {
 
         {hasRoot && (
           <>
-            <h2 className="gu-title" style={{ fontSize: 18, marginTop: 16 }}>Môn học</h2>
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: 16 }}>
+              <h2 className="gu-title" style={{ fontSize: 18, margin: 0, flex: 1 }}>Môn học</h2>
+              <IonButton fill="clear" onClick={() => setCreateMonOpen(true)} aria-label="Tạo môn mới">
+                <IonIcon icon={add} />
+              </IonButton>
+            </div>
             {mons.length === 0
               ? <p style={{ color: 'var(--gu-grey)' }}>Chưa có môn nào trong kho.</p>
               : mons.map((m) => <MonCard key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} refreshKey={refreshTick} />)}
@@ -109,6 +117,15 @@ export default function HomePage() {
         onOpen={(uri) => { setSheetOpen(false); history.push(`/viewer/${encodeUriParam(uri)}`); }}
         onRemove={async (path) => { await removeReading(path); reload(); }}
         onClose={() => setSheetOpen(false)}
+      />
+
+      <CreateFolderModal
+        isOpen={createMonOpen}
+        title="Môn mới"
+        withColor
+        existingNames={mons.map((m) => m.name)}
+        onCreate={async (name, color) => { await createMon(name, color!); reload(); }}
+        onClose={() => setCreateMonOpen(false)}
       />
     </IonPage>
   );
