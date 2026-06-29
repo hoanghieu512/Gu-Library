@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
-  IonList, IonItem, IonLabel, IonIcon, IonBadge,
+  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
+  IonList, IonItem, IonLabel, IonBadge,
 } from '@ionic/react';
-import { folderOutline, documentTextOutline, chevronForward, hourglassOutline } from 'ionicons/icons';
+import { folderOutline, documentTextOutline, chevronForward, hourglassOutline, add } from 'ionicons/icons';
 import { useParams, useHistory } from 'react-router-dom';
-import { listFolder } from '../storage/repo';
+import { listFolder, createSubfolder } from '../storage/repo';
 import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
 import type { FolderListing } from '../storage/types';
+import CreateFolderModal from '../components/CreateFolderModal';
 
 export default function FolderPage() {
   const { uri } = useParams<{ uri: string }>();
@@ -15,13 +16,18 @@ export default function FolderPage() {
   const history = useHistory();
   const [listing, setListing] = useState<FolderListing | null>(null);
   const [error, setError] = useState<string>('');
+  const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => {
+  const loadListing = useCallback(() => {
     setListing(null); setError('');
     listFolder(decoded)
       .then(setListing)
       .catch((e) => setError(String(e?.message ?? e)));
   }, [decoded]);
+
+  useEffect(() => {
+    loadListing();
+  }, [loadListing]);
 
   return (
     <IonPage>
@@ -29,6 +35,11 @@ export default function FolderPage() {
         <IonToolbar>
           <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
           <IonTitle className="gu-title">Môn / Chương</IonTitle>
+          <IonButtons slot="end">
+            <IonButton fill="clear" onClick={() => setCreateOpen(true)} aria-label="Tạo thư mục mới">
+              <IonIcon icon={add} />
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
@@ -64,6 +75,15 @@ export default function FolderPage() {
           </IonList>
         )}
       </IonContent>
+
+      <CreateFolderModal
+        isOpen={createOpen}
+        title="Thư mục mới"
+        withColor={false}
+        existingNames={listing?.folders.map((f) => f.name) ?? []}
+        onCreate={async (name) => { await createSubfolder(decoded, name); loadListing(); }}
+        onClose={() => setCreateOpen(false)}
+      />
     </IonPage>
   );
 }
