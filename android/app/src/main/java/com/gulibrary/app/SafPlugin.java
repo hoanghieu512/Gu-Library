@@ -199,6 +199,27 @@ public class SafPlugin extends Plugin {
         } catch (Exception e) { call.reject("ensureDir failed: " + e.getMessage()); }
     }
 
+    // Tạo folder mới, CHẶN nếu trùng (khác ensureDir reuse). Dùng cho tạo môn/folder con.
+    @PluginMethod
+    public void createDir(PluginCall call) {
+        String parentUri = call.getString("parentUri");
+        String name = call.getString("name");
+        if (parentUri == null || name == null) { call.reject("parentUri+name required"); return; }
+        try {
+            androidx.documentfile.provider.DocumentFile parent =
+                androidx.documentfile.provider.DocumentFile.fromTreeUri(getContext(), android.net.Uri.parse(parentUri));
+            if (parent == null || !parent.isDirectory()) { call.reject("bad parent"); return; }
+            if (parent.findFile(name) != null) { call.reject("exists"); return; }
+            androidx.documentfile.provider.DocumentFile child = parent.createDirectory(name);
+            if (child == null) { call.reject("createDirectory returned null"); return; }
+            android.util.Log.i("GuSaf", "createDir req='" + name + "' got='" + child.getName() + "'");
+            com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+            ret.put("uri", child.getUri().toString());
+            ret.put("name", child.getName());
+            call.resolve(ret);
+        } catch (Exception e) { call.reject("createDir failed: " + e.getMessage()); }
+    }
+
     /* TEMP M6 spike */
     @PluginMethod
     public void writeFile(PluginCall call) {
