@@ -2,6 +2,14 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.9.0] — 2026-06-29 — M6c: tạo môn + folder con trong app
+### Added
+- **Tạo môn (cấp 1)** từ nút "+" cạnh "Môn học" ở Home: nhập tên + chọn màu (palette 6 swatch trầm) → folder môn + `_mon.json {color}`. Sort alphabet (không hỏi `order`), "Chưa phân loại" vẫn cuối.
+- **Tạo folder con** (mkdir, KHÔNG `_mon.json`) từ nút "+" trong FolderPage, độ sâu bất kỳ.
+- Native `Saf.createDir` (chặn trùng, KHÁC `ensureDir` reuse); `repo.createMon`/`createSubfolder`; `validateFolderName` (chặn ký tự cấm `/ \ : * ? " < > |` + rỗng, có test); `CreateFolderModal` (tên + màu tùy chọn, chặn trùng "Đã tồn tại"); palette `MON_PALETTE`.
+- Sort trong folder: folder trước, file sau, mỗi nhóm alphabet (vi).
+- Refresh ngay qua `khoEvents`. Spike SAF `createDirectory` verify trên máy: tên tiếng Việt + lồng đúng (createDirectory đáng tin, khác createFile). Cũng là spike sống cho M10.
+
 ## [0.8.1] — 2026-06-29 — Fix file kẹt `.tmp` trong `_inbox/` (Share Intent)
 ### Investigation
 - Root cause (6 vòng đo logcat+adb): **Samsung SAF ghi FILE THẬT `<tên>.<ext>.tmp` ở tầng filesystem** cho một số ca (pdf/docx/ppt, chập chờn) trong khi MediaStore/`getName()` báo tên sạch → worker (đọc FS thật) thấy `.tmp` → skip → kẹt. KHÔNG phải worker, KHÔNG phải tên nguồn. App qua SAF **không đọc/sửa được tên thật**.
