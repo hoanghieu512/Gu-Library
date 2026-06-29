@@ -46,5 +46,8 @@ export function classifyEntries(entries: SafEntry[]): FolderListing {
     }
   }
 
+  folders.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  documents.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
   return { folders, documents, pending, hasPending: pending.length > 0 };
 }

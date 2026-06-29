@@ -76,4 +76,22 @@ describe('classifyEntries', () => {
     expect(r.documents).toHaveLength(1);
     expect(r.pending).toHaveLength(0);
   });
+
+  it('sorts folders alphabetically (vi locale)', () => {
+    const r = classifyEntries([
+      e('Chương 3', true),
+      e('An Giang', true),
+      e('Bình Dương', true),
+    ]);
+    expect(r.folders.map((f) => f.name)).toEqual(['An Giang', 'Bình Dương', 'Chương 3']);
+  });
+
+  it('sorts documents alphabetically (vi locale)', () => {
+    const r = classifyEntries([
+      e('z-bai.pdf', false), e('z-bai.json', false),
+      e('a-bai.pdf', false), e('a-bai.json', false),
+      e('m-bai.pdf', false), e('m-bai.json', false),
+    ]);
+    expect(r.documents.map((d) => d.name)).toEqual(['a-bai', 'm-bai', 'z-bai']);
+  });
 });
