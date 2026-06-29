@@ -2,6 +2,16 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.8.1] — 2026-06-29 — Fix file kẹt `.tmp` trong `_inbox/` (Share Intent)
+### Investigation
+- Root cause (6 vòng đo logcat+adb): **Samsung SAF ghi FILE THẬT `<tên>.<ext>.tmp` ở tầng filesystem** cho một số ca (pdf/docx/ppt, chập chờn) trong khi MediaStore/`getName()` báo tên sạch → worker (đọc FS thật) thấy `.tmp` → skip → kẹt. KHÔNG phải worker, KHÔNG phải tên nguồn. App qua SAF **không đọc/sửa được tên thật**.
+### Fixed (app-side, giảm `.tmp` + sửa lỗi thật)
+- `copyToDir` truyền **mime đúng theo đuôi** (không `application/octet-stream`) → pdf/doc/docx/pptx sạch.
+- **Dedup `(k)` TRƯỚC đuôi** (`x (1).pdf`) thay vì để Android tự thêm sau đuôi (`x.pdf (1)` — đuôi hỏng, worker bỏ qua).
+- **Strip đuôi tạm** (`.tmp/.crdownload/.part/...`) của tên file nguồn share trước khi ghi (`stripTempSuffix`, có test).
+### Còn lại → worker (real FS, lưới phổ quát)
+- Ca Samsung ghi `.tmp` ở FS mà SAF che mất: **fix ở repo worker** — strip `.tmp` cuối của file app `[<môn>] x.<ext>.tmp`. Spec: `Docs/gu-library-worker-tmp-normalization.md`.
+
 ## [0.8.0] — 2026-06-28 — Dedupe "Chưa phân loại" + reading-state đa file & sync
 ### Changed
 - **"Chưa phân loại" gộp một dòng** (folder thật, luôn cuối, icon `?` trầm); bỏ mục ảo. Sheet import cũng chỉ còn một (folder bị lọc khỏi danh sách, giữ nút fallback). `classify` bỏ qua mọi file `_`-prefix.

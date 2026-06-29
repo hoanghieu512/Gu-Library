@@ -123,8 +123,36 @@ public class SafPlugin extends Plugin {
         }
     }
 
+    // Mime đúng theo đuôi. PHẢI truyền mime khớp đuôi cho createFile: nếu để
+    // "application/octet-stream", SAF provider của Samsung tự gắn ".tmp" vào file
+    // trên đĩa (đuôi không khớp mime) → worker bỏ qua → kẹt. (getName() còn nói dối,
+    // trả tên không-.tmp.) Mime khớp → provider giữ nguyên đuôi.
+    private static String mimeForName(String name) {
+        String n = name.toLowerCase(java.util.Locale.ROOT);
+        if (n.endsWith(".pdf")) return "application/pdf";
+        if (n.endsWith(".doc")) return "application/msword";
+        if (n.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        if (n.endsWith(".ppt")) return "application/vnd.ms-powerpoint";
+        if (n.endsWith(".pptx")) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        return "application/octet-stream";
+    }
+
+    // Tên chưa trùng trong dir: nếu trùng, chèn " (k)" TRƯỚC đuôi → "x (1).pdf"
+    // (KHÔNG để Android auto-dedup, vì nó thêm sau cả tên → "x.pdf (1)" làm hỏng đuôi → worker bỏ qua).
+    private static String uniqueName(androidx.documentfile.provider.DocumentFile dir, String name) {
+        if (dir.findFile(name) == null) return name;
+        int dot = name.lastIndexOf('.');
+        String base = dot > 0 ? name.substring(0, dot) : name;
+        String ext = dot > 0 ? name.substring(dot) : "";
+        for (int k = 1; k < 1000; k++) {
+            String cand = base + " (" + k + ")" + ext;
+            if (dir.findFile(cand) == null) return cand;
+        }
+        return name;
+    }
+
     // Copy nhị phân từ một content-URI nguồn (vd file share) vào một dir trong kho.
-    // Dùng cho PDF/Word/PPTX — KHÁC writeFile (text). createFile tự thêm hậu tố nếu trùng.
+    // Dùng cho PDF/Word/PPTX — KHÁC writeFile (text). Tự dedup "(k)" trước đuôi.
     @PluginMethod
     public void copyToDir(PluginCall call) {
         String srcUri = call.getString("srcUri");
@@ -135,7 +163,8 @@ public class SafPlugin extends Plugin {
             androidx.documentfile.provider.DocumentFile dir =
                 androidx.documentfile.provider.DocumentFile.fromTreeUri(getContext(), android.net.Uri.parse(dirUri));
             if (dir == null || !dir.isDirectory()) { call.reject("not a directory"); return; }
-            androidx.documentfile.provider.DocumentFile f = dir.createFile("application/octet-stream", name);
+            String uniq = uniqueName(dir, name);
+            androidx.documentfile.provider.DocumentFile f = dir.createFile(mimeForName(uniq), uniq);
             if (f == null) { call.reject("createFile returned null"); return; }
             java.io.InputStream is = getContext().getContentResolver().openInputStream(android.net.Uri.parse(srcUri));
             java.io.OutputStream os = getContext().getContentResolver().openOutputStream(f.getUri());
@@ -146,7 +175,7 @@ public class SafPlugin extends Plugin {
             os.flush(); os.close(); is.close();
             com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
             ret.put("uri", f.getUri().toString());
-            ret.put("name", f.getName());
+            ret.put("name", uniq);
             call.resolve(ret);
         } catch (Exception e) { call.reject("copy failed: " + e.getMessage()); }
     }

@@ -1,9 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { makeInboxName, parseInboxPrefix, UNFILED } from './prefix';
+import { makeInboxName, parseInboxPrefix, stripTempSuffix, UNFILED } from './prefix';
+
+describe('stripTempSuffix', () => {
+  it('bỏ .tmp lộ tên thật', () => {
+    expect(stripTempSuffix('Văn bản.pdf.tmp')).toBe('Văn bản.pdf');
+  });
+  it('bỏ .crdownload / .part / .download', () => {
+    expect(stripTempSuffix('a.docx.crdownload')).toBe('a.docx');
+    expect(stripTempSuffix('b.ppt.part')).toBe('b.ppt');
+    expect(stripTempSuffix('c.pdf.download')).toBe('c.pdf');
+  });
+  it('không động tên sạch', () => {
+    expect(stripTempSuffix('x.pdf')).toBe('x.pdf');
+  });
+  it('bỏ đuôi tạm lồng nhau + không phân biệt hoa thường', () => {
+    expect(stripTempSuffix('x.pdf.CRDOWNLOAD.tmp')).toBe('x.pdf');
+  });
+});
 
 describe('inbox prefix', () => {
   it('makeInboxName gắn tiền tố môn', () => {
     expect(makeInboxName('Tố tụng Hình sự', 'bai.pdf')).toBe('[Tố tụng Hình sự] bai.pdf');
+  });
+  it('makeInboxName strip đuôi tạm của tên nguồn', () => {
+    expect(makeInboxName('Tố tụng Hình sự', 'bai.pdf.tmp')).toBe('[Tố tụng Hình sự] bai.pdf');
   });
   it('makeInboxName cho Chưa phân loại', () => {
     expect(makeInboxName(UNFILED, 'x.docx')).toBe('[Chưa phân loại] x.docx');
