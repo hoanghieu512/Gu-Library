@@ -4,9 +4,27 @@ import groovy.json.JsonSlurper
 
 def appVersion = new JsonSlurper().parseText(rootProject.file("../package.json").getText("UTF-8")).version
 
+// Credential ký bản release nằm NGOÀI git (android/keystore.properties, gitignored).
+// Vắng file → bỏ qua signing (debug build vẫn chạy bình thường).
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "com.gulibrary.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     defaultConfig {
         applicationId "com.gulibrary.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -24,6 +42,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
