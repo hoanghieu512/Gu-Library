@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.0.0] — 2026-06-30 — Phase 1 khép trọn: signed release + version hiển thị
+### Added
+- **APK release có ký** bằng keystore riêng (build CLI `./gradlew assembleRelease`, không Android Studio). Keystore ngoài repo (`~/keystores/gu-library/gu-library-release.jks`, alias `gu-library`), credential ở `android/keystore.properties` (gitignored); `build.gradle` nạp signing từ file đó (vắng file → debug vẫn build).
+- **Dòng "Phiên bản X.Y.Z" trong Cài đặt**, đọc tự động từ `package.json` (build.gradle `versionName` ← package.json; Vite `__APP_VERSION__` fallback web; UI qua `App.getInfo()`). Không hardcode.
+### Notes
+- Mốc **Phase 1 khép trọn** — MVP đủ vòng đời: thêm (Share) → mini PC worker convert/extract → sync 3 máy → xem + nhớ chỗ đọc (đa file, sync) → gom đi in → versioning cứu xóa nhầm.
+- ⚠ Mất keystore/mật khẩu = không update được app đã cài. Backup `.jks` + `keystore.properties` (xem README).
+> Verify Z Flip 4 (SM-F721B, R5CT844VRCN): APK release ký đúng (CN=Gu Library), cài + chạy lõi (mở môn/PDF/sync) OK, update-over-release `-r` không cần gỡ, Cài đặt hiện "Phiên bản 1.0.0".
+
 ## [0.10.0] — 2026-06-30 — M9: Print outbox (mức C) — gom tài liệu đi in
 ### Added
 - **Cờ "cần in" per-file:** tick ở Viewer (header) + dòng tài liệu trong môn → companion `<base>.print.json` cạnh cặp pdf+json (app-owned, Syncthing sync, KHÔNG đụng sidecar). Untick → xóa companion. `classify` bỏ qua `.print.json` + gắn `Document.printFlagged`.
