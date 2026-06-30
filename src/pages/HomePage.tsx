@@ -21,6 +21,7 @@ import { migrateOnce } from '../reading/migrate';
 import type { Mon } from '../storage/types';
 import { listInboxByMon } from '../import/inboxRepo';
 import { onKhoChanged } from '../lib/khoEvents';
+import { countPrintFlagged } from '../print/printRepo';
 import { encodeUriParam } from '../storage/uriParam';
 
 export default function HomePage() {
@@ -32,6 +33,7 @@ export default function HomePage() {
   const [inboxMap, setInboxMap] = useState<Map<string, number>>(new Map());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [createMonOpen, setCreateMonOpen] = useState(false);
+  const [printCount, setPrintCount] = useState(0);
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
   // vì key=uri ổn định nên MonCard không tự remount.
   const [refreshTick, setRefreshTick] = useState(0);
@@ -47,6 +49,7 @@ export default function HomePage() {
       setMons([]);
     }
     try { setInboxMap(await listInboxByMon()); } catch { setInboxMap(new Map()); }
+    try { setPrintCount(await countPrintFlagged()); } catch { setPrintCount(0); }
     setRefreshTick((t) => t + 1);
   };
   useIonViewWillEnter(() => { reload(); });
@@ -85,6 +88,27 @@ export default function HomePage() {
               Đang đọc dở
             </h2>
             <ContinueReadingCard item={cont} />
+          </div>
+        )}
+
+        {printCount > 0 && (
+          <div
+            onClick={() => history.push('/print')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gu-paper-2)',
+              borderRadius: 12, padding: 14, margin: '16px 0 0', cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 20 }}>🖨</span>
+            <span style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)', flex: 1 }}>
+              Đi in
+            </span>
+            <span style={{
+              background: 'var(--gu-brown)', color: '#fff', borderRadius: 999,
+              padding: '2px 10px', fontSize: 13, whiteSpace: 'nowrap',
+            }}>
+              {printCount}
+            </span>
           </div>
         )}
 
