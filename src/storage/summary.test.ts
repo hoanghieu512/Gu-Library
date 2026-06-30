@@ -12,15 +12,15 @@ const L = (o: Partial<FolderListing>): FolderListing =>
 describe('accumulate (đếm tài liệu + chờ xử lý đệ quy)', () => {
   it('counts docs + pending at one level', async () => {
     const lister = makeLister({
-      'mon': L({ documents: [{ name: 'a', pdfUri: 'p', jsonUri: 'j' }], pending: [{ name: 'x.docx', ext: 'docx', sourceUri: 's' }], hasPending: true }),
+      'mon': L({ documents: [{ name: 'a', pdfUri: 'p', jsonUri: 'j', printFlagged: false }], pending: [{ name: 'x.docx', ext: 'docx', sourceUri: 's' }], hasPending: true }),
     });
     expect(await accumulate('mon', lister)).toEqual({ documents: 1, pending: 1 });
   });
   it('recurses into subfolders (arbitrary depth)', async () => {
     const lister = makeLister({
-      'mon': L({ folders: [{ name: 'Chương 1', uri: 'c1' }], documents: [{ name: 'a', pdfUri: 'p', jsonUri: 'j' }] }),
-      'c1': L({ folders: [{ name: 'Buổi 2', uri: 'b2' }], documents: [{ name: 'b', pdfUri: 'p', jsonUri: 'j' }] }),
-      'b2': L({ documents: [{ name: 'c', pdfUri: 'p', jsonUri: 'j' }], pending: [{ name: 'y.pptx', ext: 'pptx', sourceUri: 's' }], hasPending: true }),
+      'mon': L({ folders: [{ name: 'Chương 1', uri: 'c1' }], documents: [{ name: 'a', pdfUri: 'p', jsonUri: 'j', printFlagged: false }] }),
+      'c1': L({ folders: [{ name: 'Buổi 2', uri: 'b2' }], documents: [{ name: 'b', pdfUri: 'p', jsonUri: 'j', printFlagged: false }] }),
+      'b2': L({ documents: [{ name: 'c', pdfUri: 'p', jsonUri: 'j', printFlagged: false }], pending: [{ name: 'y.pptx', ext: 'pptx', sourceUri: 's' }], hasPending: true }),
     });
     expect(await accumulate('mon', lister)).toEqual({ documents: 3, pending: 1 });
   });
