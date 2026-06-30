@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [0.10.0] — 2026-06-30 — M9: Print outbox (mức C) — gom tài liệu đi in
+### Added
+- **Cờ "cần in" per-file:** tick ở Viewer (header) + dòng tài liệu trong môn → companion `<base>.print.json` cạnh cặp pdf+json (app-owned, Syncthing sync, KHÔNG đụng sidecar). Untick → xóa companion. `classify` bỏ qua `.print.json` + gắn `Document.printFlagged`.
+- **Khối "🖨 Đi in (N)" trên Home** giữa "Đang đọc dở" và "Môn học", chỉ hiện khi N≥1 (N = số file cờ "cần in"), cập nhật qua `khoEvents` + foreground resume.
+- **Màn "Đi in":** liệt kê file cần in gom theo môn; nút **Gom vào `_print/`** copy (giữ gốc) với tên tiền tố môn `[<môn>] <tên>.pdf` (dedup `(k)` trước đuôi); trạng thái **"đã gửi đi in"** suy từ hiện diện trong `_print/`; tick **"Xong"** xóa file `_print/` + clear cờ. **Vuốt một dòng chưa gom = "Bỏ"** (xóa cờ tại chỗ, khỏi ra môn untick).
+- Native `Saf.deleteFile` (DocumentsContract.deleteDocument); `printRepo` (set/clear/scan/gom/markPrinted); `printName` helpers (có test).
+- **Khép Phase 1.** Mức A (mini PC tự đẩy `_print/` lên Drive) để Phase 3 — không đập lại C.
+> Verify trên Z Flip 4 (SM-F721B, serial R5CT844VRCN): tick/untick/gom/đã-gửi/Xong/vuốt-bỏ + ⏳ không tick được + `.print.json` không lọt danh sách — pass.
+
 ## [0.9.0] — 2026-06-29 — M6c: tạo môn + folder con trong app
 ### Added
 - **Tạo môn (cấp 1)** từ nút "+" cạnh "Môn học" ở Home: nhập tên + chọn màu (palette 6 swatch trầm) → folder môn + `_mon.json {color}`. Sort alphabet (không hỏi `order`), "Chưa phân loại" vẫn cuối.
