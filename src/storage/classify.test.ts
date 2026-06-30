@@ -94,4 +94,24 @@ describe('classifyEntries', () => {
     ]);
     expect(r.documents.map((d) => d.name)).toEqual(['a-bai', 'm-bai', 'z-bai']);
   });
+
+  it('skips <base>.print.json — không thành document hay pending', () => {
+    const r = classifyEntries([
+      e('luat.pdf', false), e('luat.json', false), e('luat.print.json', false),
+    ]);
+    expect(r.documents).toHaveLength(1);
+    expect(r.pending).toHaveLength(0);
+  });
+
+  it('gắn printFlagged=true cho document có companion .print.json', () => {
+    const r = classifyEntries([
+      e('luat.pdf', false), e('luat.json', false), e('luat.print.json', false),
+    ]);
+    expect(r.documents[0].printFlagged).toBe(true);
+  });
+
+  it('printFlagged=false khi không có companion', () => {
+    const r = classifyEntries([e('luat.pdf', false), e('luat.json', false)]);
+    expect(r.documents[0].printFlagged).toBe(false);
+  });
 });

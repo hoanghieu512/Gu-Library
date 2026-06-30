@@ -4,6 +4,7 @@ export interface Document {
   name: string;
   pdfUri: string;
   jsonUri: string;
+  printFlagged: boolean;
 }
 
 export interface PendingDoc {
