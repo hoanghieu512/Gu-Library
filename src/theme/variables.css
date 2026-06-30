@@ -33,6 +33,14 @@
   --ion-color-success-shade: #28ba62;
   --ion-color-success-tint: #42d77d;
 
+  /* danger = đỏ-đất hợp tông giấy (pill "Chưa thấy mini PC" + nút Bỏ dùng chung, không token mới) */
+  --ion-color-danger: #A1402C;
+  --ion-color-danger-rgb: 161,64,44;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255,255,255;
+  --ion-color-danger-shade: #8e381e;
+  --ion-color-danger-tint: #ab5340;
+
   --ion-toolbar-background: var(--gu-paper-2);
   --ion-tab-bar-background: var(--gu-paper-2);
   /* bottom nav: active nâu, inactive xám (spec 9.4) — không để xanh Ionic mặc định */
@@ -46,5 +54,5 @@
 .gu-serif { font-family: var(--gu-serif); }
 .gu-title { font-family: var(--gu-serif); font-weight: 700; color: var(--gu-brown-deep); }
 
-/* Title case toàn app — không để ion-button tự UPPER (md mode) */
-ion-button { text-transform: none; }
+/* Title case toàn app — không để ion-button / ion-item-option (vuốt) tự UPPER (md mode) */
+ion-button, ion-item-option { text-transform: none; }

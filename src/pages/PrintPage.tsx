@@ -69,7 +69,7 @@ export default function PrintPage() {
                   <IonItem key={r.pdfUri}>
                     <IonLabel className="gu-serif">{r.name}</IonLabel>
                     <IonBadge slot="end" color="success" style={{ marginRight: 8 }}>Đã gửi đi in</IonBadge>
-                    <IonButton slot="end" size="small" fill="outline" disabled={busy} onClick={() => doDone(r)}>
+                    <IonButton slot="end" size="small" fill="clear" disabled={busy} onClick={() => doDone(r)}>
                       Xong
                     </IonButton>
                   </IonItem>
@@ -94,7 +94,7 @@ export default function PrintPage() {
         <IonFooter>
           <IonToolbar>
             <div style={{ padding: '0 12px' }}>
-              <IonButton expand="block" disabled={busy} onClick={doGom}>
+              <IonButton expand="block" shape="round" disabled={busy} onClick={doGom}>
                 {busy ? 'Đang gom…' : `Gom để in (${pendingCopy})`}
               </IonButton>
             </div>

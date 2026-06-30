@@ -5,7 +5,7 @@ import {
   setupIonicReact,
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { home, search, add, settings } from 'ionicons/icons';
+import { library, search, add, settings } from 'ionicons/icons';
 
 import HomePage from './pages/HomePage';
 import FolderPage from './pages/FolderPage';
@@ -53,7 +53,7 @@ export default function App() {
           </IonRouterOutlet>
           <IonTabBar slot="bottom">
             <IonTabButton tab="home" href="/home">
-              <IonIcon icon={home} /><IonLabel>Trang chủ</IonLabel>
+              <IonIcon icon={library} /><IonLabel>Trang chủ</IonLabel>
             </IonTabButton>
             <IonTabButton tab="search" href="/search">
               <IonIcon icon={search} /><IonLabel>Tìm</IonLabel>
