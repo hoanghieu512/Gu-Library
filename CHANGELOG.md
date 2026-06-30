@@ -2,6 +2,19 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.1.0] — 2026-06-30 — Pinch-zoom Viewer + đồng nhất UI (token)
+### Added
+- **Pinch-zoom Viewer:** phóng/thu hai ngón (neo đúng điểm dưới ngón tay, cả dọc lẫn ngang), pan khi đã phóng, double-tap về fit-width; **giữ mức zoom khi lật trang**; không thu dưới fit-width. **Windowing** (chỉ render trang quanh khung nhìn, slot cao cố định theo tỉ lệ thật) → zoom re-raster **nét** mà **không OOM**; điều hướng/nhớ-trang bằng offsets xác định → không trôi. (Còn 1 nhịp re-raster "chớp" nhẹ lúc commit — để dành khử oversample sau.)
+### Changed (token layer — giải gốc, không vá rời)
+- **Sửa thứ tự CSS:** nạp `@ionic/react/css/*` TRƯỚC `theme/variables.css` (main.tsx) → hết xanh dương rò rỉ (trước đây core.css nạp sau, ghi đè primary nâu về `#3880ff`).
+- **`action` = nâu đậm `#553B08`** + chữ kem cho nút đặc; áp đồng loạt mọi nút/icon/back-button.
+- **`success` = một shade** (pill sync) cho badge "Đã gửi đi in".
+- **Title case toàn app** (`ion-button` text-transform none).
+- Tiêu đề sheet "Đang đọc dở" trùng heading Home; nút Gom → "Gom để in (N)" (bỏ `_print/`); căn lề header nhóm môn màn "Đi in".
+### Investigation (zoom crash — điều tra trước, fix sau)
+- Triệu chứng "pinch → văng app" (3 máy). Logcat: `Render process kill (OOM or update) ... killing application` + `onTrimMemory:40` hàng loạt → **OOM renderer** do render MỌI trang rồi re-raster ở zoom cao. Fix gốc = windowing (giới hạn bộ nhớ). Vị trí trôi (dọc + ngang) do slot cao tự-động + thiếu neo → sửa bằng slot cao cố định + neo offsets/tỉ lệ.
+> Verify Z Flip 4 (R5CT844VRCN): hết crash; zoom/double-tap giữ đúng trang + đúng điểm ngón tay (dọc+ngang); lật trang giữ zoom; nhớ-trang đúng; không còn xanh dương; Title case toàn app.
+
 ## [1.0.0] — 2026-06-30 — Phase 1 khép trọn: signed release + version hiển thị
 ### Added
 - **APK release có ký** bằng keystore riêng (build CLI `./gradlew assembleRelease`, không Android Studio). Keystore ngoài repo (`~/keystores/gu-library/gu-library-release.jks`, alias `gu-library`), credential ở `android/keystore.properties` (gitignored); `build.gradle` nạp signing từ file đó (vắng file → debug vẫn build).

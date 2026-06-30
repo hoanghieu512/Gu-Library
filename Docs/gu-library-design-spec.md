@@ -341,3 +341,10 @@ Auto-download elearning (Moodle API) · Nguồn luật công khai (vbpl.vn) · O
 - ~~Cơ chế cụ thể mini PC watch `_inbox/`~~ → **ĐÃ CHỐT (trục 3 M7):** polling vài phút qua Windows Scheduled Task, stateless, stability check + lọc đuôi tạm (mục 5.4).
 - **`bbox` (toạ độ highlight) — để ngỏ, spike quyết:** schema hiện chỉ neo `page`. Vì kho còn nhỏ (~5 file), chạy spike highlight overlay Phase-2-sớm để quyết — khả thi thì thêm field `bbox` + chạy lại worker trên kho (rẻ lúc này); không khả thi thì bỏ highlight, schema giữ `page`. Cửa sổ "đập kho rẻ" này đóng dần khi kho lớn lên → quyết sớm.
 - Cơ chế dọn `_print/` ở mức C (app xoá khi tick "xong" vs dọn định kỳ).
+
+## Quy ước UI (chốt v1.1.0)
+- **Màu hành động (`action`) = nâu đậm `#553B08`** (token `--ion-color-primary`); nút đặc full-width = nền nâu đậm + **chữ kem** (`--ion-color-primary-contrast` = `--gu-cream`). KHÔNG dùng xanh dương Ionic mặc định ở bất kỳ nút/nhãn nào.
+- **`success` = MỘT shade xanh lá** (`--ion-color-success`, theo pill sync "Đã đồng bộ") cho mọi trạng thái xong/thành công.
+- **Casing = Title case** cho mọi nhãn/nút (global `ion-button { text-transform: none; }`). Không UPPER, không lowercase.
+- CSS Ionic phải nạp **TRƯỚC** `theme/variables.css` (ở `main.tsx`) để token override của ta thắng palette mặc định (`core.css` chứa `#3880ff`).
+- **Viewer zoom:** windowing (chỉ render trang quanh khung nhìn, slot cao cố định) → zoom re-raster nét, không OOM. Còn 1 nhịp re-raster ("chớp" nhẹ) khi commit zoom — để dành khử bằng oversample + CSS-scale (beat polish sau).
