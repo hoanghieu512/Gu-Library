@@ -9,6 +9,7 @@ import { listFolder, createSubfolder } from '../storage/repo';
 import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
 import type { FolderListing } from '../storage/types';
 import CreateFolderModal from '../components/CreateFolderModal';
+import PrintFlagButton from '../components/PrintFlagButton';
 
 export default function FolderPage() {
   const { uri } = useParams<{ uri: string }>();
@@ -61,6 +62,9 @@ export default function FolderPage() {
               <IonItem key={d.pdfUri} button onClick={() => history.push(`/viewer/${encodeUriParam(d.pdfUri)}`)}>
                 <IonIcon icon={documentTextOutline} slot="start" />
                 <IonLabel className="gu-serif">{d.name}</IonLabel>
+                <div slot="end" onClick={(e) => e.stopPropagation()}>
+                  <PrintFlagButton docUri={d.pdfUri} flagged={d.printFlagged} onChanged={loadListing} />
+                </div>
               </IonItem>
             ))}
             {listing.pending.map((p) => (
