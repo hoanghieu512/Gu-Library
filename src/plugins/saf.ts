@@ -17,6 +17,7 @@ export interface SafPlugin {
   ensureDir(options: { parentUri: string; name: string }): Promise<{ uri: string }>;
   createDir(options: { parentUri: string; name: string }): Promise<{ uri: string; name: string }>;
   writeFile(options: { dirUri: string; name: string; content: string }): Promise<{ uri: string }>;
+  deleteFile(options: { uri: string }): Promise<void>;
 }
 
 export const Saf = registerPlugin<SafPlugin>('Saf');

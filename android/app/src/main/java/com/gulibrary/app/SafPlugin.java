@@ -243,4 +243,17 @@ public class SafPlugin extends Plugin {
             call.resolve(ret);
         } catch (Exception e) { call.reject("write failed: " + e.getMessage()); }
     }
+
+    // Xóa một file theo document-URI (dùng cho dọn _print/ + xóa companion .print.json).
+    @PluginMethod
+    public void deleteFile(PluginCall call) {
+        String uriStr = call.getString("uri");
+        if (uriStr == null) { call.reject("uri required"); return; }
+        try {
+            boolean ok = android.provider.DocumentsContract.deleteDocument(
+                getContext().getContentResolver(), android.net.Uri.parse(uriStr));
+            if (!ok) { call.reject("delete returned false"); return; }
+            call.resolve(new com.getcapacitor.JSObject());
+        } catch (Exception e) { call.reject("delete failed: " + e.getMessage()); }
+    }
 }
