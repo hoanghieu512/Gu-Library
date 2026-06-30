@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
-  IonList, IonItem, IonLabel, IonBadge, IonButton, IonFooter,
+  IonList, IonItem, IonItemSliding, IonItemOptions, IonItemOption, IonLabel, IonBadge, IonButton, IonFooter,
 } from '@ionic/react';
 import { App } from '@capacitor/app';
-import { listPrintRows, gomToPrint, markPrinted, type PrintRow } from '../print/printRepo';
+import { listPrintRows, gomToPrint, markPrinted, clearPrintFlag, type PrintRow } from '../print/printRepo';
 import { onKhoChanged } from '../lib/khoEvents';
 
 export default function PrintPage() {
@@ -42,6 +42,12 @@ export default function PrintPage() {
     try { await markPrinted(row); reload(); } finally { setBusy(false); }
   };
 
+  // Vuốt để bỏ "cần in" (chỉ dòng chưa gom): xóa companion, khỏi cần ra môn untick.
+  const doRemove = async (row: PrintRow) => {
+    setBusy(true);
+    try { await clearPrintFlag(row.pdfUri); reload(); } finally { setBusy(false); }
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -59,18 +65,27 @@ export default function PrintPage() {
             <h2 className="gu-title" style={{ fontSize: 16, margin: '0 0 4px', color: 'var(--gu-brown)' }}>{mon}</h2>
             <IonList>
               {list.map((r) => (
-                <IonItem key={r.pdfUri}>
-                  <IonLabel className="gu-serif">{r.name}</IonLabel>
-                  {r.sent && (
+                r.sent ? (
+                  <IonItem key={r.pdfUri}>
+                    <IonLabel className="gu-serif">{r.name}</IonLabel>
                     <IonBadge slot="end" color="success" style={{ marginRight: 8 }}>đã gửi đi in</IonBadge>
-                  )}
-                  {r.sent && (
                     <IonButton slot="end" size="small" fill="outline" disabled={busy}
                       style={{ textTransform: 'none' }} onClick={() => doDone(r)}>
                       Xong
                     </IonButton>
-                  )}
-                </IonItem>
+                  </IonItem>
+                ) : (
+                  <IonItemSliding key={r.pdfUri}>
+                    <IonItem>
+                      <IonLabel className="gu-serif">{r.name}</IonLabel>
+                    </IonItem>
+                    <IonItemOptions side="end">
+                      <IonItemOption color="danger" disabled={busy} onClick={() => doRemove(r)}>
+                        Bỏ
+                      </IonItemOption>
+                    </IonItemOptions>
+                  </IonItemSliding>
+                )
               ))}
             </IonList>
           </div>
