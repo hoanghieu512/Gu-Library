@@ -38,14 +38,15 @@ export default function ReadingListSheet({ isOpen, items, onOpen, onRemove, onCl
             const newest = idx === 0; // thẻ mới nhất = nâu/kem (đồng bộ card Home); còn lại = giấy ấm
             const fg = newest ? 'var(--gu-cream)' : 'var(--gu-grey)';
             return (
-              <div key={item.path} style={{ marginBottom: 10 }}>
+              // bo góc + overflow:hidden ở div bọc → thẻ và nút "Bỏ" liền khối, cùng cắt theo khối bo
+              <div key={item.path} style={{ marginBottom: 10, borderRadius: 14, overflow: 'hidden' }}>
                 <IonItemSliding>
                   <IonItem
                     button detail={false} lines="none" onClick={() => onOpen(item.uri)}
                     style={{
                       '--background': newest ? 'var(--gu-brown-deep)' : 'var(--gu-paper-2)',
                       '--color': newest ? 'var(--gu-cream)' : 'var(--gu-brown-deep)',
-                      '--border-radius': '14px',
+                      '--border-radius': '0',
                       '--padding-top': '10px', '--padding-bottom': '10px',
                     } as CSSProperties}
                   >
