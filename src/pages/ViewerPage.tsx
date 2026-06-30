@@ -8,6 +8,8 @@ import PdfView from '../components/PdfView';
 import { readPdfBytes } from '../storage/safFile';
 import { getResumePage, recordProgress } from '../reading/store';
 import { decodeUriParam } from '../storage/uriParam';
+import { isPrintFlagged } from '../print/printRepo';
+import PrintFlagButton from '../components/PrintFlagButton';
 
 function baseName(contentUri: string): string {
   const last = decodeURIComponent(contentUri).split('/').pop() ?? contentUri;
@@ -26,6 +28,7 @@ export default function ViewerPage() {
   const [err, setErr] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [flagged, setFlagged] = useState(false);
   const lastSaved = useRef(0);
 
   useEffect(() => {
@@ -36,6 +39,7 @@ export default function ViewerPage() {
         if (!alive) return;
         setInitialPage(resumePage);
         setBytes(await readPdfBytes(docUri));
+        setFlagged(await isPrintFlagged(docUri));
       } catch (e: unknown) {
         if (alive) setErr(String(e instanceof Error ? e.message : e));
       }
@@ -67,6 +71,9 @@ export default function ViewerPage() {
           <IonTitle className="gu-serif" style={{ fontSize: 16, fontWeight: 700, color: 'var(--gu-brown-deep)' }}>
             {name}
           </IonTitle>
+          <IonButtons slot="end">
+            <PrintFlagButton docUri={docUri} flagged={flagged} onChanged={() => setFlagged((v) => !v)} />
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent>
