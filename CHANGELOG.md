@@ -2,6 +2,18 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.2.0] — 2026-06-30 — Nav · Sheet thẻ-rời · Button hai bậc · Cài đặt
+### Added
+- **Cài đặt — Folder kho** hiện đường dẫn đọc-được (`readableTreePath`, vd "Download/kho") thay URI thô; bấm vào = chọn/cấp lại quyền SAF (không gỡ-cài).
+- **Cài đặt — Cỡ chữ Viewer** (Vừa/Lớn/Rất lớn = base-scale 1/1.5/2, lưu Preferences): áp cỡ mặc định khi mở tài liệu; **pinch-zoom chồng lên base** (min vẫn fit-width), nhớ-trang không vỡ.
+- **Cài đặt — Thông tin máy này**: hiện `deviceId` (khớp tên `_reading-<id>.json`) để đối chiếu reading-state đa máy.
+### Changed (kế thừa token v1.1.0, KHÔNG đẻ token mới)
+- **Nav:** icon tab Trang chủ → **sách** (`library`); giữ nguyên 4 nhãn chữ.
+- **2 sheet ("Đang đọc dở" + "Lưu vào môn nào?") = thẻ-rời:** mỗi item một thẻ giấy ấm bo góc, cách nhau, không che khuất; giữ grabber + title serif. "Đang đọc dở": thẻ mới nhất nâu/kem, còn lại giấy; vuốt-Bỏ + tiến độ "Trang N/M" giữ nguyên; nút **"Bỏ" liền khối** với thẻ.
+- **Button hai bậc:** primary = pill đặc nâu/chữ kem (`shape="round"`); secondary (Đóng/Xong) = chữ nâu trơn (`fill="clear"`).
+- **`--ion-color-danger` → đỏ-đất** (`#A1402C`) dùng chung pill "Chưa thấy mini PC" + nút "Bỏ" (Title case, `ion-item-option` text-transform none).
+> Verify Z Flip 4 (R5CT844VRCN): nav sách + nhãn chữ; sheet thẻ-rời không che khuất, vuốt-Bỏ + tiến độ đúng, "Bỏ" liền khối; button hai bậc; "Bỏ" đỏ-đất khớp pill; folder path đọc-được + chọn lại; cỡ chữ áp đúng + pinch mượt + nhớ-trang; deviceId khớp file.
+
 ## [1.1.0] — 2026-06-30 — Pinch-zoom Viewer + đồng nhất UI (token)
 ### Added
 - **Pinch-zoom Viewer:** phóng/thu hai ngón (neo đúng điểm dưới ngón tay, cả dọc lẫn ngang), pan khi đã phóng, double-tap về fit-width; **giữ mức zoom khi lật trang**; không thu dưới fit-width. **Windowing** (chỉ render trang quanh khung nhìn, slot cao cố định theo tỉ lệ thật) → zoom re-raster **nét** mà **không OOM**; điều hướng/nhớ-trang bằng offsets xác định → không trôi. (Còn 1 nhịp re-raster "chớp" nhẹ lúc commit — để dành khử oversample sau.)
