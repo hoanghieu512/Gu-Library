@@ -7,6 +7,7 @@ import { useParams } from 'react-router-dom';
 import PdfView from '../components/PdfView';
 import { readPdfBytes } from '../storage/safFile';
 import { getResumePage, recordProgress } from '../reading/store';
+import { getBaseScale } from '../viewer/fontScale';
 import { decodeUriParam } from '../storage/uriParam';
 import { isPrintFlagged } from '../print/printRepo';
 import PrintFlagButton from '../components/PrintFlagButton';
@@ -29,6 +30,7 @@ export default function ViewerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [flagged, setFlagged] = useState(false);
+  const [baseScale, setBaseScale] = useState<number | null>(null);
   const lastSaved = useRef(0);
 
   useEffect(() => {
@@ -36,7 +38,9 @@ export default function ViewerPage() {
     (async () => {
       try {
         const resumePage = await getResumePage(docUri);
+        const base = await getBaseScale();
         if (!alive) return;
+        setBaseScale(base);
         setInitialPage(resumePage);
         setBytes(await readPdfBytes(docUri));
         setFlagged(await isPrintFlagged(docUri));
@@ -61,7 +65,7 @@ export default function ViewerPage() {
     setTarget('');
   };
 
-  const ready = bytes && initialPage != null;
+  const ready = bytes && initialPage != null && baseScale != null;
 
   return (
     <IonPage>
@@ -83,6 +87,7 @@ export default function ViewerPage() {
           <PdfView
             bytes={bytes}
             initialPage={initialPage}
+            baseScale={baseScale}
             onPageChange={onPageChange}
             jumpTo={jumpTo}
           />
