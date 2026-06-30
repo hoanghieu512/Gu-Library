@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 // Worker offline (bundle, no CDN). This exact form built + ran correctly on device.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -14,103 +15,194 @@ interface Props {
 }
 
 const MAX_ZOOM = 4;
+const BUFFER = 2;                 // số trang đệm mỗi phía quanh vùng nhìn (windowing)
+const GAP = 12;                   // khoảng cách giữa các trang (px)
+const DEFAULT_RATIO = 1.414;      // h/w mặc định (A4 dọc) trước khi đo xong
 
+// Windowing + slot CỐ ĐỊNH chiều cao: chỉ render <Page> quanh khung nhìn (bộ nhớ có trần,
+// zoom không OOM); placeholder = active cùng chiều cao → layout KHÔNG xê dịch. Điều hướng +
+// neo-zoom bằng OFFSETS THẬT (gồm cả GAP/làm tròn) → không lệch tích lũy. Giữ transform tới
+// khi DOM ở cỡ mới rồi mới clear trong useLayoutEffect → không "snap về nhỏ" (hết chớp đôi).
 export default function PdfView({ bytes, initialPage, onPageChange, jumpTo }: Props) {
   const [numPages, setNumPages] = useState(0);
   const [zoom, setZoom] = useState(1);            // zoom đã commit (1 = fit-width). State → GIỮ khi lật trang.
+  const [ratios, setRatios] = useState<number[]>([]); // h/w từng trang (đo từ pdf, không render)
+  const [win, setWin] = useState<[number, number]>([1, 1]);
   const containerRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
   const restored = useRef(false);
   const zoomRef = useRef(1);
+  const prevZoom = useRef(1);
+  const curPage = useRef(initialPage);
+  // neo lúc đổi zoom: dọc (trang + frac + vpY) + ngang (pageX page-relative + vpX)
+  const pendingAnchor = useRef<{ page: number; frac: number; vpY: number; pageX: number; vpX: number } | null>(null);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
   const fitWidth = Math.min(window.innerWidth - 8, 900);
-  const pageWidth = Math.round(fitWidth * zoom); // re-raster nét theo zoom
+  const pageWidth = Math.round(fitWidth * zoom);  // active page re-raster nét theo zoom
 
   // CRITICAL: pdf.js detaches the ArrayBuffer. Build the file object ONCE with a COPY.
   const file = useMemo(() => ({ data: bytes.slice(0) }), [bytes]);
 
-  const scrollToPage = (n: number) => {
-    document.getElementById(`pdf-page-${n}`)?.scrollIntoView();
+  const slotH = useMemo(
+    () => (n: number) => Math.round(pageWidth * (ratios[n - 1] ?? DEFAULT_RATIO)) + GAP,
+    [pageWidth, ratios],
+  );
+
+  // offsets[n] = đỉnh của trang (n+1); đỉnh trang n = offsets[n-1]; cao trang n = offsets[n]-offsets[n-1]
+  const offsets = useMemo(() => {
+    const arr = [0];
+    for (let n = 1; n <= numPages; n++) arr.push(arr[n - 1] + slotH(n));
+    return arr;
+  }, [numPages, slotH]);
+
+  // refs để handler chạm (deps []) đọc được giá trị hiện tại
+  const offsetsRef = useRef(offsets); offsetsRef.current = offsets;
+  const numPagesRef = useRef(numPages); numPagesRef.current = numPages;
+
+  const pageAtY = (off: number[], nP: number, y: number) => {
+    for (let n = 1; n <= nP; n++) if (off[n] > y) return n;
+    return nP || 1;
   };
 
-  const onLoad = (d: { numPages: number }) => {
-    setNumPages(d.numPages);
-    onPageChange(Math.min(initialPage, d.numPages), d.numPages);
+  const goToPage = (n: number) => {
+    const el = containerRef.current; if (!el || numPages === 0) return;
+    el.scrollTop = offsets[Math.max(1, Math.min(n, numPages)) - 1];
   };
 
-  // Khôi phục trang sau khi load xong (zoom=1 lúc mở → scrollIntoView chuẩn).
+  const recompute = () => {
+    const el = containerRef.current; if (!el || numPages === 0) return;
+    const top = el.scrollTop, vh = el.clientHeight;
+    const center = pageAtY(offsets, numPages, top + vh / 2);
+    curPage.current = center;
+    onPageChange(center, numPages);
+    setWin([Math.max(1, pageAtY(offsets, numPages, top) - BUFFER),
+            Math.min(numPages, pageAtY(offsets, numPages, top + vh) + BUFFER)]);
+  };
+
+  // Cập nhật trang hiện tại + cửa sổ render theo scroll (rAF throttle).
   useEffect(() => {
-    if (numPages > 0 && !restored.current) {
-      restored.current = true;
-      if (initialPage > 1) setTimeout(() => scrollToPage(initialPage), 50);
+    const el = containerRef.current; if (!el) return;
+    let raf = 0;
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; recompute(); }); };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => { el.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, [numPages, offsets]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onLoad = async (pdf: PDFDocumentProxy) => {
+    setNumPages(pdf.numPages);
+    const p0 = Math.min(initialPage, pdf.numPages);
+    onPageChange(p0, pdf.numPages);
+    setWin([Math.max(1, p0 - BUFFER), Math.min(pdf.numPages, p0 + BUFFER)]);
+    try {
+      const rs: number[] = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const vp = (await pdf.getPage(i)).getViewport({ scale: 1 });
+        rs.push(vp.height / vp.width);
+      }
+      setRatios(rs);
+    } catch {
+      setRatios(new Array(pdf.numPages).fill(DEFAULT_RATIO));
     }
-  }, [numPages, initialPage]);
+  };
 
-  // Lệnh nhảy trang từ ngoài.
+  // Resume: chỉ scroll khi đã đo xong tỉ lệ (offsets chuẩn).
   useEffect(() => {
-    if (jumpTo && jumpTo >= 1 && jumpTo <= numPages) scrollToPage(jumpTo);
-  }, [jumpTo, numPages]);
+    if (numPages > 0 && ratios.length === numPages && !restored.current) {
+      restored.current = true;
+      requestAnimationFrame(() => { goToPage(initialPage); recompute(); });
+    }
+  }, [numPages, ratios]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Theo dõi trang hiển thị nhiều nhất -> báo ra ngoài để lưu progress.
-  // Keyed [numPages] (không phụ thuộc zoom) → observer quan sát ĐÚNG các #pdf-page-n,
-  // đổi zoom chỉ resize box, observer vẫn chạy → page-tracking + nhớ-trang không vỡ.
   useEffect(() => {
-    if (numPages === 0 || !containerRef.current) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible) {
-          const n = Number((visible.target as HTMLElement).dataset.page);
-          if (n) onPageChange(n, numPages);
-        }
-      },
-      { root: containerRef.current, threshold: [0.25, 0.5, 0.75] },
-    );
-    Array.from({ length: numPages }, (_, i) =>
-      document.getElementById(`pdf-page-${i + 1}`),
-    ).forEach((el) => el && obs.observe(el));
-    return () => obs.disconnect();
-  }, [numPages]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (jumpTo && jumpTo >= 1 && jumpTo <= numPages) {
+      goToPage(jumpTo);
+      requestAnimationFrame(recompute);
+    }
+  }, [jumpTo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sau khi zoom đổi (DOM đã reflow theo pageWidth mới) → đặt scrollTop theo offsets MỚI
+  // (trang+frac chính xác, không lệch tích lũy) RỒI mới clear transform (hết "snap về nhỏ").
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (el && pendingAnchor.current) {
+      const { page, frac, vpY, pageX, vpX } = pendingAnchor.current;
+      el.scrollTop = offsets[page - 1] + frac * (offsets[page] - offsets[page - 1]) - vpY;
+      // ngang: page-relative X scale theo r rồi đưa về đúng vị trí dưới ngón tay (clamp trong vùng pan)
+      const r = zoom / prevZoom.current;
+      el.scrollLeft = Math.max(0, Math.min(pageX * r - vpX, el.scrollWidth - el.clientWidth));
+      pendingAnchor.current = null;
+    }
+    if (pagesRef.current) { pagesRef.current.style.transform = ''; pagesRef.current.style.transformOrigin = ''; }
+    prevZoom.current = zoom;
+    recompute();
+  }, [zoom]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Pinch + double-tap (native listeners để preventDefault được; React touchmove là passive) ---
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    let pinching = false, startDist = 0, startZoom = 1, live = 1, lastTap = 0;
-    const dist = (t: TouchList) =>
-      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    let pinching = false, startDist = 0, startZoom = 1, live = 1, lastTap = 0, originSet = false;
+    let focalVpY = 0, focalPageX = 0, focalVpX = 0;
+    const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const mid = (t: TouchList) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+
+    // dọc: {trang, frac} của toạ độ dọc vpY theo offsets hiện tại
+    const anchorY = (vpY: number) => {
+      const c = containerRef.current!; const off = offsetsRef.current; const nP = numPagesRef.current;
+      const docY = c.scrollTop + vpY;
+      const page = pageAtY(off, nP, docY);
+      const frac = (docY - off[page - 1]) / Math.max(1, off[page] - off[page - 1]);
+      return { page, frac: Math.max(0, Math.min(1, frac)), vpY };
+    };
 
     const onStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
-        pinching = true;
-        startDist = dist(e.touches);
-        startZoom = zoomRef.current;
-        live = zoomRef.current;
+        pinching = true; originSet = false;
+        startDist = dist(e.touches); startZoom = zoomRef.current; live = zoomRef.current;
       }
     };
     const onMove = (e: TouchEvent) => {
-      if (pinching && e.touches.length === 2) {
-        e.preventDefault(); // chặn cuộn/zoom-trình-duyệt trong lúc pinch
-        const ratio = dist(e.touches) / startDist;
-        live = Math.max(1, Math.min(MAX_ZOOM, startZoom * ratio));
-        if (pagesRef.current) {
-          pagesRef.current.style.transformOrigin = 'top center';
-          pagesRef.current.style.transform = `scale(${live / zoomRef.current})`; // preview mượt
-        }
+      if (!pinching || e.touches.length !== 2) return;
+      e.preventDefault(); // chặn cuộn/zoom-trình-duyệt trong lúc pinch
+      live = Math.max(1, Math.min(MAX_ZOOM, startZoom * (dist(e.touches) / startDist)));
+      const p = pagesRef.current, c = containerRef.current;
+      if (!p || !c) return;
+      if (!originSet) {
+        const m = mid(e.touches), pr = p.getBoundingClientRect(), cr = c.getBoundingClientRect();
+        p.style.transformOrigin = `${m.x - pr.left}px ${m.y - pr.top}px`; // scale quanh ngón tay
+        focalVpY = m.y - cr.top;       // dọc: vị trí ngón trong khung
+        focalPageX = m.x - pr.left;    // ngang: X ngón so với mép trái trang (page-relative, chưa scale)
+        focalVpX = m.x - cr.left;      // ngang: X ngón trong khung
+        originSet = true;
       }
+      // Preview mượt bằng CSS transform (GPU, KHÔNG re-raster → an toàn bộ nhớ).
+      p.style.transform = `scale(${live / startZoom})`;
     };
     const onEnd = (e: TouchEvent) => {
       if (pinching && e.touches.length < 2) {
         pinching = false;
-        if (pagesRef.current) pagesRef.current.style.transform = ''; // bỏ preview
-        if (Math.abs(live - zoomRef.current) > 0.01) setZoom(live);   // commit → re-raster nét
+        if (Math.abs(live - zoomRef.current) > 0.01) {
+          pendingAnchor.current = { ...anchorY(focalVpY), pageX: focalPageX, vpX: focalVpX }; // giữ điểm dưới ngón tay
+          setZoom(live);                                 // commit → re-raster nét; transform clear ở layout effect
+        } else if (pagesRef.current) {
+          pagesRef.current.style.transform = '';         // pinch không đáng kể → bỏ preview ngay
+        }
       } else if (e.touches.length === 0) {
         const now = Date.now();
-        if (now - lastTap < 300) { setZoom(1); lastTap = 0; } // double-tap → fit-width
-        else lastTap = now;
+        if (now - lastTap < 300) {                       // double-tap → fit-width, giữ tâm khung
+          const c = containerRef.current, p = pagesRef.current;
+          if (c && p) {
+            const cr = c.getBoundingClientRect(), pr = p.getBoundingClientRect();
+            pendingAnchor.current = {
+              ...anchorY(c.clientHeight / 2),
+              pageX: cr.left + c.clientWidth / 2 - pr.left,
+              vpX: c.clientWidth / 2,
+            };
+          }
+          setZoom(1);
+          lastTap = 0;
+        } else lastTap = now;
       }
     };
     el.addEventListener('touchstart', onStart, { passive: false });
@@ -123,6 +215,8 @@ export default function PdfView({ bytes, initialPage, onPageChange, jumpTo }: Pr
     };
   }, []);
 
+  const [winStart, winEnd] = win;
+
   return (
     <div
       ref={containerRef}
@@ -131,16 +225,22 @@ export default function PdfView({ bytes, initialPage, onPageChange, jumpTo }: Pr
       {/* width:max-content + margin auto → căn giữa khi vừa khung, pan tới mép khi đã phóng */}
       <div ref={pagesRef} style={{ width: 'max-content', margin: '0 auto' }}>
         <Document file={file} onLoadSuccess={onLoad}>
-          {Array.from({ length: numPages }, (_, i) => (
-            <div id={`pdf-page-${i + 1}`} data-page={i + 1} key={i} style={{ padding: '6px 0' }}>
-              <Page
-                pageNumber={i + 1}
-                width={pageWidth}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-              />
-            </div>
-          ))}
+          {Array.from({ length: numPages }, (_, i) => {
+            const n = i + 1;
+            const active = n >= winStart && n <= winEnd;
+            return (
+              <div id={`pdf-page-${n}`} data-page={n} key={i} style={{ width: pageWidth, height: slotH(n) }}>
+                {active && (
+                  <Page
+                    pageNumber={n}
+                    width={pageWidth}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                )}
+              </div>
+            );
+          })}
         </Document>
       </div>
     </div>
