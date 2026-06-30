@@ -12,6 +12,7 @@ import FolderPage from './pages/FolderPage';
 import SearchStubPage from './pages/SearchStubPage';
 import AddStubPage from './pages/AddStubPage';
 import SettingsPage from './pages/SettingsPage';
+import PrintPage from './pages/PrintPage';
 import { useAndroidBackButton } from './nav/useAndroidBackButton';
 import ShareReceiver from './import/ShareReceiver';
 
@@ -50,6 +51,7 @@ export default function App() {
             <Route exact path="/search" component={SearchStubPage} />
             <Route exact path="/add" component={AddStubPage} />
             <Route exact path="/settings" component={SettingsPage} />
+            <Route exact path="/print" component={PrintPage} />
             <Route exact path="/"><Redirect to="/home" /></Route>
           </IonRouterOutlet>
           <IonTabBar slot="bottom">
