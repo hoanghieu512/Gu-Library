@@ -20,11 +20,8 @@ import ShareReceiver from './import/ShareReceiver';
 // Code-split so it's not imported when App is evaluated (keeps smoke test green).
 const ViewerPage = lazy(() => import('./pages/ViewerPage'));
 
-/* Ionic core + theming CSS */
-import '@ionic/react/css/core.css';
-import '@ionic/react/css/normalize.css';
-import '@ionic/react/css/structure.css';
-import '@ionic/react/css/typography.css';
+/* Ionic core + theming CSS được nạp ở main.tsx TRƯỚC theme/variables.css
+   (để token override của ta thắng palette mặc định Ionic). */
 
 setupIonicReact();
 

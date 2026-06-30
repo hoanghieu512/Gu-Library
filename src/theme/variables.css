@@ -17,13 +17,21 @@
   --ion-text-color: #2b2b2b;
   --ion-text-color-rgb: 43, 43, 43;
 
-  /* primary = nâu nhấn */
-  --ion-color-primary: #75420E;
-  --ion-color-primary-rgb: 117,66,14;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-contrast-rgb: 255,255,255;
-  --ion-color-primary-shade: #553B08;
-  --ion-color-primary-tint: #855a2a;
+  /* primary = nâu ĐẬM (đúng nền card "đọc dở"); chữ kem cho nút đặc */
+  --ion-color-primary: #553B08;
+  --ion-color-primary-rgb: 85,59,8;
+  --ion-color-primary-contrast: #E9E5CD;
+  --ion-color-primary-contrast-rgb: 233,229,205;
+  --ion-color-primary-shade: #4a3407;
+  --ion-color-primary-tint: #6a4f1f;
+
+  /* success = MỘT shade xanh lá (pill sync "Đã đồng bộ") cho mọi trạng thái xong */
+  --ion-color-success: #2dd36f;
+  --ion-color-success-rgb: 45,211,111;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255,255,255;
+  --ion-color-success-shade: #28ba62;
+  --ion-color-success-tint: #42d77d;
 
   --ion-toolbar-background: var(--gu-paper-2);
   --ion-tab-bar-background: var(--gu-paper-2);
@@ -37,3 +45,6 @@
 /* tiêu đề/nội dung đọc = serif */
 .gu-serif { font-family: var(--gu-serif); }
 .gu-title { font-family: var(--gu-serif); font-weight: 700; color: var(--gu-brown-deep); }
+
+/* Title case toàn app — không để ion-button tự UPPER (md mode) */
+ion-button { text-transform: none; }
