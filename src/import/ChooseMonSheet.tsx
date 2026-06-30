@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel,
   IonNote,
@@ -17,6 +18,14 @@ interface Props {
   onCancel: () => void;
 }
 
+// Thẻ giấy bo góc cho mỗi môn (rời, cách nhau khoảng trống).
+const card: CSSProperties = {
+  '--background': 'var(--gu-paper-2)',
+  '--border-radius': '14px',
+  '--padding-top': '10px',
+  '--padding-bottom': '10px',
+} as CSSProperties;
+
 export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props) {
   const [mons, setMons] = useState<Mon[]>([]);
   const [last, setLast] = useState<string | null>(null);
@@ -29,7 +38,7 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
     })();
   }, [isOpen]);
 
-  // Bỏ folder "Chưa phân loại" khỏi danh sách (nút fallback cuối đã lo) + đưa môn vừa dùng lên đầu.
+  // Bỏ folder "Chưa phân loại" khỏi danh sách (thẻ fallback cuối đã lo) + đưa môn vừa dùng lên đầu.
   const ordered = mons
     .filter((m) => m.name !== UNFILED)
     .sort((a, b) => (a.name === last ? -1 : b.name === last ? 1 : 0));
@@ -38,28 +47,31 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
     <IonModal isOpen={isOpen} onDidDismiss={onCancel} breakpoints={[0, 0.6, 0.95]} initialBreakpoint={0.6}>
       <IonHeader>
         <IonToolbar>
-          <IonTitle className="gu-serif" style={{ fontSize: 16 }}>Lưu vào môn nào?</IonTitle>
+          <IonTitle className="gu-title" style={{ fontSize: 17 }}>Lưu vào môn nào?</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
         {note && <IonNote>{note}</IonNote>}
-        {/* Môn thật = lựa chọn nổi bật, lên trên */}
-        <IonList>
+        <IonList style={{ background: 'transparent' }}>
           {ordered.map((m) => (
-            <IonItem key={m.uri} button onClick={() => onPick(m.name)}>
-              <MonSwatch name={m.name} color={m.meta.color} icon={m.meta.icon} />
-              <IonLabel className="gu-serif" style={{ marginLeft: 12 }}>
-                {m.name}{m.name === last ? '  · vừa dùng' : ''}
+            <div key={m.uri} style={{ marginBottom: 10 }}>
+              <IonItem button detail={false} lines="none" onClick={() => onPick(m.name)} style={card}>
+                <MonSwatch name={m.name} color={m.meta.color} icon={m.meta.icon} />
+                <IonLabel className="gu-serif" style={{ marginLeft: 12 }}>
+                  {m.name}{m.name === last ? '  · vừa dùng' : ''}
+                </IonLabel>
+              </IonItem>
+            </div>
+          ))}
+          {/* Fallback = thẻ mờ (xám italic, ô viền đứt), đặt cuối */}
+          <div style={{ marginBottom: 10 }}>
+            <IonItem button detail={false} lines="none" onClick={() => onPick(UNFILED)} style={card}>
+              <UnfiledSwatch />
+              <IonLabel color="medium" style={{ marginLeft: 12, fontStyle: 'italic' }}>
+                Chưa phân loại
               </IonLabel>
             </IonItem>
-          ))}
-          {/* Fallback = visual nhẹ (xám, italic, ô viền đứt), đặt cuối */}
-          <IonItem button detail={false} onClick={() => onPick(UNFILED)}>
-            <UnfiledSwatch />
-            <IonLabel color="medium" style={{ marginLeft: 12, fontStyle: 'italic' }}>
-              Chưa phân loại
-            </IonLabel>
-          </IonItem>
+          </div>
         </IonList>
       </IonContent>
     </IonModal>
