@@ -22,7 +22,7 @@ export default function ReadingListSheet({ isOpen, items, onOpen, onRemove, onCl
     >
       <IonHeader>
         <IonToolbar>
-          <IonTitle style={{ fontFamily: 'var(--gu-serif)', fontSize: 17 }}>Đang đọc dở</IonTitle>
+          <IonTitle className="gu-title" style={{ fontSize: 17 }}>Đang đọc dở</IonTitle>
           <IonButton slot="end" fill="clear" onClick={onClose}>Đóng</IonButton>
         </IonToolbar>
       </IonHeader>

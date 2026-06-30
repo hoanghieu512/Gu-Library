@@ -62,15 +62,14 @@ export default function PrintPage() {
         )}
         {[...byMon.entries()].map(([mon, list]) => (
           <div key={mon} style={{ marginBottom: 16 }}>
-            <h2 className="gu-title" style={{ fontSize: 16, margin: '0 0 4px', color: 'var(--gu-brown)' }}>{mon}</h2>
+            <h2 className="gu-title" style={{ fontSize: 16, margin: '0 0 4px', paddingInlineStart: 16, color: 'var(--gu-brown)' }}>{mon}</h2>
             <IonList>
               {list.map((r) => (
                 r.sent ? (
                   <IonItem key={r.pdfUri}>
                     <IonLabel className="gu-serif">{r.name}</IonLabel>
-                    <IonBadge slot="end" color="success" style={{ marginRight: 8 }}>đã gửi đi in</IonBadge>
-                    <IonButton slot="end" size="small" fill="outline" disabled={busy}
-                      style={{ textTransform: 'none' }} onClick={() => doDone(r)}>
+                    <IonBadge slot="end" color="success" style={{ marginRight: 8 }}>Đã gửi đi in</IonBadge>
+                    <IonButton slot="end" size="small" fill="outline" disabled={busy} onClick={() => doDone(r)}>
                       Xong
                     </IonButton>
                   </IonItem>
@@ -95,8 +94,8 @@ export default function PrintPage() {
         <IonFooter>
           <IonToolbar>
             <div style={{ padding: '0 12px' }}>
-              <IonButton expand="block" disabled={busy} style={{ textTransform: 'none' }} onClick={doGom}>
-                {busy ? 'Đang gom…' : `Gom vào _print/ (${pendingCopy})`}
+              <IonButton expand="block" disabled={busy} onClick={doGom}>
+                {busy ? 'Đang gom…' : `Gom để in (${pendingCopy})`}
               </IonButton>
             </div>
           </IonToolbar>
