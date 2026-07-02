@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.2.1] — 2026-07-02 — Fix badge "Chưa thấy mini PC" báo sai ở Prod
+### Investigation (code trace)
+- Badge offline khi 1 trong 3: connections null / device không connected / **completion null**. `useSyncStatus` query `/rest/db/completion?folder=${cfg.folderId}&...` nhưng `st_folder_id` **KHÔNG bao giờ được set** (`setFolderId` không chỗ nào gọi, không UI) → luôn rơi về **`DEFAULT_FOLDER='gu-library-kho'` (hardcode QA)**. Ở Prod (folder `gu-library-kho-prod`) → query folder không tồn tại → non-200 → `completion=null` → `deriveLight`→'offline' dù device connected. QA đúng vì default trùng folder QA.
+### Fixed
+- Query completion **theo device** (`/rest/db/completion?device=<minipc>`, Syncthing gộp mọi folder share) — bỏ hẳn folder-ID hardcode → chạy đúng với BẤT KỲ kho nào (local-first).
+- `deriveLight`: connected + completion null → **'synced'** (vẫn "thấy mini PC"); offline CHỈ khi device thật sự không connected. An toàn kể cả khi device-only completion không hỗ trợ.
+- Dọn `folderId`/`DEFAULT_FOLDER`/`setFolderId` khỏi `config.ts` (không còn hằng số tên/ID kho trong logic badge).
+> Verify tablet Gú (SM-X710) kho Prod: online → "Đã đồng bộ", mất kết nối → "Chưa thấy mini PC"; QA `gu-library-kho` không hồi quy.
+
 ## [1.2.0] — 2026-06-30 — Nav · Sheet thẻ-rời · Button hai bậc · Cài đặt
 ### Added
 - **Cài đặt — Folder kho** hiện đường dẫn đọc-được (`readableTreePath`, vd "Download/kho") thay URI thô; bấm vào = chọn/cấp lại quyền SAF (không gỡ-cài).

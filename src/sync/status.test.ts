@@ -37,7 +37,9 @@ describe('deriveLight', () => {
   it('offline: connections fetch failed (null)', () => {
     expect(deriveLight({ connections: null, completion: done, minipcId: MINIPC })).toBe('offline');
   });
-  it('offline: completion fetch failed (null) even if connected', () => {
-    expect(deriveLight({ connections: connConnected, completion: null, minipcId: MINIPC })).toBe('offline');
+  // Bug Prod (v1.2.1): connected + completion null (vd query folder-ID sai / device-only chưa hỗ trợ)
+  // KHÔNG được báo offline sai — vẫn THẤY mini PC → 'synced'.
+  it('synced: connected nhưng completion null (vẫn thấy mini PC, không báo offline sai)', () => {
+    expect(deriveLight({ connections: connConnected, completion: null, minipcId: MINIPC })).toBe('synced');
   });
 });
