@@ -2,6 +2,16 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.2.2] — 2026-07-02 — UX polish: gesture sheet + header nhóm + thẻ-rời "Đi in"
+### Investigation (điều tra trước, 2 lần sửa hụt do suy từ model)
+- **Gesture sheet:** đọc `@ionic/core` `modal/gestures/sheet.js` — trọng tài "cuộn nội dung vs kéo sheet" (check `scrollTop===0`) CHỈ chạy khi breakpoint max = 1; đổi max sang 0.92 vẫn hỏng. Đúng cơ chế = prop **`expandToScroll={false}`** (kéo-sheet chỉ bắt đầu khi nội dung ở đỉnh).
+- **Header "Đi in":** header có dải nền kem (`--ion-background-color`), item nền giấy sáng hơn. Nhóm đầu dải mỏng (chỉ padding-top content) vs nhóm sau (thêm margin) → bất đối xứng. CSS `.print-group ion-list{padding-block:0}` thua specificity selector scoped của Ionic → phải inline style.
+### Fixed
+- **Sheet ("Đang đọc dở" + "Lưu vào môn nào?"): `expandToScroll={false}`** → kéo dọc trong danh sách = cuộn nội dung (sheet đứng yên); kéo header/grabber = di chuyển sheet; over-scroll đỉnh = đóng. Giữ 2 mức (`[0,0.92]`), vuốt-ngang-xóa vẫn chạy, nền Home khóa.
+- **Header nhóm "Đi in" đồng đều:** padding NGANG ở IonContent (`--padding-start/-end`), padding DỌC tự chứa trong từng `h2` → dải nền header bằng nhau mọi nhóm (kể cả nhóm đầu).
+- **"Đi in" thành thẻ-rời:** mỗi tài liệu = thẻ giấy bo góc (nền `--gu-paper-2`, cách nhau 10px, bo góc + overflow ở div bọc → nút "Bỏ" vuốt liền khối) — đồng bộ sheet "Đang đọc dở".
+> Verify Z Flip 4 (R5CT844VRCN): sheet cuộn nội dung không kéo sheet + vuốt-xóa OK; header nhóm đầu = nhóm sau; "Đi in" thẻ-rời bo góc.
+
 ## [1.2.1] — 2026-07-02 — Fix badge "Chưa thấy mini PC" báo sai ở Prod
 ### Investigation (code trace)
 - Badge offline khi 1 trong 3: connections null / device không connected / **completion null**. `useSyncStatus` query `/rest/db/completion?folder=${cfg.folderId}&...` nhưng `st_folder_id` **KHÔNG bao giờ được set** (`setFolderId` không chỗ nào gọi, không UI) → luôn rơi về **`DEFAULT_FOLDER='gu-library-kho'` (hardcode QA)**. Ở Prod (folder `gu-library-kho-prod`) → query folder không tồn tại → non-200 → `completion=null` → `deriveLight`→'offline' dù device connected. QA đúng vì default trùng folder QA.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonList, IonItem, IonItemSliding, IonItemOptions, IonItemOption, IonLabel, IonBadge, IonButton, IonFooter,
@@ -56,35 +57,47 @@ export default function PrintPage() {
           <IonTitle className="gu-title">Đi in</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      {/* Padding NGANG ở content; padding DỌC nằm trong từng header (h2) → dải nền header
+          đồng đều mọi nhóm (nhóm đầu không còn mỏng hơn do padding-top của content). */}
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px' } as CSSProperties}>
         {rows.length === 0 && (
-          <p style={{ color: 'var(--gu-grey)' }}>Chưa có tài liệu nào cần in.</p>
+          <p style={{ color: 'var(--gu-grey)', paddingTop: 16 }}>Chưa có tài liệu nào cần in.</p>
         )}
         {[...byMon.entries()].map(([mon, list]) => (
-          <div key={mon} style={{ marginBottom: 16 }}>
-            <h2 className="gu-title" style={{ fontSize: 16, margin: '0 0 4px', paddingInlineStart: 16, color: 'var(--gu-brown)' }}>{mon}</h2>
-            <IonList>
+          <div key={mon} className="print-group">
+            <h2 className="gu-title" style={{ fontSize: 16, margin: 0, paddingTop: 12, paddingBottom: 6, paddingInlineStart: 16, color: 'var(--gu-brown)' }}>{mon}</h2>
+            {/* Mỗi tài liệu = thẻ-rời bo góc (giống sheet "Đang đọc dở"); bo góc + overflow ở div bọc
+                để nút "Bỏ" vuốt liền khối với thẻ. */}
+            <IonList style={{ background: 'transparent', paddingTop: 0, paddingBottom: 0 }}>
               {list.map((r) => (
-                r.sent ? (
-                  <IonItem key={r.pdfUri}>
-                    <IonLabel className="gu-serif">{r.name}</IonLabel>
-                    <IonBadge slot="end" color="success" style={{ marginRight: 8 }}>Đã gửi đi in</IonBadge>
-                    <IonButton slot="end" size="small" fill="clear" disabled={busy} onClick={() => doDone(r)}>
-                      Xong
-                    </IonButton>
-                  </IonItem>
-                ) : (
-                  <IonItemSliding key={r.pdfUri}>
-                    <IonItem>
+                <div key={r.pdfUri} style={{ marginBottom: 10, borderRadius: 14, overflow: 'hidden' }}>
+                  {r.sent ? (
+                    <IonItem
+                      lines="none"
+                      style={{ '--background': 'var(--gu-paper-2)', '--border-radius': '0', '--padding-top': '10px', '--padding-bottom': '10px' } as CSSProperties}
+                    >
                       <IonLabel className="gu-serif">{r.name}</IonLabel>
+                      <IonBadge slot="end" color="success" style={{ marginRight: 8 }}>Đã gửi đi in</IonBadge>
+                      <IonButton slot="end" size="small" fill="clear" disabled={busy} onClick={() => doDone(r)}>
+                        Xong
+                      </IonButton>
                     </IonItem>
-                    <IonItemOptions side="end">
-                      <IonItemOption color="danger" disabled={busy} onClick={() => doRemove(r)}>
-                        Bỏ
-                      </IonItemOption>
-                    </IonItemOptions>
-                  </IonItemSliding>
-                )
+                  ) : (
+                    <IonItemSliding>
+                      <IonItem
+                        lines="none"
+                        style={{ '--background': 'var(--gu-paper-2)', '--border-radius': '0', '--padding-top': '10px', '--padding-bottom': '10px' } as CSSProperties}
+                      >
+                        <IonLabel className="gu-serif">{r.name}</IonLabel>
+                      </IonItem>
+                      <IonItemOptions side="end">
+                        <IonItemOption color="danger" disabled={busy} onClick={() => doRemove(r)}>
+                          Bỏ
+                        </IonItemOption>
+                      </IonItemOptions>
+                    </IonItemSliding>
+                  )}
+                </div>
               ))}
             </IonList>
           </div>

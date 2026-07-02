@@ -44,7 +44,7 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
     .sort((a, b) => (a.name === last ? -1 : b.name === last ? 1 : 0));
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onCancel} breakpoints={[0, 0.6, 0.95]} initialBreakpoint={0.6}>
+    <IonModal isOpen={isOpen} onDidDismiss={onCancel} breakpoints={[0, 0.92]} initialBreakpoint={0.92} expandToScroll={false}>
       <IonHeader>
         <IonToolbar>
           <IonTitle className="gu-title" style={{ fontSize: 17 }}>Lưu vào môn nào?</IonTitle>

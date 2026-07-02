@@ -18,8 +18,9 @@ export default function ReadingListSheet({ isOpen, items, onOpen, onRemove, onCl
     <IonModal
       isOpen={isOpen}
       onDidDismiss={onClose}
-      breakpoints={[0, 0.6, 0.95]}
-      initialBreakpoint={0.6}
+      breakpoints={[0, 0.92]}
+      initialBreakpoint={0.92}
+      expandToScroll={false}
     >
       <IonHeader>
         <IonToolbar>

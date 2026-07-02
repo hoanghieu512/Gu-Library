@@ -56,3 +56,4 @@
 
 /* Title case toàn app — không để ion-button / ion-item-option (vuốt) tự UPPER (md mode) */
 ion-button, ion-item-option { text-transform: none; }
+
