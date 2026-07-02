@@ -39,6 +39,72 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   const pendingAnchor = useRef<{ page: number; frac: number; vpY: number; pageX: number; vpX: number } | null>(null);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
+  // ---- Khử chớp lúc commit zoom (v1.2.3) ----
+  // Root cause (react-pdf 10.4.1 dist/Page/Canvas.js drawPageOnCanvas): khi width đổi, effect
+  // set canvas.width mới (XÓA pixel cũ) + visibility:hidden tới khi pdf.js render xong → slot lộ
+  // nền = chớp. Fix: chụp pixel đang hiển thị vào overlay canvas cỡ viewport TRƯỚC commit, phủ lên
+  // tới khi các trang nhìn thấy bắn onRenderSuccess (timeout đỡ) → cũ(mờ)→nét, không khoảng trống.
+  // Bộ nhớ tạm = 1 canvas cỡ màn hình (~vài MB) — không đụng trần OOM của windowing.
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+  const [swapping, setSwapping] = useState(false);
+  const swappingRef = useRef(false);
+  const pendingRender = useRef<Set<number> | null>(null);
+  const swapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const endSwap = () => {
+    if (swapTimer.current) { clearTimeout(swapTimer.current); swapTimer.current = null; }
+    pendingRender.current = null;
+    swappingRef.current = false;
+    setSwapping(false);
+  };
+
+  // Chụp nội dung đang hiển thị (kể cả preview transform — dùng bounding rect đã transform) — đồng bộ.
+  const takeSnapshot = (): boolean => {
+    const c = containerRef.current, ov = overlayRef.current;
+    if (!c || !ov) return false;
+    const dpr = window.devicePixelRatio || 1;
+    ov.width = Math.round(c.clientWidth * dpr);
+    ov.height = Math.round(c.clientHeight * dpr);
+    const ctx = ov.getContext('2d');
+    if (!ctx) return false;
+    ctx.fillStyle = '#E9E5CD'; // --gu-cream: nền content, lấp vùng ngoài trang
+    ctx.fillRect(0, 0, ov.width, ov.height);
+    const cr = c.getBoundingClientRect();
+    let drew = false;
+    c.querySelectorAll('canvas').forEach((el) => {
+      const cv = el as HTMLCanvasElement;
+      if (cv.width === 0) return;
+      const r = cv.getBoundingClientRect();
+      if (r.bottom < cr.top || r.top > cr.bottom) return; // ngoài khung nhìn
+      try {
+        ctx.drawImage(cv, (r.left - cr.left) * dpr, (r.top - cr.top) * dpr, r.width * dpr, r.height * dpr);
+        drew = true;
+      } catch { /* canvas lỗi → bỏ qua */ }
+    });
+    return drew;
+  };
+
+  // Gọi NGAY TRƯỚC setZoom (cùng tick — DOM chưa reflow nên pixel cũ còn nguyên).
+  const beginSwap = () => {
+    if (!swappingRef.current) {
+      if (!takeSnapshot()) return; // chưa có gì hiển thị → giữ hành vi cũ
+      swappingRef.current = true;
+      setSwapping(true);
+    }
+    // Zoom nhiều nhịp liên tiếp: giữ overlay cũ (không chụp đè lúc canvas dưới đang trống), chỉ reset lưới đỡ.
+    if (swapTimer.current) clearTimeout(swapTimer.current);
+    swapTimer.current = setTimeout(endSwap, 1500);
+  };
+
+  const onPageRendered = (n: number) => {
+    const p = pendingRender.current;
+    if (!p) return;
+    p.delete(n);
+    if (p.size === 0) endSwap();
+  };
+
+  useEffect(() => () => { if (swapTimer.current) clearTimeout(swapTimer.current); }, []);
+
   const fitWidth = Math.min(window.innerWidth - 8, 900);
   const pageWidth = Math.round(fitWidth * zoom);  // active page re-raster nét theo zoom
 
@@ -137,6 +203,16 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
     if (pagesRef.current) { pagesRef.current.style.transform = ''; pagesRef.current.style.transformOrigin = ''; }
     prevZoom.current = zoom;
     recompute();
+    // Đang swap khử chớp: chốt danh sách trang NHÌN THẤY (theo scroll mới) phải render xong
+    // trước khi gỡ overlay. Không tính trang buffer (ngoài khung nhìn) để gỡ sớm nhất có thể.
+    if (swappingRef.current && el && numPages > 0) {
+      const top = el.scrollTop, vh = el.clientHeight;
+      const s = pageAtY(offsets, numPages, top);
+      const e = pageAtY(offsets, numPages, top + vh);
+      const set = new Set<number>();
+      for (let n = s; n <= e; n++) set.add(n);
+      pendingRender.current = set;
+    }
   }, [zoom]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Pinch + double-tap (native listeners để preventDefault được; React touchmove là passive) ---
@@ -185,6 +261,7 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
         pinching = false;
         if (Math.abs(live - zoomRef.current) > 0.01) {
           pendingAnchor.current = { ...anchorY(focalVpY), pageX: focalPageX, vpX: focalVpX }; // giữ điểm dưới ngón tay
+          beginSwap();                                   // chụp overlay TRƯỚC khi DOM đổi (khử chớp)
           setZoom(live);                                 // commit → re-raster nét; transform clear ở layout effect
         } else if (pagesRef.current) {
           pagesRef.current.style.transform = '';         // pinch không đáng kể → bỏ preview ngay
@@ -201,6 +278,7 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
               vpX: c.clientWidth / 2,
             };
           }
+          if (Math.abs(zoomRef.current - 1) > 0.01) beginSwap(); // chỉ swap khi cỡ thật sự đổi (tránh treo overlay)
           setZoom(1);
           lastTap = 0;
         } else lastTap = now;
@@ -219,31 +297,42 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   const [winStart, winEnd] = win;
 
   return (
-    <div
-      ref={containerRef}
-      style={{ height: '100%', overflow: 'auto', touchAction: 'pan-x pan-y' }}
-    >
-      {/* width:max-content + margin auto → căn giữa khi vừa khung, pan tới mép khi đã phóng */}
-      <div ref={pagesRef} style={{ width: 'max-content', margin: '0 auto' }}>
-        <Document file={file} onLoadSuccess={onLoad}>
-          {Array.from({ length: numPages }, (_, i) => {
-            const n = i + 1;
-            const active = n >= winStart && n <= winEnd;
-            return (
-              <div id={`pdf-page-${n}`} data-page={n} key={i} style={{ width: pageWidth, height: slotH(n) }}>
-                {active && (
-                  <Page
-                    pageNumber={n}
-                    width={pageWidth}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </Document>
+    <div style={{ position: 'relative', height: '100%' }}>
+      <div
+        ref={containerRef}
+        style={{ height: '100%', overflow: 'auto', touchAction: 'pan-x pan-y' }}
+      >
+        {/* width:max-content + margin auto → căn giữa khi vừa khung, pan tới mép khi đã phóng */}
+        <div ref={pagesRef} style={{ width: 'max-content', margin: '0 auto' }}>
+          <Document file={file} onLoadSuccess={onLoad}>
+            {Array.from({ length: numPages }, (_, i) => {
+              const n = i + 1;
+              const active = n >= winStart && n <= winEnd;
+              return (
+                <div id={`pdf-page-${n}`} data-page={n} key={i} style={{ width: pageWidth, height: slotH(n) }}>
+                  {active && (
+                    <Page
+                      pageNumber={n}
+                      width={pageWidth}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                      onRenderSuccess={() => onPageRendered(n)}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </Document>
+        </div>
       </div>
+      {/* Overlay khử chớp: ảnh chụp nội dung cũ phủ tới khi raster mới sẵn sàng (không cuộn theo). */}
+      <canvas
+        ref={overlayRef}
+        style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          zIndex: 2, pointerEvents: 'none', display: swapping ? 'block' : 'none',
+        }}
+      />
     </div>
   );
 }

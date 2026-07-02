@@ -2,6 +2,14 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.2.3] — 2026-07-02 — Fix chớp một nhịp khi commit zoom (Viewer)
+### Investigation (soi source react-pdf, không suy từ model)
+- Root cause ở `react-pdf 10.4.1 dist/Page/Canvas.js` (`drawPageOnCanvas`): khi `width` của `<Page>` đổi, effect set `canvas.width` mới (**xóa trắng pixel cũ ngay**) + `visibility:'hidden'` tới khi pdf.js render xong mới hiện lại → trong khoảng đó slot lộ nền kem = cú chớp. Không phải Page remount.
+### Fixed
+- **Overlay snapshot swap:** ngay TRƯỚC commit zoom (pinch-thả + double-tap), chụp pixel các canvas đang hiển thị (drawImage đồng bộ, dùng bounding-rect đã transform nên khớp cả preview scale) vào **một canvas overlay cỡ viewport** phủ lên trên (không cuộn theo); giữ tới khi mọi trang nhìn-thấy bắn `onRenderSuccess` (timeout 1.5s đỡ) rồi gỡ → cũ(mờ)→nét, **không còn khoảng trống/chớp**. Zoom liên tiếp nhanh: giữ overlay cũ, chỉ reset lưới đỡ. Double-tap khi đã fit-width: không swap (tránh treo overlay).
+- Không đụng windowing/neo/nhớ-trang. Bộ nhớ tạm = 1 canvas cỡ màn hình (~vài MB).
+> Verify Z Flip 4 (R5CT844VRCN): zoom in/out/double-tap/nhiều nhịp — không chớp, neo đúng, lật trang giữ zoom, nhớ-trang đúng; logcat phiên test: 0 renderer kill, 0 lmkd reclaim, 0 onTrimMemory từ app (biên OOM v1.1.0 giữ vững).
+
 ## [1.2.2] — 2026-07-02 — UX polish: gesture sheet + header nhóm + thẻ-rời "Đi in"
 ### Investigation (điều tra trước, 2 lần sửa hụt do suy từ model)
 - **Gesture sheet:** đọc `@ionic/core` `modal/gestures/sheet.js` — trọng tài "cuộn nội dung vs kéo sheet" (check `scrollTop===0`) CHỈ chạy khi breakpoint max = 1; đổi max sang 0.92 vẫn hỏng. Đúng cơ chế = prop **`expandToScroll={false}`** (kéo-sheet chỉ bắt đầu khi nội dung ở đỉnh).
