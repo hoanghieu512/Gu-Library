@@ -1,6 +1,7 @@
 import { Preferences } from '@capacitor/preferences';
 import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
+import { emitKhoChanged } from '../lib/khoEvents';
 import { makeInboxName, parseInboxPrefix } from './prefix';
 
 const INBOX = '_inbox';
@@ -27,6 +28,20 @@ export async function importSharedFile(srcUri: string, originalName: string, pat
   const { name } = await Saf.copyToDir({ srcUri, dirUri: inbox, name: makeInboxName(path, originalName) });
   await setLastMon(path[0]);
   return name;
+}
+
+// Copy CẢ LÔ vào _inbox/ với cùng một đích. Đường copy DUY NHẤT cho Share + file picker.
+export async function importBatch(
+  files: { uri: string; name: string }[], path: string[],
+): Promise<{ ok: number; fails: string[] }> {
+  let ok = 0;
+  const fails: string[] = [];
+  for (const f of files) { // tuần tự → dedup "(k)" trước đuôi đúng thứ tự
+    try { await importSharedFile(f.uri, f.name, path); ok += 1; }
+    catch { fails.push(f.name); }
+  }
+  if (ok > 0) emitKhoChanged();
+  return { ok, fails };
 }
 
 // Đếm số file "chờ xử lý" trong _inbox theo môn (từ tiền tố) -> Map<mon, count>.
