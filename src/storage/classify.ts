@@ -38,7 +38,7 @@ export function classifyEntries(entries: SafEntry[]): FolderListing {
 
   for (const [base, slot] of byBase) {
     if (slot.pdf && slot.json) {
-      documents.push({ name: base, pdfUri: slot.pdf.uri, jsonUri: slot.json.uri, printFlagged: printFlagged.has(base), displayUri: displayUris.get(base) });
+      documents.push({ name: base, fileBase: base, pdfUri: slot.pdf.uri, jsonUri: slot.json.uri, printFlagged: printFlagged.has(base), displayUri: displayUris.get(base) });
       for (const o of slot.others) {
         pending.push({ name: o.name, ext: splitExt(o.name).ext, sourceUri: o.uri });
       }

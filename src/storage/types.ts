@@ -1,7 +1,8 @@
 export type { SafEntry } from '../plugins/saf';
 
 export interface Document {
-  name: string;
+  name: string;        // tên HIỂN THỊ (listFolder override = display; classify để = fileBase)
+  fileBase?: string;   // base tên FILE (không đổi) — thao tác file (move/xóa/print) theo cái này
   pdfUri: string;
   jsonUri: string;
   printFlagged: boolean;

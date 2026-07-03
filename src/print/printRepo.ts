@@ -68,7 +68,7 @@ async function walkFlagged(folderUri: string, monName: string, out: FlatItem[]):
       try { const { data } = await Saf.readFile({ uri: d.displayUri }); const n = parseDisplayName(data); if (n) name = n; }
       catch { /* giữ tên file */ }
     }
-    out.push({ monName, name, fileBase: d.name, pdfUri: d.pdfUri, folderUri });
+    out.push({ monName, name, fileBase: d.fileBase ?? d.name, pdfUri: d.pdfUri, folderUri });
   }
   for (const f of listing.folders) await walkFlagged(f.uri, monName, out);
 }
