@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
-  IonList, IonItem, IonItemSliding, IonItemOptions, IonItemOption, IonLabel, IonBadge, useIonAlert,
+  IonList, IonItem, IonLabel, IonBadge, IonFooter, useIonAlert, useIonToast,
 } from '@ionic/react';
 import {
-  folderOutline, documentTextOutline, chevronForward, hourglassOutline, add,
-  print, printOutline, trash, ellipsisHorizontal,
+  folderOutline, chevronForward, hourglassOutline, add,
+  printOutline, trashOutline, swapHorizontalOutline, close,
 } from 'ionicons/icons';
 import { useParams, useHistory } from 'react-router-dom';
 import { listFolder, createSubfolder, getRootUri } from '../storage/repo';
@@ -18,6 +17,7 @@ import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
 import type { FolderListing, Document } from '../storage/types';
 import CreateFolderModal from '../components/CreateFolderModal';
 import DocActionsSheet from '../components/DocActionsSheet';
+import FolderDocRow from '../components/FolderDocRow';
 import ChooseMonSheet from '../import/ChooseMonSheet';
 
 export default function FolderPage() {
@@ -27,12 +27,16 @@ export default function FolderPage() {
   const [listing, setListing] = useState<FolderListing | null>(null);
   const [error, setError] = useState<string>('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [actionsDoc, setActionsDoc] = useState<Document | null>(null); // ⋯ sheet
-  const [moveDoc, setMoveDoc] = useState<Document | null>(null);       // Chuyển tới… (ChooseMonSheet)
+  const [actionsDoc, setActionsDoc] = useState<Document | null>(null); // ⋯ sheet (đơn)
+  const [moveDoc, setMoveDoc] = useState<Document | null>(null);       // Chuyển đơn
+  // Chế độ chọn nhiều
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());   // pdfUri
+  const [batchMove, setBatchMove] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [presentAlert] = useIonAlert();
+  const [presentToast] = useIonToast();
 
-  // spinner=true (mở folder): xoá trắng chờ tải. spinner=false (sau thao tác): giữ list cũ
-  // hiển thị tới khi tải xong → In/Xóa không "snap"/chớp.
   const load = useCallback((spinner: boolean) => {
     if (spinner) setListing(null);
     setError('');
@@ -45,13 +49,33 @@ export default function FolderPage() {
 
   useEffect(() => { loadListing(); }, [loadListing]);
 
-  const baseOf = (d: Document) => d.fileBase ?? d.name; // tên FILE cho thao tác
+  const baseOf = (d: Document) => d.fileBase ?? d.name;
 
+  // --- chế độ chọn nhiều ---
+  const selectModeRef = useRef(false);
+  useEffect(() => { selectModeRef.current = selectMode; }, [selectMode]);
+  const exitMode = () => { setSelectMode(false); setSelected(new Set()); };
+  const enterModeWith = (d: Document) => { setSelectMode(true); setSelected(new Set([d.pdfUri])); };
+  const toggleSel = (d: Document) => setSelected((s) => {
+    const n = new Set(s); if (n.has(d.pdfUri)) n.delete(d.pdfUri); else n.add(d.pdfUri); return n;
+  });
+  const selectedDocs = () => (listing?.documents ?? []).filter((d) => selected.has(d.pdfUri));
+
+  // Back cứng: trong mode → thoát mode (nuốt); ngoài mode → nhường handler điều hướng (priority 50).
+  useEffect(() => {
+    const onBack = (ev: Event) => {
+      (ev as CustomEvent<{ register: (p: number, h: (next: () => void) => void) => void }>).detail
+        .register(60, (next) => { if (selectModeRef.current) exitMode(); else next(); });
+    };
+    document.addEventListener('ionBackButton', onBack);
+    return () => document.removeEventListener('ionBackButton', onBack);
+  }, []);
+
+  // --- thao tác ĐƠN (v1.5.0) ---
   const togglePrint = async (d: Document) => {
     if (d.printFlagged) await clearPrintFlag(d.pdfUri); else await setPrintFlag(d.pdfUri);
     refresh();
   };
-
   const runDelete = async (d: Document) => {
     const root = await getRootUri();
     const rel = root ? relPathFromUris(root, d.pdfUri) : null;
@@ -59,26 +83,21 @@ export default function FolderPage() {
     if (rel) await removeReading(rel);
     refresh();
   };
-
   const confirmDelete = (d: Document) => {
     presentAlert({
       header: 'Xóa tài liệu?',
       message: `Xóa hẳn “${d.name}” khỏi kho (mọi máy sau khi đồng bộ). Không hoàn tác trong app.`,
       buttons: [
         { text: 'Hủy', role: 'cancel' },
-        // Chạy nền, KHÔNG await trong handler → popup tắt ngay (xoá SAF vài giây chạy sau).
         { text: 'Xóa', role: 'destructive', handler: () => { void runDelete(d); } },
       ],
     });
   };
-
   const doRename = async (d: Document, newName: string) => {
     await setDisplayName(decoded, baseOf(d), newName);
     setActionsDoc(null);
     refresh();
   };
-
-  // Chuyển: dời trọn cụm + reading-state máy mình sang đường dẫn mới.
   const doMove = async (_path: string[], destUri: string) => {
     const d = moveDoc; setMoveDoc(null);
     if (!d || !destUri) return;
@@ -90,17 +109,82 @@ export default function FolderPage() {
     refresh();
   };
 
+  // --- thao tác LÔ (cưỡi lên hàm đơn) ---
+  const batchPrint = async () => {
+    const docs = selectedDocs(); if (!docs.length) return;
+    setBusy(true);
+    let ok = 0;
+    for (const d of docs) { try { await setPrintFlag(d.pdfUri); ok += 1; } catch { /* skip */ } } // idempotent, KHÔNG toggle
+    setBusy(false); exitMode(); refresh();
+    await presentToast({ message: `Đã đánh dấu ${ok} tài liệu cần in`, duration: 2000 });
+  };
+  const runBatchDelete = async (docs: Document[]) => {
+    setBusy(true);
+    const root = await getRootUri();
+    let ok = 0, fail = 0;
+    for (const d of docs) {
+      try {
+        const rel = root ? relPathFromUris(root, d.pdfUri) : null;
+        await deleteDocument(decoded, baseOf(d));
+        if (rel) await removeReading(rel);
+        ok += 1;
+      } catch { fail += 1; }
+    }
+    setBusy(false); exitMode(); refresh();
+    await presentToast({ message: fail ? `Xóa ${ok}, lỗi ${fail}` : `Đã xóa ${ok} tài liệu`, duration: 2500, color: fail ? 'danger' : undefined });
+  };
+  const batchDelete = () => {
+    const docs = selectedDocs(); if (!docs.length) return;
+    presentAlert({
+      header: 'Xóa tài liệu?',
+      message: `Xóa hẳn ${docs.length} tài liệu khỏi kho (mọi máy sau khi đồng bộ). Không hoàn tác.`,
+      buttons: [
+        { text: 'Hủy', role: 'cancel' },
+        { text: 'Xóa', role: 'destructive', handler: () => { void runBatchDelete(docs); } },
+      ],
+    });
+  };
+  const batchMoveDo = async (_path: string[], destUri: string) => {
+    const docs = selectedDocs(); setBatchMove(false);
+    if (!docs.length || !destUri) { exitMode(); return; }
+    setBusy(true);
+    const root = await getRootUri();
+    let ok = 0, fail = 0;
+    for (const d of docs) {
+      try {
+        const oldRel = root ? relPathFromUris(root, d.pdfUri) : null;
+        const newBase = await moveDocument(decoded, baseOf(d), destUri);
+        const destRel = root ? relPathFromUris(root, destUri) : null;
+        if (oldRel && destRel != null) await moveReading(oldRel, `${destRel}/${newBase}.pdf`, d.name);
+        ok += 1;
+      } catch { fail += 1; }
+    }
+    setBusy(false); exitMode(); refresh();
+    await presentToast({ message: fail ? `Chuyển ${ok}, lỗi ${fail}` : `Đã chuyển ${ok} tài liệu`, duration: 2500, color: fail ? 'danger' : undefined });
+  };
+
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
-          <IonTitle className="gu-title">Môn / Chương</IonTitle>
-          <IonButtons slot="end">
-            <IonButton fill="clear" onClick={() => setCreateOpen(true)} aria-label="Tạo thư mục mới">
-              <IonIcon icon={add} />
-            </IonButton>
-          </IonButtons>
+          {selectMode ? (
+            <>
+              <IonButtons slot="start">
+                <IonButton onClick={exitMode} aria-label="Thoát chọn"><IonIcon slot="icon-only" icon={close} /></IonButton>
+              </IonButtons>
+              <IonTitle className="gu-title">Đã chọn {selected.size}</IonTitle>
+            </>
+          ) : (
+            <>
+              <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
+              <IonTitle className="gu-title">Môn / Chương</IonTitle>
+              <IonButtons slot="end">
+                <IonButton fill="clear" onClick={() => setCreateOpen(true)} aria-label="Tạo thư mục mới">
+                  <IonIcon icon={add} />
+                </IonButton>
+              </IonButtons>
+            </>
+          )}
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
@@ -111,38 +195,30 @@ export default function FolderPage() {
         )}
         {listing && (
           <IonList>
-            {/* Folder con: chưa có action đợt này (M10 folder = beat khác) */}
+            {/* Folder con: không tick, không long-press (M10 folder = beat khác) */}
             {listing.folders.map((f) => (
-              <IonItem key={f.uri} button onClick={() => history.push(`/folder/${encodeUriParam(f.uri)}`)}>
+              <IonItem key={f.uri} button disabled={selectMode} onClick={() => history.push(`/folder/${encodeUriParam(f.uri)}`)}>
                 <IonIcon icon={folderOutline} slot="start" />
                 <IonLabel className="gu-serif">{f.name}</IonLabel>
                 <IonIcon icon={chevronForward} slot="end" />
               </IonItem>
             ))}
-            {/* Tài liệu: vuốt trái → In · Xóa · ⋯ */}
+            {/* Tài liệu */}
             {listing.documents.map((d) => (
-              <IonItemSliding key={d.pdfUri}>
-                <IonItem button detail={false} onClick={() => history.push(`/viewer/${encodeUriParam(d.pdfUri)}`)}>
-                  <IonIcon icon={documentTextOutline} slot="start" />
-                  <IonLabel className="gu-serif">{d.name}</IonLabel>
-                  {/* Dấu đã chọn đi in: icon máy in nhỏ cuối hàng */}
-                  {d.printFlagged && <IonIcon slot="end" icon={print} style={{ color: 'var(--gu-brown)', fontSize: 18 }} aria-label="Đã chọn đi in" />}
-                </IonItem>
-                <IonItemOptions side="end">
-                  <IonItemOption onClick={() => togglePrint(d)} aria-label="Cần in">
-                    <IonIcon slot="icon-only" icon={d.printFlagged ? print : printOutline} />
-                  </IonItemOption>
-                  <IonItemOption color="danger" onClick={() => confirmDelete(d)} aria-label="Xóa">
-                    <IonIcon slot="icon-only" icon={trash} />
-                  </IonItemOption>
-                  <IonItemOption onClick={() => setActionsDoc(d)} aria-label="Thêm"
-                    style={{ '--background': '#4A5D3A', '--color': '#fff' } as CSSProperties}>
-                    <IonIcon slot="icon-only" icon={ellipsisHorizontal} />
-                  </IonItemOption>
-                </IonItemOptions>
-              </IonItemSliding>
+              <FolderDocRow
+                key={d.pdfUri}
+                doc={d}
+                selectMode={selectMode}
+                selected={selected.has(d.pdfUri)}
+                onOpen={() => history.push(`/viewer/${encodeUriParam(d.pdfUri)}`)}
+                onToggleSelect={() => toggleSel(d)}
+                onLongPress={() => enterModeWith(d)}
+                onTogglePrint={() => togglePrint(d)}
+                onDelete={() => confirmDelete(d)}
+                onActions={() => setActionsDoc(d)}
+              />
             ))}
-            {/* Chờ xử lý (file lẻ ⏳): không action */}
+            {/* Chờ xử lý (⏳ lẻ): không action, không lọt lô */}
             {listing.pending.map((p) => (
               <IonItem key={p.sourceUri} disabled>
                 <IonLabel color="medium">{p.name}</IonLabel>
@@ -155,6 +231,25 @@ export default function FolderPage() {
           </IonList>
         )}
       </IonContent>
+
+      {/* Thanh action lô */}
+      {selectMode && (
+        <IonFooter>
+          <IonToolbar>
+            <div style={{ display: 'flex', gap: 8, padding: '4px 8px' }}>
+              <IonButton fill="clear" disabled={selected.size === 0 || busy} onClick={batchPrint} style={{ flex: 1 }}>
+                <IonIcon slot="start" icon={printOutline} /> In lô
+              </IonButton>
+              <IonButton fill="clear" disabled={selected.size === 0 || busy} onClick={() => setBatchMove(true)} style={{ flex: 1 }}>
+                <IonIcon slot="start" icon={swapHorizontalOutline} /> Chuyển
+              </IonButton>
+              <IonButton fill="clear" color="danger" disabled={selected.size === 0 || busy} onClick={batchDelete} style={{ flex: 1 }}>
+                <IonIcon slot="start" icon={trashOutline} /> Xóa
+              </IonButton>
+            </div>
+          </IonToolbar>
+        </IonFooter>
+      )}
 
       <CreateFolderModal
         isOpen={createOpen}
@@ -175,11 +270,19 @@ export default function FolderPage() {
         onClose={() => setActionsDoc(null)}
       />
 
+      {/* Chuyển đơn */}
       <ChooseMonSheet
         isOpen={!!moveDoc}
         note={moveDoc ? `Chuyển: ${moveDoc.name}` : null}
         onPick={doMove}
         onCancel={() => setMoveDoc(null)}
+      />
+      {/* Chuyển lô */}
+      <ChooseMonSheet
+        isOpen={batchMove}
+        note={`Chuyển ${selected.size} tài liệu`}
+        onPick={batchMoveDo}
+        onCancel={() => setBatchMove(false)}
       />
     </IonPage>
   );
