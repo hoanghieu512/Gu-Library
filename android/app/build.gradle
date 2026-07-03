@@ -4,6 +4,9 @@ import groovy.json.JsonSlurper
 
 def appVersion = new JsonSlurper().parseText(rootProject.file("../package.json").getText("UTF-8")).version
 
+// Tên file APK gắn version: "Gu-Library-<version>-release.apk" / "-debug.apk".
+setProperty("archivesBaseName", "Gu-Library-${appVersion}")
+
 // Credential ký bản release nằm NGOÀI git (android/keystore.properties, gitignored).
 // Vắng file → bỏ qua signing (debug build vẫn chạy bình thường).
 def keystorePropsFile = rootProject.file("keystore.properties")
