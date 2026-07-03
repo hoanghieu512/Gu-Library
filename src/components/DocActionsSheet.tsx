@@ -35,7 +35,7 @@ export default function DocActionsSheet({ isOpen, doc, onRename, onMove, onToggl
           <IonButtons slot="end"><IonButton fill="clear" onClick={onClose}>Đóng</IonButton></IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '14px' } as CSSProperties}>
         {/* Đổi tên hiển thị (để trống = về tên mặc định) */}
         <IonLabel style={{ fontWeight: 600, fontSize: 13, color: 'var(--gu-brown-deep)' }}>Tên hiển thị</IonLabel>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0 16px' }}>

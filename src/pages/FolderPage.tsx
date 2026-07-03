@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
   IonList, IonItem, IonItemSliding, IonItemOptions, IonItemOption, IonLabel, IonBadge, useIonAlert,
@@ -30,12 +31,17 @@ export default function FolderPage() {
   const [moveDoc, setMoveDoc] = useState<Document | null>(null);       // Chuyển tới… (ChooseMonSheet)
   const [presentAlert] = useIonAlert();
 
-  const loadListing = useCallback(() => {
-    setListing(null); setError('');
+  // spinner=true (mở folder): xoá trắng chờ tải. spinner=false (sau thao tác): giữ list cũ
+  // hiển thị tới khi tải xong → In/Xóa không "snap"/chớp.
+  const load = useCallback((spinner: boolean) => {
+    if (spinner) setListing(null);
+    setError('');
     listFolder(decoded)
       .then(setListing)
       .catch((e) => setError(String(e?.message ?? e)));
   }, [decoded]);
+  const loadListing = useCallback(() => load(true), [load]);
+  const refresh = useCallback(() => load(false), [load]);
 
   useEffect(() => { loadListing(); }, [loadListing]);
 
@@ -43,7 +49,15 @@ export default function FolderPage() {
 
   const togglePrint = async (d: Document) => {
     if (d.printFlagged) await clearPrintFlag(d.pdfUri); else await setPrintFlag(d.pdfUri);
-    loadListing();
+    refresh();
+  };
+
+  const runDelete = async (d: Document) => {
+    const root = await getRootUri();
+    const rel = root ? relPathFromUris(root, d.pdfUri) : null;
+    await deleteDocument(decoded, baseOf(d));
+    if (rel) await removeReading(rel);
+    refresh();
   };
 
   const confirmDelete = (d: Document) => {
@@ -52,15 +66,8 @@ export default function FolderPage() {
       message: `Xóa hẳn “${d.name}” khỏi kho (mọi máy sau khi đồng bộ). Không hoàn tác trong app.`,
       buttons: [
         { text: 'Hủy', role: 'cancel' },
-        {
-          text: 'Xóa', role: 'destructive', handler: async () => {
-            const root = await getRootUri();
-            const rel = root ? relPathFromUris(root, d.pdfUri) : null;
-            await deleteDocument(decoded, baseOf(d));
-            if (rel) await removeReading(rel);
-            loadListing();
-          },
-        },
+        // Chạy nền, KHÔNG await trong handler → popup tắt ngay (xoá SAF vài giây chạy sau).
+        { text: 'Xóa', role: 'destructive', handler: () => { void runDelete(d); } },
       ],
     });
   };
@@ -68,7 +75,7 @@ export default function FolderPage() {
   const doRename = async (d: Document, newName: string) => {
     await setDisplayName(decoded, baseOf(d), newName);
     setActionsDoc(null);
-    loadListing();
+    refresh();
   };
 
   // Chuyển: dời trọn cụm + reading-state máy mình sang đường dẫn mới.
@@ -80,7 +87,7 @@ export default function FolderPage() {
     const newBase = await moveDocument(decoded, baseOf(d), destUri);
     const destRel = relPathFromUris(root, destUri);
     if (oldRel && destRel != null) await moveReading(oldRel, `${destRel}/${newBase}.pdf`, d.name);
-    loadListing();
+    refresh();
   };
 
   return (
@@ -118,6 +125,8 @@ export default function FolderPage() {
                 <IonItem button detail={false} onClick={() => history.push(`/viewer/${encodeUriParam(d.pdfUri)}`)}>
                   <IonIcon icon={documentTextOutline} slot="start" />
                   <IonLabel className="gu-serif">{d.name}</IonLabel>
+                  {/* Dấu đã chọn đi in: icon máy in nhỏ cuối hàng */}
+                  {d.printFlagged && <IonIcon slot="end" icon={print} style={{ color: 'var(--gu-brown)', fontSize: 18 }} aria-label="Đã chọn đi in" />}
                 </IonItem>
                 <IonItemOptions side="end">
                   <IonItemOption onClick={() => togglePrint(d)} aria-label="Cần in">
@@ -126,7 +135,8 @@ export default function FolderPage() {
                   <IonItemOption color="danger" onClick={() => confirmDelete(d)} aria-label="Xóa">
                     <IonIcon slot="icon-only" icon={trash} />
                   </IonItemOption>
-                  <IonItemOption onClick={() => setActionsDoc(d)} aria-label="Thêm">
+                  <IonItemOption onClick={() => setActionsDoc(d)} aria-label="Thêm"
+                    style={{ '--background': '#4A5D3A', '--color': '#fff' } as CSSProperties}>
                     <IonIcon slot="icon-only" icon={ellipsisHorizontal} />
                   </IonItemOption>
                 </IonItemOptions>

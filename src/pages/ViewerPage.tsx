@@ -8,6 +8,7 @@ import PdfView from '../components/PdfView';
 import { readPdfBytes } from '../storage/safFile';
 import { getResumePage, recordProgress } from '../reading/store';
 import { getBaseScale } from '../viewer/fontScale';
+import { resolveDocDisplayName } from '../storage/docRepo';
 import { decodeUriParam } from '../storage/uriParam';
 import { isPrintFlagged } from '../print/printRepo';
 import PrintFlagButton from '../components/PrintFlagButton';
@@ -31,6 +32,7 @@ export default function ViewerPage() {
   const [total, setTotal] = useState(0);
   const [flagged, setFlagged] = useState(false);
   const [baseScale, setBaseScale] = useState<number | null>(null);
+  const [title, setTitle] = useState(name); // tên hiển thị (đổi tên nếu có) > tên file
   const lastSaved = useRef(0);
 
   useEffect(() => {
@@ -44,6 +46,8 @@ export default function ViewerPage() {
         setInitialPage(resumePage);
         setBytes(await readPdfBytes(docUri));
         setFlagged(await isPrintFlagged(docUri));
+        const dn = await resolveDocDisplayName(docUri);
+        if (alive && dn) setTitle(dn);
       } catch (e: unknown) {
         if (alive) setErr(String(e instanceof Error ? e.message : e));
       }
@@ -73,7 +77,7 @@ export default function ViewerPage() {
         <IonToolbar>
           <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
           <IonTitle className="gu-serif" style={{ fontSize: 16, fontWeight: 700, color: 'var(--gu-brown-deep)' }}>
-            {name}
+            {title}
           </IonTitle>
           <IonButtons slot="end">
             <PrintFlagButton docUri={docUri} flagged={flagged} onChanged={() => setFlagged((v) => !v)} />

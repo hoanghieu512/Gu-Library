@@ -2,6 +2,19 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.5.0] — 2026-07-03 — M10 phần 1: quản lý tài liệu (đổi tên / chuyển / xóa)
+### Added
+- **Vuốt trái hàng tài liệu → In · Xóa · ⋯** (bỏ nút In luôn-hiện). In = toggle cờ đi-in; Xóa = xác nhận rồi xóa; ⋯ = sheet 4 hành động (Đổi tên hiển thị / Chuyển tới… / In / Xóa). Folder con + hàng ⏳: không action.
+- **Đổi tên hiển thị** = companion `<base>.display.json {name}` (KHÔNG rename file thật, KHÔNG ghi sidecar). Ưu tiên: `.display.json` > tên file. Hiện ở danh sách môn / Đang đọc dở / Đi in / header Viewer; sync qua Syncthing; để trống = về tên mặc định. Icon máy in nhỏ cuối hàng cho tài liệu đã chọn đi in.
+- **Chuyển tới…** tái dùng nguyên sheet chọn đích v1.3.0 (drill / Gốc môn / Thư mục mới / Chưa-phân-loại) → dời **trọn cụm** (pdf + sidecar + companions) bằng copy(pdf stream)+write(json)+delete, **dedup `(k)` hợp nhất** cả cụm; reading-state máy mình dời sang đường dẫn mới (máy khác entry mồ côi → app lọc, trade-off chốt).
+- **Xóa** = xóa trọn cụm + dọn reading máy mình (không thùng rác app; lưới = versioning Syncthing phía mini PC).
+### Changed
+- `Document` thêm `fileBase` (tên FILE — thao tác move/xóa/print theo cái này; `name` = hiển thị). Màn Đi in hiện tên-đổi nhưng đặt tên `_print/`/match vẫn theo `fileBase`. `ChooseMonSheet.onPick(path, destUri)` (move dùng destUri; import bỏ qua). `createSubfolder` trả uri.
+- UX: In/Xóa/đổi tên reload KHÔNG xoá trắng list (hết "snap"); Xóa chạy nền (popup tắt ngay). Nút ⋯ xanh ô-liu (`#4A5D3A`, màu palette môn — không token mới).
+> Verify Z Flip 4: vuốt In/Xóa/⋯, đổi tên mọi nơi + về mặc định, chuyển drill 2 cấp giữ cụm+trang đọc+cờ in, dedup đích trùng, xóa sạch cụm, folder không action. 95/95 test.
+### Notes
+- Hiệu năng (snap nhẹ vài chỗ, load lần đầu máy mới chậm do Syncthing rải file) → **beat riêng** (v1.6.0 phần 2 = chọn nhiều, hoặc beat hiệu năng).
+
 ## [1.4.1] — 2026-07-03 — Chết cho đẹp: file quá nặng không kéo sập cả app
 ### Investigation (logcat máy thật — root cause KHÁC giả định ban đầu)
 - Repro (PDF 70MB/300dpi bypass `_inbox/` + sidecar giả để mở được) → app văng ra launcher. Logcat: **KHÔNG có `onRenderProcessGone`** (renderer không chết kiểu out-of-process). Thủ phạm thật: `FATAL EXCEPTION: CapacitorPlugins → java.lang.OutOfMemoryError: Failed to allocate 187MB at android.util.Base64.encodeToString ← SafPlugin.readFileBase64`. Tức đọc cả file rồi Base64 thành String khổng lồ → **OOM Java heap ở PROCESS CHÍNH**; `catch (Exception)` KHÔNG bắt `OutOfMemoryError` (là `Error`) → uncaught trên thread CapacitorPlugins → app chết (SIG 9). pdf.js/renderer chưa từng chạy.
