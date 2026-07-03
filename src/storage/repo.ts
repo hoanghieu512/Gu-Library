@@ -5,6 +5,7 @@ import { parseMonMeta } from './monjson';
 import type { FolderListing, Mon, MonMeta } from './types';
 import type { SafEntry } from '../plugins/saf';
 import { sortMons } from './sortMon';
+import { parseDisplayName } from './displayName';
 import { emitKhoChanged } from '../lib/khoEvents';
 
 const ROOT_KEY = 'saf_root_uri';
@@ -29,7 +30,17 @@ export async function rootHasPermission(): Promise<boolean> {
 
 export async function listFolder(uri: string): Promise<FolderListing> {
   const { entries } = await Saf.listFolder({ uri });
-  return classifyEntries(entries);
+  const listing = classifyEntries(entries);
+  // Tên hiển thị override: chỉ đọc companion cho doc CÓ .display.json (ít) → tên mới.
+  for (const d of listing.documents) {
+    if (!d.displayUri) continue;
+    try {
+      const { data } = await Saf.readFile({ uri: d.displayUri });
+      const n = parseDisplayName(data);
+      if (n) d.name = n;
+    } catch { /* companion hỏng → giữ tên file */ }
+  }
+  return listing;
 }
 
 async function readMonMeta(entries: SafEntry[]): Promise<MonMeta> {
@@ -52,10 +63,11 @@ export async function createMon(name: string, color: string): Promise<void> {
   emitKhoChanged();
 }
 
-// Tạo folder con tại parentUri (độ sâu bất kỳ). KHÔNG _mon.json.
-export async function createSubfolder(parentUri: string, name: string): Promise<void> {
-  await Saf.createDir({ parentUri, name }); // reject 'exists' nếu trùng
+// Tạo folder con tại parentUri (độ sâu bất kỳ). KHÔNG _mon.json. Trả uri folder mới.
+export async function createSubfolder(parentUri: string, name: string): Promise<string> {
+  const { uri } = await Saf.createDir({ parentUri, name }); // reject 'exists' nếu trùng
   emitKhoChanged();
+  return uri;
 }
 
 export async function listMon(): Promise<Mon[]> {
