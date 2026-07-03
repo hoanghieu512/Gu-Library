@@ -2,7 +2,8 @@ import { Preferences } from '@capacitor/preferences';
 import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
 import { relPathFromUris } from './paths';
-import { mergeReading, upsertEntry, removeEntry as removeInFile,
+import { parseDisplayName } from '../storage/displayName';
+import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry,
          type DeviceReadingFile, type ReadingEntry } from './model';
 
 const DEVICE_KEY = 'device_id';
@@ -76,6 +77,32 @@ export async function removeReading(path: string): Promise<void> {
   await writeDeviceFile(root, removeInFile(file, path, nowMs()));
 }
 
+// Dời entry đọc-dở của MÁY NÀY sang đường dẫn mới (khi Chuyển tài liệu). Máy khác không đụng.
+export async function moveReading(oldPath: string, newPath: string, newName: string): Promise<void> {
+  const root = await getRootUri(); if (!root) return;
+  const deviceId = await getDeviceId();
+  const file = await readDeviceFile(root, deviceId);
+  await writeDeviceFile(root, moveEntry(file, oldPath, newPath, newName, nowMs()));
+}
+
+// Tên hiển thị override (.display.json) cạnh tài liệu ở relPath; null nếu không có.
+async function readDisplayNameNextTo(root: string, relPath: string): Promise<string | null> {
+  const segs = relPath.split('/').filter(Boolean);
+  const fileSeg = segs.pop(); if (!fileSeg) return null;
+  const base = fileSeg.replace(/\.[^.]+$/, '');
+  let cur = root;
+  for (const s of segs) {
+    const { entries } = await Saf.listFolder({ uri: cur });
+    const h = entries.find((en) => en.isDirectory && en.name === s);
+    if (!h) return null;
+    cur = h.uri;
+  }
+  const { entries } = await Saf.listFolder({ uri: cur });
+  const d = entries.find((en) => !en.isDirectory && en.name === `${base}.display.json`);
+  if (!d) return null;
+  try { const { data } = await Saf.readFile({ uri: d.uri }); return parseDisplayName(data); } catch { return null; }
+}
+
 // Trang để khôi phục khi mở (union mọi máy, mới nhất theo path).
 export async function getResumePage(docUri: string): Promise<number> {
   const root = await getRootUri(); if (!root) return 1;
@@ -92,7 +119,9 @@ export async function listReading(): Promise<ReadingItem[]> {
   const out: ReadingItem[] = [];
   for (const e of merged) {
     const uri = await resolveUriFromRelPath(root, e.path);
-    if (uri) out.push({ ...e, uri });
+    if (!uri) continue;
+    const display = await readDisplayNameNextTo(root, e.path); // tên đổi (nếu có) > tên lưu trong entry
+    out.push({ ...e, uri, name: display ?? e.name });
   }
   return out;
 }

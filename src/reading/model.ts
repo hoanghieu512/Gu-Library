@@ -43,3 +43,12 @@ export function removeEntry(file: DeviceReadingFile, path: string, at: number): 
   delete entries[path];
   return { ...file, entries, tombstones: { ...file.tombstones, [path]: at } };
 }
+
+// Dời entry sang path mới (giữ page/total, đổi name+monName). Path cũ có tombstone
+// (máy khác biết đã dời/mất; entry mồ côi phía họ do repo lọc — trade-off đã chấp nhận).
+export function moveEntry(file: DeviceReadingFile, oldPath: string, newPath: string, newName: string, at: number): DeviceReadingFile {
+  const cur = file.entries[oldPath];
+  const next = removeEntry(file, oldPath, at);
+  if (!cur) return next;
+  return upsertEntry(next, { ...cur, path: newPath, name: newName, monName: newPath.split('/')[0], lastReadAt: at });
+}

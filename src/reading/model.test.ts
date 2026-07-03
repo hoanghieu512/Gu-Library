@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeReading, upsertEntry, removeEntry } from './model';
+import { mergeReading, upsertEntry, removeEntry, moveEntry } from './model';
 import type { DeviceReadingFile, ReadingEntry } from './model';
 
 const E = (path: string, page: number, at: number): ReadingEntry =>
@@ -55,5 +55,21 @@ describe('removeEntry', () => {
     const file = F('d1', [E('m/a.pdf', 5, 10), E('m/b.pdf', 2, 20)]);
     const result = removeEntry(file, 'm/a.pdf', 500);
     expect(result.entries['m/b.pdf']).toBeDefined();
+  });
+});
+
+describe('moveEntry', () => {
+  it('dời entry sang path mới (giữ page/total, đổi name+monName, tombstone path cũ)', () => {
+    let f = F('d1', [E('A/x.pdf', 5, 10)]);
+    f = moveEntry(f, 'A/x.pdf', 'B/sub/y.pdf', 'y', 200);
+    expect(f.entries['A/x.pdf']).toBeUndefined();
+    expect(f.entries['B/sub/y.pdf']).toMatchObject({ path: 'B/sub/y.pdf', name: 'y', monName: 'B', page: 5, total: 100 });
+    expect(f.tombstones['A/x.pdf']).toBe(200);
+  });
+  it('không có entry cũ → chỉ tombstone, không tạo mới', () => {
+    let f = F('d1', []);
+    f = moveEntry(f, 'A/x.pdf', 'B/y.pdf', 'y', 300);
+    expect(f.entries['B/y.pdf']).toBeUndefined();
+    expect(f.tombstones['A/x.pdf']).toBe(300);
   });
 });
