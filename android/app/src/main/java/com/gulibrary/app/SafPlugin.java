@@ -256,4 +256,60 @@ public class SafPlugin extends Plugin {
             call.resolve(new com.getcapacitor.JSObject());
         } catch (Exception e) { call.reject("delete failed: " + e.getMessage()); }
     }
+
+    // Mở system file picker: nhiều file, chỉ loại worker nhận (pdf/doc/docx/ppt/pptx).
+    @PluginMethod
+    public void pickFiles(PluginCall call) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        });
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivityForResult(call, intent, "filesPicked");
+    }
+
+    @ActivityCallback
+    private void filesPicked(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        com.getcapacitor.JSArray files = new com.getcapacitor.JSArray();
+        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+            Intent data = result.getData();
+            android.content.ClipData clip = data.getClipData();
+            if (clip != null) {
+                for (int i = 0; i < clip.getItemCount(); i++) {
+                    android.net.Uri uri = clip.getItemAt(i).getUri();
+                    if (uri != null) files.put(fileMeta(uri));
+                }
+            } else if (data.getData() != null) {
+                files.put(fileMeta(data.getData()));
+            }
+        }
+        com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+        ret.put("files", files);
+        call.resolve(ret); // huỷ picker → files rỗng → resolve {files:[]} (không side effect)
+    }
+
+    private com.getcapacitor.JSObject fileMeta(android.net.Uri uri) {
+        com.getcapacitor.JSObject o = new com.getcapacitor.JSObject();
+        o.put("uri", uri.toString());
+        o.put("name", queryDisplayName(uri));
+        return o;
+    }
+
+    private String queryDisplayName(android.net.Uri uri) {
+        try (android.database.Cursor c = getContext().getContentResolver().query(uri, null, null, null, null)) {
+            if (c != null && c.moveToFirst()) {
+                int i = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                if (i >= 0) return c.getString(i);
+            }
+        } catch (Exception ignored) {}
+        return uri.getLastPathSegment();
+    }
 }

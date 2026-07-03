@@ -8,6 +8,7 @@ export interface SafEntry {
 
 export interface SafPlugin {
   pickFolder(): Promise<{ uri: string }>;
+  pickFiles(): Promise<{ files: { uri: string; name: string }[] }>;
   hasPermission(options: { uri: string }): Promise<{ granted: boolean }>;
   listFolder(options: { uri: string }): Promise<{ entries: SafEntry[] }>;
   readFile(options: { uri: string }): Promise<{ data: string }>;
