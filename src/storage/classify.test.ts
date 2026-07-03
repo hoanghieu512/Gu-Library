@@ -114,4 +114,11 @@ describe('classifyEntries', () => {
     const r = classifyEntries([e('luat.pdf', false), e('luat.json', false)]);
     expect(r.documents[0].printFlagged).toBe(false);
   });
+
+  it('skips <base>.display.json + gắn displayUri', () => {
+    const r = classifyEntries([e('luat.pdf', false), e('luat.json', false), e('luat.display.json', false)]);
+    expect(r.documents).toHaveLength(1);
+    expect(r.pending).toHaveLength(0);
+    expect(r.documents[0].displayUri).toContain('luat.display.json');
+  });
 });

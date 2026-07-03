@@ -11,6 +11,7 @@ export function classifyEntries(entries: SafEntry[]): FolderListing {
   const folders: SubFolder[] = [];
   const byBase = new Map<string, { pdf?: SafEntry; json?: SafEntry; others: SafEntry[] }>();
   const printFlagged = new Set<string>();
+  const displayUris = new Map<string, string>();
 
   for (const en of entries) {
     if (en.isDirectory) {
@@ -21,6 +22,7 @@ export function classifyEntries(entries: SafEntry[]): FolderListing {
     }
     const name = en.name;
     if (name.endsWith('.print.json')) { printFlagged.add(name.slice(0, -'.print.json'.length)); continue; }
+    if (name.endsWith('.display.json')) { displayUris.set(name.slice(0, -'.display.json'.length), en.uri); continue; }
     if (name.startsWith('_')) continue;
     if (name.startsWith('.')) continue;
     const { base, ext } = splitExt(name);
@@ -36,7 +38,7 @@ export function classifyEntries(entries: SafEntry[]): FolderListing {
 
   for (const [base, slot] of byBase) {
     if (slot.pdf && slot.json) {
-      documents.push({ name: base, pdfUri: slot.pdf.uri, jsonUri: slot.json.uri, printFlagged: printFlagged.has(base) });
+      documents.push({ name: base, pdfUri: slot.pdf.uri, jsonUri: slot.json.uri, printFlagged: printFlagged.has(base), displayUri: displayUris.get(base) });
       for (const o of slot.others) {
         pending.push({ name: o.name, ext: splitExt(o.name).ext, sourceUri: o.uri });
       }

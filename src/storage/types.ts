@@ -5,6 +5,7 @@ export interface Document {
   pdfUri: string;
   jsonUri: string;
   printFlagged: boolean;
+  displayUri?: string; // companion <base>.display.json (nếu có) — tên hiển thị override
 }
 
 export interface PendingDoc {
