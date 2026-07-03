@@ -10,7 +10,7 @@ import { library, search, add, settings } from 'ionicons/icons';
 import HomePage from './pages/HomePage';
 import FolderPage from './pages/FolderPage';
 import SearchStubPage from './pages/SearchStubPage';
-import AddStubPage from './pages/AddStubPage';
+import AddPage from './pages/AddPage';
 import SettingsPage from './pages/SettingsPage';
 import PrintPage from './pages/PrintPage';
 import { useAndroidBackButton } from './nav/useAndroidBackButton';
@@ -46,7 +46,7 @@ export default function App() {
               </Suspense>
             )} />
             <Route exact path="/search" component={SearchStubPage} />
-            <Route exact path="/add" component={AddStubPage} />
+            <Route exact path="/add" component={AddPage} />
             <Route exact path="/settings" component={SettingsPage} />
             <Route exact path="/print" component={PrintPage} />
             <Route exact path="/"><Redirect to="/home" /></Route>
