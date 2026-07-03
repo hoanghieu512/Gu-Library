@@ -21,11 +21,11 @@ async function ensureInbox(): Promise<string> {
   return uri;
 }
 
-// Copy file share vào _inbox/ với tên gắn tiền tố môn. Trả tên cuối (đã copy).
-export async function importSharedFile(srcUri: string, originalName: string, monName: string): Promise<string> {
+// Copy file share vào _inbox/ với tiền tố ĐƯỜNG ĐÍCH (mảng đoạn từ môn xuống). Trả tên cuối.
+export async function importSharedFile(srcUri: string, originalName: string, path: string[]): Promise<string> {
   const inbox = await ensureInbox();
-  const { name } = await Saf.copyToDir({ srcUri, dirUri: inbox, name: makeInboxName(monName, originalName) });
-  await setLastMon(monName);
+  const { name } = await Saf.copyToDir({ srcUri, dirUri: inbox, name: makeInboxName(path, originalName) });
+  await setLastMon(path[0]);
   return name;
 }
 

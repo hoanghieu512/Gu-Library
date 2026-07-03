@@ -25,16 +25,17 @@ export default function ShareReceiver() {
     return () => { sub.then((h) => h.remove()); };
   }, [check]);
 
-  const pick = async (monName: string) => {
+  const pick = async (path: string[]) => {
     const files = batch;
     setBatch([]);
     if (files.length === 0) return;
+    const label = path.join(' / ');
     let ok = 0;
     const fails: string[] = [];
     // Tuần tự để file trùng tên gốc được createFile tự thêm hậu tố "(1)" đúng thứ tự.
     for (const f of files) {
       try {
-        await importSharedFile(f.uri, f.name, monName);
+        await importSharedFile(f.uri, f.name, path);
         ok += 1;
       } catch {
         fails.push(f.name);
@@ -43,12 +44,12 @@ export default function ShareReceiver() {
     if (ok > 0) emitKhoChanged(); // Home cập nhật badge ⏳ / "Chưa phân loại" ngay
     if (fails.length === 0) {
       await presentToast({
-        message: `Đã thêm ${ok} file vào ${monName} (chờ xử lý)`,
+        message: `Đã thêm ${ok} file vào ${label} (chờ xử lý)`,
         duration: 2500,
       });
     } else {
       await presentToast({
-        message: `Thêm ${ok}/${files.length} file vào ${monName}; lỗi: ${fails.join(', ')}`,
+        message: `Thêm ${ok}/${files.length} file vào ${label}; lỗi: ${fails.join(', ')}`,
         duration: 3500,
         color: 'danger',
       });
