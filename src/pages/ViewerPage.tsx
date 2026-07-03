@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
-  IonInput, IonButton, IonText, IonFooter,
+  IonInput, IonButton, IonFooter,
 } from '@ionic/react';
 import { useParams } from 'react-router-dom';
 import PdfView from '../components/PdfView';
@@ -81,7 +81,14 @@ export default function ViewerPage() {
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        {err && <IonText color="danger"><p className="ion-padding">Không mở được PDF: {err}</p></IonText>}
+        {err && (
+          <div className="ion-padding" style={{ color: 'var(--gu-brown-deep)' }}>
+            <p style={{ fontSize: 15 }}>
+              Không mở được tài liệu này gòi dợ iu — có thể file quá nặng, liên hệ với chùn để
+              tìm cách fix ngay nà!
+            </p>
+          </div>
+        )}
         {!err && !ready && <p className="ion-padding">Đang tải PDF…</p>}
         {ready && (
           <PdfView

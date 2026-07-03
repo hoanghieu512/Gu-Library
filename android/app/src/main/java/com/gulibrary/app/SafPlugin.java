@@ -118,8 +118,11 @@ public class SafPlugin extends Plugin {
             com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
             ret.put("data", b64);
             call.resolve(ret);
-        } catch (Exception e) {
-            call.reject("read failed: " + e.getMessage());
+        } catch (Throwable t) {
+            // PHẢI bắt Throwable (không chỉ Exception): file quá nặng → Base64 dựng String khổng lồ
+            // → OutOfMemoryError (là Error, không phải Exception). Nếu để lọt = uncaught → app chết.
+            // reject êm → JS (readPdfBytes) reject → ViewerPage hiện lỗi thân thiện, app sống.
+            call.reject("read failed: " + t.getMessage());
         }
     }
 

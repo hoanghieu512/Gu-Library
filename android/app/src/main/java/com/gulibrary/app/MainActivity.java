@@ -5,7 +5,10 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
+import android.webkit.RenderProcessGoneDetail;
+import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.WebViewListener;
 
 import java.util.ArrayList;
 
@@ -16,6 +19,21 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SyncthingPlugin.class);
         registerPlugin(ShareTargetPlugin.class);
         super.onCreate(savedInstanceState);
+
+        // Lưới an toàn "chết cho đẹp": khi WebView renderer bị Android kill (OOM — vd PDF quá
+        // nặng), mặc định Capacitor trả false → Android giết CẢ APP. Ta trả true (đã xử lý) +
+        // recreate Activity (process sống) → app tự khởi động lại về Home, Home hiện thông báo.
+        this.bridge.addWebViewListener(new WebViewListener() {
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                // Cờ đọc được từ JS (@capacitor/preferences dùng SharedPreferences "CapacitorStorage").
+                getSharedPreferences("CapacitorStorage", MODE_PRIVATE)
+                    .edit().putString("viewer_crash", "1").apply();
+                runOnUiThread(() -> recreate());
+                return true; // đã xử lý → KHÔNG để Android kill app
+            }
+        });
+
         handleSendIntent(getIntent());
     }
 

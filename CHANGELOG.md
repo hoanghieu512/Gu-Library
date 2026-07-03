@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.4.1] — 2026-07-03 — Chết cho đẹp: file quá nặng không kéo sập cả app
+### Investigation (logcat máy thật — root cause KHÁC giả định ban đầu)
+- Repro (PDF 70MB/300dpi bypass `_inbox/` + sidecar giả để mở được) → app văng ra launcher. Logcat: **KHÔNG có `onRenderProcessGone`** (renderer không chết kiểu out-of-process). Thủ phạm thật: `FATAL EXCEPTION: CapacitorPlugins → java.lang.OutOfMemoryError: Failed to allocate 187MB at android.util.Base64.encodeToString ← SafPlugin.readFileBase64`. Tức đọc cả file rồi Base64 thành String khổng lồ → **OOM Java heap ở PROCESS CHÍNH**; `catch (Exception)` KHÔNG bắt `OutOfMemoryError` (là `Error`) → uncaught trên thread CapacitorPlugins → app chết (SIG 9). pdf.js/renderer chưa từng chạy.
+### Fixed
+- **`SafPlugin.readFileBase64` bắt `Throwable`** (gồm `OutOfMemoryError`) → `call.reject` êm thay vì để lọt uncaught. `readPdfBytes` reject → **ViewerPage hiện thông báo thân thiện + nút quay lại chạy, app KHÔNG chết, không mất trạng thái** (đúng "chết cho đẹp", còn tốt hơn reboot vì giữ nguyên ngữ cảnh).
+- Thông báo lỗi Viewer (giọng thân thiện của Gú): là catch-all cho mọi lỗi tải tài liệu (chính = file quá nặng; cũng gồm quyền SAF bị thu hồi / file bị move-xóa).
+- **Defense-in-depth:** lưới `bridge.addWebViewListener(onRenderProcessGone → true + recreate)` (MainActivity) + `CrashNotice` (thông báo sau khi tự khởi động lại) cho ca renderer CHẾT THẬT out-of-process (kiểu OOM lúc pinch-zoom v1.1.0) — không đụng ca readFileBase64 này nhưng giữ làm lớp đỡ chung.
+> Verify Z Flip 4 (R5CT844VRCN): mở file 70MB → app sống, hiện thông báo, quay lại dùng tiếp bình thường; mở lại lần 2 không crash-loop; file thường không hồi quy.
+
 ## [1.4.0] — 2026-07-03 — M6b: nhập file dự phòng qua file picker (tab "Thêm")
 ### Added
 - **Tab "Thêm" → nút "Chọn file từ máy"**: mở system file picker (multi-select), **whitelist pdf/doc/docx/ppt/pptx** ngay tại picker (không lọt ảnh/zip vào `_inbox/`). Chọn xong → **tái dùng nguyên sheet chọn đích v1.3.0** (drill thư mục con / Gốc môn / Thư mục mới / Chưa-phân-loại phẳng) → copy cả lô về MỘT đích. Huỷ picker/sheet → không side effect.
