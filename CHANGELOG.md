@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.4.0] — 2026-07-03 — M6b: nhập file dự phòng qua file picker (tab "Thêm")
+### Added
+- **Tab "Thêm" → nút "Chọn file từ máy"**: mở system file picker (multi-select), **whitelist pdf/doc/docx/ppt/pptx** ngay tại picker (không lọt ảnh/zip vào `_inbox/`). Chọn xong → **tái dùng nguyên sheet chọn đích v1.3.0** (drill thư mục con / Gốc môn / Thư mục mới / Chưa-phân-loại phẳng) → copy cả lô về MỘT đích. Huỷ picker/sheet → không side effect.
+- Native `Saf.pickFiles()` (`ACTION_OPEN_DOCUMENT` + `EXTRA_ALLOW_MULTIPLE` + `EXTRA_MIME_TYPES` + DISPLAY_NAME).
+### Changed
+- **Một đường copy duy nhất** cho Share + picker: tách `importBatch()` (inboxRepo) + component `ImportDestinationFlow` (sheet + toast) dùng chung; `ShareReceiver` rút gọn dùng flow đó (hành vi Share giữ nguyên). Tiền tố lồng / dedup `(k)` trước đuôi / strip-tmp / mime-theo-đuôi không đổi.
+- `AddStubPage` → `AddPage`. Không đẻ token màu mới (thẻ-rời/button hai bậc/Title-case giữ).
+> Verify Z Flip 4 (R5CT844VRCN): picker multi + whitelist → sheet đích lồng → `_inbox/` tiền tố đúng + ⏳/badge; huỷ sạch; Share Intent không hồi quy. 85/85 test.
+
 ## [1.3.0] — 2026-07-03 — Share: chọn đích thư mục con (drill độ sâu bất kỳ)
 ### Added
 - **Sheet "Lưu vào môn nào?" drill-down** (cùng một IonModal, không sheet chồng sheet): tap môn → bước 2 "Lưu vào đâu trong «môn»?" = **"Lưu vào «môn»"** (gốc) + danh sách thư mục con + **"Thư mục mới"** + nút back; thư mục con lại drill tiếp, độ sâu bất kỳ; mỗi cấp đều lưu-tại-đây / tạo con. "Chưa phân loại" luôn phẳng (không bước 2).
