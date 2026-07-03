@@ -53,14 +53,16 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
   const cur = stack[stack.length - 1] ?? null;
   const atRoot = stack.length === 0;
 
-  // Tap môn ở bước 1: có thư mục con → drill sang bước 2; không có → lưu thẳng (zero đổi).
+  // Tap môn ở bước 1: LUÔN sang bước 2 (kể cả môn chưa có thư mục con → bước 2 vẫn có
+  // "Lưu vào «Môn»" + "Thư mục mới" để tạo con ngay). "Chưa phân loại" mới lưu thẳng.
   const tapMon = async (m: Mon) => {
     setBusy(true);
     try {
       const folders = (await listFolder(m.uri)).folders;
-      if (folders.length === 0) { onPick([m.name]); return; }
       setStack([{ name: m.name, uri: m.uri, folders }]);
-    } catch { onPick([m.name]); } finally { setBusy(false); }
+    } catch {
+      setStack([{ name: m.name, uri: m.uri, folders: [] }]);
+    } finally { setBusy(false); }
   };
 
   const tapFolder = async (f: SubFolder) => {
@@ -166,7 +168,7 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
                   <IonItem button detail={false} lines="none" disabled={busy}
                     onClick={() => { setNewMode(true); setNewName(''); setNewErr(''); }} style={card}>
                     <IonIcon icon={addCircleOutline} style={{ color: 'var(--gu-brown)', marginRight: 12 }} />
-                    <IonLabel className="gu-serif">+ Thư mục mới</IonLabel>
+                    <IonLabel className="gu-serif">Thư mục mới</IonLabel>
                   </IonItem>
                 </div>
               )}

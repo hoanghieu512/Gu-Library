@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.3.0] — 2026-07-03 — Share: chọn đích thư mục con (drill độ sâu bất kỳ)
+### Added
+- **Sheet "Lưu vào môn nào?" drill-down** (cùng một IonModal, không sheet chồng sheet): tap môn → bước 2 "Lưu vào đâu trong «môn»?" = **"Lưu vào «môn»"** (gốc) + danh sách thư mục con + **"Thư mục mới"** + nút back; thư mục con lại drill tiếp, độ sâu bất kỳ; mỗi cấp đều lưu-tại-đây / tạo con. "Chưa phân loại" luôn phẳng (không bước 2).
+- **Tạo thư mục ngay tại sheet** (inline): "Thư mục mới" → `createSubfolder` (M6c) rồi chọn nó làm đích luôn — không đợi worker. Chặn tên tại UI: `[` `]` `/` `\` `: * ? " < > |`, tên bắt đầu `_`, rỗng/toàn space (`validateFolderName`).
+- **Hợp đồng tiền tố lồng** (khớp worker v0.9.0): đích ghi bằng **lặp ngoặc mỗi cấp** `[Môn][Con] file.pdf`; gốc môn/Chưa-phân-loại = một ngoặc. `parseInboxPrefix` lấy **ngoặc đầu = môn** cho badge (file lồng vẫn đếm đúng dưới môn).
+- Multi-share cả lô vẫn về MỘT đích (chỉ nay có thể sâu hơn); dedup `(k)` trước đuôi + strip đuôi tạm + mime-theo-đuôi giữ nguyên (không đụng luồng copy `_inbox/`).
+### Notes
+- **Điều kiện:** worker v0.9.0 (hiểu tiền tố lặp ngoặc) phải chạy trên mini PC trước khi cài app này.
+- Tinh chỉnh nghiệm thu: tap môn LUÔN vào bước 2 (kể cả môn chưa có con → 2 hàng "Lưu vào «môn»" + "Thư mục mới") để tạo con được ở mọi môn.
+> Verify Z Flip 4 (R5CT844VRCN): drill 1-3 cấp + tiền tố ngoặc đúng, tạo folder tại chỗ + chặn tên, Chưa-phân-loại phẳng, multi-share một đích, gesture sheet không hồi quy.
+
 ## [1.2.3] — 2026-07-02 — Fix chớp một nhịp khi commit zoom (Viewer)
 ### Investigation (soi source react-pdf, không suy từ model)
 - Root cause ở `react-pdf 10.4.1 dist/Page/Canvas.js` (`drawPageOnCanvas`): khi `width` của `<Page>` đổi, effect set `canvas.width` mới (**xóa trắng pixel cũ ngay**) + `visibility:'hidden'` tới khi pdf.js render xong mới hiện lại → trong khoảng đó slot lộ nền kem = cú chớp. Không phải Page remount.
