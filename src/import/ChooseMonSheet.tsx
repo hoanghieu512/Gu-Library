@@ -16,7 +16,8 @@ import type { Mon, SubFolder } from '../storage/types';
 interface Props {
   isOpen: boolean;
   note: string | null;
-  onPick: (path: string[]) => void;   // đường đích từ môn xuống (["Luật Đất đai","Bài giảng"])
+  // path = đường đích từ môn xuống (import: prefix); destUri = folder-uri đích (move dùng, import bỏ qua).
+  onPick: (path: string[], destUri: string) => void;
   onCancel: () => void;
 }
 
@@ -84,8 +85,8 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
     if (cur.folders.some((f) => f.name === r.value)) { setNewErr('Đã tồn tại'); return; }
     setBusy(true);
     try {
-      await createSubfolder(cur.uri, r.value); // tạo folder ngay (M6c) — không đợi worker
-      onPick([...path, r.value]);              // chọn nó làm đích luôn
+      const newUri = await createSubfolder(cur.uri, r.value); // tạo folder ngay (M6c) — không đợi worker
+      onPick([...path, r.value], newUri);                     // chọn nó làm đích luôn
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setNewErr(msg.includes('exists') ? 'Đã tồn tại' : (msg || 'Lỗi tạo thư mục'));
@@ -127,7 +128,8 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
               ))}
               {/* "Chưa phân loại": luôn phẳng, không drill / không tạo con */}
               <div style={{ marginBottom: 10 }}>
-                <IonItem button detail={false} lines="none" disabled={busy} onClick={() => onPick([UNFILED])} style={card}>
+                <IonItem button detail={false} lines="none" disabled={busy}
+                  onClick={() => onPick([UNFILED], mons.find((m) => m.name === UNFILED)?.uri ?? '')} style={card}>
                   <UnfiledSwatch />
                   <IonLabel color="medium" style={{ marginLeft: 12, fontStyle: 'italic' }}>Chưa phân loại</IonLabel>
                 </IonItem>
@@ -137,7 +139,7 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
             <>
               {/* Lưu vào cấp hiện tại (Gốc môn / thư mục đang đứng) */}
               <div style={{ marginBottom: 10 }}>
-                <IonItem button detail={false} lines="none" disabled={busy} onClick={() => onPick(path)} style={card}>
+                <IonItem button detail={false} lines="none" disabled={busy} onClick={() => onPick(path, cur?.uri ?? '')} style={card}>
                   <IonIcon icon={checkmarkCircleOutline} style={{ color: 'var(--gu-brown)', marginRight: 12 }} />
                   <IonLabel className="gu-serif">Lưu vào “{cur?.name}”</IonLabel>
                 </IonItem>

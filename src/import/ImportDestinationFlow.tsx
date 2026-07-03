@@ -7,7 +7,7 @@ import { importBatch } from './inboxRepo';
 export default function ImportDestinationFlow({ batch, onClear }: { batch: SharedFile[]; onClear: () => void }) {
   const [presentToast] = useIonToast();
 
-  const pick = async (path: string[]) => {
+  const pick = async (path: string[]) => { // import chỉ cần path (prefix); bỏ qua destUri
     const files = batch;
     onClear();
     if (files.length === 0) return;
