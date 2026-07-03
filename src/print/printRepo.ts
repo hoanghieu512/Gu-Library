@@ -3,6 +3,7 @@ import { getRootUri } from '../storage/repo';
 import { relPathFromUris } from '../reading/paths';
 import { classifyEntries } from '../storage/classify';
 import { emitKhoChanged } from '../lib/khoEvents';
+import { parseDisplayName } from '../storage/displayName';
 import { printFlagName, printedNameFor, isSentMatch } from './printName';
 
 const PRINT_DIR = '_print';
@@ -52,14 +53,22 @@ export async function isPrintFlagged(docUri: string): Promise<boolean> {
   return entries.some((en) => !en.isDirectory && en.name === printFlagName(ctx.base));
 }
 
-interface FlatItem { monName: string; name: string; pdfUri: string; folderUri: string; }
+// fileBase = tên FILE (base) → thao tác _print/ (đặt tên, dedup, match) ổn định.
+// name = tên hiển thị (đổi tên nếu có) → chỉ để hiện lên UI.
+interface FlatItem { monName: string; name: string; fileBase: string; pdfUri: string; folderUri: string; }
 
 // Đệ quy: gom mọi document đang cờ "cần in" trong cây của một môn.
 async function walkFlagged(folderUri: string, monName: string, out: FlatItem[]): Promise<void> {
   const { entries } = await Saf.listFolder({ uri: folderUri });
   const listing = classifyEntries(entries);
   for (const d of listing.documents) {
-    if (d.printFlagged) out.push({ monName, name: d.name, pdfUri: d.pdfUri, folderUri });
+    if (!d.printFlagged) continue;
+    let name = d.name; // classify d.name = base tên file
+    if (d.displayUri) {
+      try { const { data } = await Saf.readFile({ uri: d.displayUri }); const n = parseDisplayName(data); if (n) name = n; }
+      catch { /* giữ tên file */ }
+    }
+    out.push({ monName, name, fileBase: d.name, pdfUri: d.pdfUri, folderUri });
   }
   for (const f of listing.folders) await walkFlagged(f.uri, monName, out);
 }
@@ -94,7 +103,8 @@ async function listPrintEntries(root: string): Promise<{ name: string; uri: stri
 
 export interface PrintRow {
   monName: string;
-  name: string;
+  name: string;        // tên hiển thị (đổi tên nếu có)
+  fileBase: string;    // base tên FILE — thao tác _print/ theo cái này
   pdfUri: string;
   folderUri: string;   // chứa companion (để clear khi "xong")
   sent: boolean;       // đã có trong _print/
@@ -107,7 +117,7 @@ export async function listPrintRows(): Promise<PrintRow[]> {
   const flat = await scanFlagged(root);
   const printEntries = await listPrintEntries(root);
   return flat.map((it) => {
-    const matches = printEntries.filter((p) => isSentMatch(p.name, it.monName, it.name));
+    const matches = printEntries.filter((p) => isSentMatch(p.name, it.monName, it.fileBase));
     return { ...it, sent: matches.length > 0, printUris: matches.map((m) => m.uri) };
   });
 }
@@ -119,7 +129,7 @@ export async function gomToPrint(): Promise<number> {
   if (toCopy.length === 0) return 0;
   const { uri: printUri } = await Saf.ensureDir({ parentUri: root, name: PRINT_DIR });
   for (const r of toCopy) {
-    await Saf.copyToDir({ srcUri: r.pdfUri, dirUri: printUri, name: printedNameFor(r.monName, r.name) });
+    await Saf.copyToDir({ srcUri: r.pdfUri, dirUri: printUri, name: printedNameFor(r.monName, r.fileBase) });
   }
   emitKhoChanged();
   return toCopy.length;
@@ -129,7 +139,7 @@ export async function gomToPrint(): Promise<number> {
 export async function markPrinted(row: PrintRow): Promise<void> {
   for (const u of row.printUris) await Saf.deleteFile({ uri: u });
   const { entries } = await Saf.listFolder({ uri: row.folderUri });
-  const f = entries.find((en) => !en.isDirectory && en.name === printFlagName(row.name));
+  const f = entries.find((en) => !en.isDirectory && en.name === printFlagName(row.fileBase));
   if (f) await Saf.deleteFile({ uri: f.uri });
   emitKhoChanged();
 }
