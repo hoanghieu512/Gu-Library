@@ -2,6 +2,18 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.6.0] — 2026-07-04 — M10 phần 2: chọn nhiều + action lô (In / Chuyển / Xóa)
+### Added
+- **Nhấn giữ hàng tài liệu → chế độ chọn nhiều:** hàng đó tự tick, các hàng hiện checkbox, header "Đã chọn N" + nút X; tap = tick/bỏ tick (không mở); hàng thư mục + ⏳ không tick được. Thoát bằng X hoặc back cứng (ionBackButton priority 60 > global 50).
+- **Thanh đáy: In lô · Chuyển · Xóa** — CƯỠI LÊN đúng hàm đơn v1.5.0 (loop, không fork): In lô = `setPrintFlag` mỗi doc (idempotent, KHÔNG toggle — file đã đánh dấu giữ nguyên); Chuyển lô = ChooseMonSheet một-đích → `moveDocument`+`moveReading` mỗi cụm (dedup `(k)` hợp nhất từng cụm); Xóa lô = xác nhận nêu SỐ LƯỢNG → `deleteDocument`+`removeReading` mỗi cụm. Per-doc try/catch → toast "xong/lỗi". Xong → thoát mode + refresh.
+- Long-press (timer 450ms, huỷ khi ngón di >10px hoặc nhấc sớm) → KHÔNG phá tap-mở lẫn vuốt IonItemSliding.
+### Fixed (v1.5.0, phát hiện lúc test)
+- Vuốt hàng bấm In/⋯ xong → **menu vuốt tự đóng** (trước treo ở vị trí mở) — `IonItemSliding.close()` sau thao tác.
+- Header Viewer **đổi sang tên đã rename gần như tức thì** (resolve tên song song đầu effect, không đợi PDF nặng load xong).
+> Verify Z Flip 4: nhấn-giữ vào mode + tick/bỏ + thoát X/back; In lô giữ file cũ; Chuyển lô drill 2 cấp + dedup; Xóa lô nêu số lượng; ⏳ không lọt; tap/vuốt đơn không hồi quy. 95/95 test.
+### Notes
+- Còn: beat hiệu năng (snap nhẹ + load lần đầu máy mới chậm do Syncthing rải file). M10 folder-level (đổi tên/xóa môn, thư mục) chưa làm.
+
 ## [1.5.0] — 2026-07-03 — M10 phần 1: quản lý tài liệu (đổi tên / chuyển / xóa)
 ### Added
 - **Vuốt trái hàng tài liệu → In · Xóa · ⋯** (bỏ nút In luôn-hiện). In = toggle cờ đi-in; Xóa = xác nhận rồi xóa; ⋯ = sheet 4 hành động (Đổi tên hiển thị / Chuyển tới… / In / Xóa). Folder con + hàng ⏳: không action.

@@ -28,7 +28,10 @@ export default function FolderDocRow({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const fired = useRef(false);
+  const slideRef = useRef<HTMLIonItemSlidingElement>(null);
   const clear = () => { if (timer.current) { clearTimeout(timer.current); timer.current = undefined; } };
+  // Sau khi bấm nút vuốt → đóng slide (không để menu treo ở vị trí mở).
+  const opt = (fn: () => void) => { slideRef.current?.close(); fn(); };
 
   // Long-press CHỈ ngoài mode. Huỷ khi ngón di >10px (vuốt/cuộn) hoặc nhấc sớm (tap).
   const onTouchStart = (e: React.TouchEvent) => {
@@ -59,7 +62,7 @@ export default function FolderDocRow({
     );
   }
   return (
-    <IonItemSliding>
+    <IonItemSliding ref={slideRef}>
       <IonItem button detail={false} onClick={handleClick}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={clear}>
         <IonIcon icon={documentTextOutline} slot="start" />
@@ -67,9 +70,9 @@ export default function FolderDocRow({
         {doc.printFlagged && <IonIcon slot="end" icon={print} style={{ color: 'var(--gu-brown)', fontSize: 18 }} aria-label="Đã chọn đi in" />}
       </IonItem>
       <IonItemOptions side="end">
-        <IonItemOption onClick={onTogglePrint} aria-label="Cần in"><IonIcon slot="icon-only" icon={doc.printFlagged ? print : printOutline} /></IonItemOption>
-        <IonItemOption color="danger" onClick={onDelete} aria-label="Xóa"><IonIcon slot="icon-only" icon={trash} /></IonItemOption>
-        <IonItemOption onClick={onActions} aria-label="Thêm" style={olive}><IonIcon slot="icon-only" icon={ellipsisHorizontal} /></IonItemOption>
+        <IonItemOption onClick={() => opt(onTogglePrint)} aria-label="Cần in"><IonIcon slot="icon-only" icon={doc.printFlagged ? print : printOutline} /></IonItemOption>
+        <IonItemOption color="danger" onClick={() => opt(onDelete)} aria-label="Xóa"><IonIcon slot="icon-only" icon={trash} /></IonItemOption>
+        <IonItemOption onClick={() => opt(onActions)} aria-label="Thêm" style={olive}><IonIcon slot="icon-only" icon={ellipsisHorizontal} /></IonItemOption>
       </IonItemOptions>
     </IonItemSliding>
   );

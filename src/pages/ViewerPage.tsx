@@ -38,6 +38,8 @@ export default function ViewerPage() {
   useEffect(() => {
     let alive = true;
     (async () => {
+      // Tên hiển thị: resolve SONG SONG ngay đầu (nhẹ) → header đổi tức thì, không đợi PDF nặng.
+      resolveDocDisplayName(docUri).then((dn) => { if (alive && dn) setTitle(dn); }).catch(() => { /* giữ tên file */ });
       try {
         const resumePage = await getResumePage(docUri);
         const base = await getBaseScale();
@@ -46,8 +48,6 @@ export default function ViewerPage() {
         setInitialPage(resumePage);
         setBytes(await readPdfBytes(docUri));
         setFlagged(await isPrintFlagged(docUri));
-        const dn = await resolveDocDisplayName(docUri);
-        if (alive && dn) setTitle(dn);
       } catch (e: unknown) {
         if (alive) setErr(String(e instanceof Error ? e.message : e));
       }
