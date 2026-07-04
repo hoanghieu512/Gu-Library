@@ -5,6 +5,7 @@ import { classifyEntries } from '../storage/classify';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { parseDisplayName } from '../storage/displayName';
 import { printFlagName, printedNameFor, isSentMatch } from './printName';
+import { getKhoSnapshot, countFlagged } from '../storage/khoSnapshot';
 
 const PRINT_DIR = '_print';
 
@@ -86,10 +87,12 @@ async function scanFlagged(root: string): Promise<FlatItem[]> {
   return flat;
 }
 
-// Số tài liệu đang cờ "cần in" (cho khối Home).
+// Số tài liệu đang cờ "cần in" (cho khối Home) = đếm trong walk chung, không tự quét toàn kho.
 export async function countPrintFlagged(): Promise<number> {
-  const root = await getRootUri(); if (!root) return 0;
-  return (await scanFlagged(root)).length;
+  const snap = await getKhoSnapshot();
+  let n = 0;
+  for (const f of snap.monFolders.values()) n += countFlagged(f);
+  return n;
 }
 
 // Liệt kê _print/ (file con). Không tồn tại → [].

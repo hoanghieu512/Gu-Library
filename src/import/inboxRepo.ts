@@ -3,6 +3,7 @@ import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { makeInboxName, parseInboxPrefix } from './prefix';
+import { getKhoSnapshot } from '../storage/khoSnapshot';
 
 const INBOX = '_inbox';
 const KEY_LAST_MON = 'last_mon_name';
@@ -45,19 +46,11 @@ export async function importBatch(
 }
 
 // Đếm số file "chờ xử lý" trong _inbox theo môn (từ tiền tố) -> Map<mon, count>.
+// Đọc con _inbox từ walk chung (khoSnapshot) — không tự list lại.
 export async function listInboxByMon(): Promise<Map<string, number>> {
-  const root = await getRootUri();
+  const snap = await getKhoSnapshot();
   const map = new Map<string, number>();
-  if (!root) return map;
-  let inboxUri: string;
-  try {
-    const r = await Saf.ensureDir({ parentUri: root, name: INBOX });
-    inboxUri = r.uri;
-  } catch {
-    return map;
-  }
-  const { entries } = await Saf.listFolder({ uri: inboxUri });
-  for (const e of entries) {
+  for (const e of snap.inboxEntries) {
     if (e.isDirectory) continue;
     const p = parseInboxPrefix(e.name);
     if (p) map.set(p.mon, (map.get(p.mon) ?? 0) + 1);

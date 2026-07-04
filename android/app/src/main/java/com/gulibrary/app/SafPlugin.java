@@ -67,19 +67,46 @@ public class SafPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    // Liệt kê con của một folder bằng MỘT truy vấn cursor (bulk) thay vì DocumentFile.listFiles()
+    // + getName()/isDirectory() hỏi provider TỪNG đứa con (nameLoop, chiếm 60–75% thời gian mỗi
+    // lần list — nhân hệ số cho mọi mục khác). Trả entry y hệt cũ (name/isDirectory/uri) nên mọi
+    // caller không đổi. URI con dựng bằng buildDocumentUriUsingTree = đúng dạng DocumentFile.getUri().
     @PluginMethod
     public void listFolder(PluginCall call) {
         String uriStr = call.getString("uri");
         if (uriStr == null) { call.reject("uri required"); return; }
-        DocumentFile dir = DocumentFile.fromTreeUri(getContext(), Uri.parse(uriStr));
-        if (dir == null || !dir.isDirectory()) { call.reject("not a directory"); return; }
+        Uri treeUri = Uri.parse(uriStr);
+        String parentDocId;
+        try {
+            // uri con (có /document/) → lấy documentId; uri gốc từ picker (chỉ /tree/) → treeDocumentId.
+            parentDocId = android.provider.DocumentsContract.getDocumentId(treeUri);
+        } catch (Exception e) {
+            parentDocId = android.provider.DocumentsContract.getTreeDocumentId(treeUri);
+        }
+        Uri childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentDocId);
+        final String[] proj = {
+            android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE
+        };
         JSArray entries = new JSArray();
-        for (DocumentFile f : dir.listFiles()) {
-            JSObject o = new JSObject();
-            o.put("name", f.getName());
-            o.put("isDirectory", f.isDirectory());
-            o.put("uri", f.getUri().toString());
-            entries.put(o);
+        try (android.database.Cursor c =
+                 getContext().getContentResolver().query(childrenUri, proj, null, null, null)) {
+            while (c != null && c.moveToNext()) {
+                String docId = c.getString(0);
+                String name = c.getString(1);
+                String mime = c.getString(2);
+                boolean isDir = android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(mime);
+                Uri childUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(treeUri, docId);
+                JSObject o = new JSObject();
+                o.put("name", name);
+                o.put("isDirectory", isDir);
+                o.put("uri", childUri.toString());
+                entries.put(o);
+            }
+        } catch (Exception e) {
+            call.reject("list failed: " + e.getMessage());
+            return;
         }
         JSObject ret = new JSObject();
         ret.put("entries", entries);
