@@ -5,6 +5,7 @@ import {
 } from '@ionic/react';
 import { documentTextOutline, print, printOutline, trash, ellipsisHorizontal } from 'ionicons/icons';
 import type { Document } from '../storage/types';
+import { perfStart } from '../perf/perf';
 
 interface Props {
   doc: Document;
@@ -39,7 +40,8 @@ export default function FolderDocRow({
     fired.current = false;
     startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     clear();
-    timer.current = setTimeout(() => { fired.current = true; onLongPress(); }, 450);
+    // Đo TỪ khi giữ đủ lâu (không tính 450ms hold) → chỉ đo chi phí chuyển vào mode.
+    timer.current = setTimeout(() => { fired.current = true; perfStart('enterSelect'); onLongPress(); }, 450);
   };
   const onTouchMove = (e: React.TouchEvent) => {
     if (!startRef.current) return;

@@ -23,6 +23,7 @@ import { listInboxByMon } from '../import/inboxRepo';
 import { onKhoChanged } from '../lib/khoEvents';
 import { countPrintFlagged } from '../print/printRepo';
 import { encodeUriParam } from '../storage/uriParam';
+import { perfColdReady, afterPaint } from '../perf/perf';
 
 export default function HomePage() {
   const history = useHistory();
@@ -51,6 +52,8 @@ export default function HomePage() {
     try { setInboxMap(await listInboxByMon()); } catch { setInboxMap(new Map()); }
     try { setPrintCount(await countPrintFlagged()); } catch { setPrintCount(0); }
     setRefreshTick((t) => t + 1);
+    // Cold start: Trang chủ vẽ xong danh sách lần đầu (perfColdReady chỉ tính 1 lần/phiên).
+    afterPaint(perfColdReady);
   };
   useIonViewWillEnter(() => { reload(); });
   useEffect(() => {

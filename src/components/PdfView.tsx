@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { perfStart, perfEnd, perfCancel } from '../perf/perf';
 
 // Worker offline (bundle, no CDN). This exact form built + ran correctly on device.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -51,11 +52,14 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   const pendingRender = useRef<Set<number> | null>(null);
   const swapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const firstPaint = useRef(false); // openDoc: chốt lần raster đầu tiên
+
   const endSwap = () => {
     if (swapTimer.current) { clearTimeout(swapTimer.current); swapTimer.current = null; }
     pendingRender.current = null;
     swappingRef.current = false;
     setSwapping(false);
+    perfCancel('zoomCommit'); // bỏ start còn treo (nhánh timeout); nhánh thành công đã perfEnd trước đó
   };
 
   // Chụp nội dung đang hiển thị (kể cả preview transform — dùng bounding rect đã transform) — đồng bộ.
@@ -91,16 +95,18 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
       swappingRef.current = true;
       setSwapping(true);
     }
+    perfStart('zoomCommit'); // commit zoom → đo tới lúc bản nét hiện đủ (onPageRendered)
     // Zoom nhiều nhịp liên tiếp: giữ overlay cũ (không chụp đè lúc canvas dưới đang trống), chỉ reset lưới đỡ.
     if (swapTimer.current) clearTimeout(swapTimer.current);
     swapTimer.current = setTimeout(endSwap, 1500);
   };
 
   const onPageRendered = (n: number) => {
+    if (!firstPaint.current) { firstPaint.current = true; perfEnd('openDoc'); } // trang đầu vẽ xong
     const p = pendingRender.current;
     if (!p) return;
     p.delete(n);
-    if (p.size === 0) endSwap();
+    if (p.size === 0) { perfEnd('zoomCommit'); endSwap(); } // bản nét đã hiện đủ
   };
 
   useEffect(() => () => { if (swapTimer.current) clearTimeout(swapTimer.current); }, []);

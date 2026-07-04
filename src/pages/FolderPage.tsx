@@ -19,6 +19,7 @@ import CreateFolderModal from '../components/CreateFolderModal';
 import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
 import ChooseMonSheet from '../import/ChooseMonSheet';
+import { perfStart, perfEnd, afterPaint } from '../perf/perf';
 
 export default function FolderPage() {
   const { uri } = useParams<{ uri: string }>();
@@ -47,7 +48,11 @@ export default function FolderPage() {
   const loadListing = useCallback(() => load(true), [load]);
   const refresh = useCallback(() => load(false), [load]);
 
-  useEffect(() => { loadListing(); }, [loadListing]);
+  // openMon: đo từ khi vào màn thư mục (mount/đổi folder) → danh sách vẽ xong.
+  useEffect(() => { perfStart('openMon'); loadListing(); }, [loadListing]);
+  useEffect(() => { if (listing) afterPaint(() => perfEnd('openMon')); }, [listing]);
+  // enterSelect: chốt khi UI chọn-nhiều đã hiện (start neo lúc long-press bắn ở FolderDocRow).
+  useEffect(() => { if (selectMode) afterPaint(() => perfEnd('enterSelect')); }, [selectMode]);
 
   const baseOf = (d: Document) => d.fileBase ?? d.name;
 

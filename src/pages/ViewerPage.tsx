@@ -12,6 +12,7 @@ import { resolveDocDisplayName } from '../storage/docRepo';
 import { decodeUriParam } from '../storage/uriParam';
 import { isPrintFlagged } from '../print/printRepo';
 import PrintFlagButton from '../components/PrintFlagButton';
+import { perfStart } from '../perf/perf';
 
 function baseName(contentUri: string): string {
   const last = decodeURIComponent(contentUri).split('/').pop() ?? contentUri;
@@ -37,6 +38,7 @@ export default function ViewerPage() {
 
   useEffect(() => {
     let alive = true;
+    perfStart('openDoc'); // đo tới lúc trang đầu raster xong (PdfView bắn onFirstPaint)
     (async () => {
       // Tên hiển thị: resolve SONG SONG ngay đầu (nhẹ) → header đổi tức thì, không đợi PDF nặng.
       resolveDocDisplayName(docUri).then((dn) => { if (alive && dn) setTitle(dn); }).catch(() => { /* giữ tên file */ });

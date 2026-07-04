@@ -9,10 +9,12 @@ import { readableTreePath } from '../storage/safPath';
 import { getDeviceId } from '../reading/store';
 import { getBaseScale, setBaseScale, SCALE_OPTIONS } from '../viewer/fontScale';
 import SyncSettings from '../sync/SyncSettings';
+import PerfDebugModal from '../perf/PerfDebugModal';
 
 export default function SettingsPage() {
   const [root, setRoot] = useState<string | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [perfOpen, setPerfOpen] = useState(false);
   const [version, setVersion] = useState<string>(__APP_VERSION__);
   const [deviceId, setDeviceId] = useState<string>('');
   const [scale, setScale] = useState<string>('1');
@@ -65,9 +67,17 @@ export default function SettingsPage() {
               <p style={{ fontSize: 12, color: 'var(--gu-grey)', marginTop: 2 }}>Khớp tên file _reading-&lt;id&gt;.json</p>
             </IonLabel>
           </IonItem>
+
+          <IonItem button lines="none" onClick={() => setPerfOpen(true)}>
+            <IonLabel>
+              <h2>Đo hiệu năng (debug)</h2>
+              <IonNote>Bảng số đo phiên để lập baseline · không đo gì tự động</IonNote>
+            </IonLabel>
+          </IonItem>
         </IonList>
 
         <SyncSettings isOpen={syncOpen} onClose={() => setSyncOpen(false)} />
+        <PerfDebugModal isOpen={perfOpen} onClose={() => setPerfOpen(false)} />
         <p style={{ textAlign: 'center', color: 'var(--gu-grey)', fontSize: 13, marginTop: 24 }}>
           Phiên bản {version}
         </p>

@@ -2,6 +2,14 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.7.0] — 2026-07-04 — Bộ đo hiệu năng nội bộ (đo, chưa sửa)
+### Added
+- **Perf marks 6 luồng xương sống**, neo ở mốc người dùng cảm nhận (vẽ xong trên màn): (1) khởi động → Trang chủ, (2) mở môn → danh sách, (3) mở tài liệu → trang đầu raster, (4) commit zoom → bản nét, (5) import lô → copy _inbox, (6) vào chế độ chọn nhiều. Marks = `performance.now()` diff + Map/array push (rẻ, không profiling thường trực → không observer effect); số đo chỉ giữ **in-memory** (không ghi file, không đẻ file trong cây Syncthing). Module `src/perf/perf.ts` (cap 30 mẫu/luồng).
+- **Màn debug trong Cài đặt → "Đo hiệu năng (debug)"**: bảng last/min/median/max/n mỗi luồng + nút **Copy text** (clipboard, fallback textarea) + Làm mới + Reset. Người dùng thường không thấy gì khác (không popup, không auto-đo). Ghi rõ: số chỉ có nghĩa trên máy thật/release; mốc "mở" không gồm hoạt ảnh chuyển trang, "khởi động" không gồm phần native trước WebView.
+### Notes
+- Bản này **chỉ gắn thước đo, KHÔNG sửa hiệu năng** — baseline đo trên máy thật (Flip 4/Fold 3) làm nền cho beat sửa sau. Kèm beat điều tra riêng (`Docs/perf/2026-07-04-dieu-tra-hieu-nang.md`) đã chỉ đích danh thủ phạm (listReading walk-per-entry, Home reload đúp, emit-per-op → reload nền, native listFolder nameLoop…).
+> Verify 2 máy (Z Flip 4 + Z Fold 3): đủ 6 luồng có số hợp lý, lặp cập nhật min/max/median, copy đọc được, người thường không thấy khác, Cài đặt hiện "Phiên bản 1.7.0". 104/104 test.
+
 ## [1.6.0] — 2026-07-04 — M10 phần 2: chọn nhiều + action lô (In / Chuyển / Xóa)
 ### Added
 - **Nhấn giữ hàng tài liệu → chế độ chọn nhiều:** hàng đó tự tick, các hàng hiện checkbox, header "Đã chọn N" + nút X; tap = tick/bỏ tick (không mở); hàng thư mục + ⏳ không tick được. Thoát bằng X hoặc back cứng (ionBackButton priority 60 > global 50).

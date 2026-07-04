@@ -2,6 +2,7 @@ import { useIonToast } from '@ionic/react';
 import type { SharedFile } from '../plugins/shareTarget';
 import ChooseMonSheet from './ChooseMonSheet';
 import { importBatch } from './inboxRepo';
+import { perfStart, perfEnd } from '../perf/perf';
 
 // Sheet chọn đích + copy cả lô (dùng chung ShareReceiver + AddPage). batch>0 = mở sheet.
 export default function ImportDestinationFlow({ batch, onClear }: { batch: SharedFile[]; onClear: () => void }) {
@@ -12,7 +13,9 @@ export default function ImportDestinationFlow({ batch, onClear }: { batch: Share
     onClear();
     if (files.length === 0) return;
     const label = path.join(' / ');
+    perfStart('importBatch'); // đo copy cả lô vào _inbox (⏳ xuất hiện khi copy xong)
     const { ok, fails } = await importBatch(files, path);
+    perfEnd('importBatch');
     if (fails.length === 0) {
       await presentToast({ message: `Đã thêm ${ok} file vào ${label} (chờ xử lý)`, duration: 2500 });
     } else {
