@@ -19,6 +19,7 @@ import CreateFolderModal from '../components/CreateFolderModal';
 import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
 import ChooseMonSheet from '../import/ChooseMonSheet';
+import { coalesceKhoChanged } from '../lib/khoEvents';
 import { perfStart, perfEnd, afterPaint } from '../perf/perf';
 
 export default function FolderPage() {
@@ -46,7 +47,6 @@ export default function FolderPage() {
       .catch((e) => setError(String(e?.message ?? e)));
   }, [decoded]);
   const loadListing = useCallback(() => load(true), [load]);
-  const refresh = useCallback(() => load(false), [load]);
 
   // openMon: đo từ khi vào màn thư mục (mount/đổi folder) → danh sách vẽ xong.
   useEffect(() => { perfStart('openMon'); loadListing(); }, [loadListing]);
@@ -66,6 +66,14 @@ export default function FolderPage() {
   });
   const selectedDocs = () => (listing?.documents ?? []).filter((d) => selected.has(d.pdfUri));
 
+  // Phản ánh NGAY một tài liệu vào danh sách đang hiển thị (ảnh RAM của thư mục) khi op của nó
+  // xong ở tầng file — không đợi hết lô. Filesystem vẫn là nguồn sự thật (khoChanged cuối lô
+  // reload Home/snapshot); đây là phản-ánh-kết-quả-đã-biết, không phải optimistic đoán trước.
+  const removeDocLocal = (pdfUri: string) =>
+    setListing((l) => (l ? { ...l, documents: l.documents.filter((d) => d.pdfUri !== pdfUri) } : l));
+  const flagDocLocal = (pdfUri: string, flag: boolean) =>
+    setListing((l) => (l ? { ...l, documents: l.documents.map((d) => (d.pdfUri === pdfUri ? { ...d, printFlagged: flag } : d)) } : l));
+
   // Back cứng: trong mode → thoát mode (nuốt); ngoài mode → nhường handler điều hướng (priority 50).
   useEffect(() => {
     const onBack = (ev: Event) => {
@@ -76,17 +84,17 @@ export default function FolderPage() {
     return () => document.removeEventListener('ionBackButton', onBack);
   }, []);
 
-  // --- thao tác ĐƠN (v1.5.0) ---
+  // --- thao tác ĐƠN (v1.5.0) --- phản ánh ngay (per-item), khoChanged reload Home, KHÔNG re-read cả folder.
   const togglePrint = async (d: Document) => {
     if (d.printFlagged) await clearPrintFlag(d.pdfUri); else await setPrintFlag(d.pdfUri);
-    refresh();
+    flagDocLocal(d.pdfUri, !d.printFlagged);
   };
   const runDelete = async (d: Document) => {
     const root = await getRootUri();
     const rel = root ? relPathFromUris(root, d.pdfUri) : null;
     await deleteDocument(decoded, baseOf(d));
     if (rel) await removeReading(rel);
-    refresh();
+    removeDocLocal(d.pdfUri);
   };
   const confirmDelete = (d: Document) => {
     presentAlert({
@@ -101,7 +109,8 @@ export default function FolderPage() {
   const doRename = async (d: Document, newName: string) => {
     await setDisplayName(decoded, baseOf(d), newName);
     setActionsDoc(null);
-    refresh();
+    const shown = newName.trim() || (d.fileBase ?? d.name); // rỗng = về tên file
+    setListing((l) => (l ? { ...l, documents: l.documents.map((x) => (x.pdfUri === d.pdfUri ? { ...x, name: shown } : x)) } : l));
   };
   const doMove = async (_path: string[], destUri: string) => {
     const d = moveDoc; setMoveDoc(null);
@@ -111,31 +120,39 @@ export default function FolderPage() {
     const newBase = await moveDocument(decoded, baseOf(d), destUri);
     const destRel = relPathFromUris(root, destUri);
     if (oldRel && destRel != null) await moveReading(oldRel, `${destRel}/${newBase}.pdf`, d.name);
-    refresh();
+    removeDocLocal(d.pdfUri);
   };
 
   // --- thao tác LÔ (cưỡi lên hàm đơn) ---
+  // Lô gom MỘT khoChanged ở cuối (coalesce) + phản ánh TỪNG tài liệu ngay khi xong (không đợi hết lô).
   const batchPrint = async () => {
     const docs = selectedDocs(); if (!docs.length) return;
     setBusy(true);
     let ok = 0;
-    for (const d of docs) { try { await setPrintFlag(d.pdfUri); ok += 1; } catch { /* skip */ } } // idempotent, KHÔNG toggle
-    setBusy(false); exitMode(); refresh();
+    await coalesceKhoChanged(async () => {
+      for (const d of docs) {
+        try { await setPrintFlag(d.pdfUri); flagDocLocal(d.pdfUri, true); ok += 1; } catch { /* skip */ } // idempotent, KHÔNG toggle
+      }
+    });
+    setBusy(false); exitMode();
     await presentToast({ message: `Đã đánh dấu ${ok} tài liệu cần in`, duration: 2000 });
   };
   const runBatchDelete = async (docs: Document[]) => {
     setBusy(true);
     const root = await getRootUri();
     let ok = 0, fail = 0;
-    for (const d of docs) {
-      try {
-        const rel = root ? relPathFromUris(root, d.pdfUri) : null;
-        await deleteDocument(decoded, baseOf(d));
-        if (rel) await removeReading(rel);
-        ok += 1;
-      } catch { fail += 1; }
-    }
-    setBusy(false); exitMode(); refresh();
+    await coalesceKhoChanged(async () => {
+      for (const d of docs) {
+        try {
+          const rel = root ? relPathFromUris(root, d.pdfUri) : null;
+          await deleteDocument(decoded, baseOf(d));
+          if (rel) await removeReading(rel);
+          removeDocLocal(d.pdfUri); // biến ngay khi xong
+          ok += 1;
+        } catch { fail += 1; }
+      }
+    });
+    setBusy(false); exitMode();
     await presentToast({ message: fail ? `Xóa ${ok}, lỗi ${fail}` : `Đã xóa ${ok} tài liệu`, duration: 2500, color: fail ? 'danger' : undefined });
   };
   const batchDelete = () => {
@@ -155,16 +172,19 @@ export default function FolderPage() {
     setBusy(true);
     const root = await getRootUri();
     let ok = 0, fail = 0;
-    for (const d of docs) {
-      try {
-        const oldRel = root ? relPathFromUris(root, d.pdfUri) : null;
-        const newBase = await moveDocument(decoded, baseOf(d), destUri);
-        const destRel = root ? relPathFromUris(root, destUri) : null;
-        if (oldRel && destRel != null) await moveReading(oldRel, `${destRel}/${newBase}.pdf`, d.name);
-        ok += 1;
-      } catch { fail += 1; }
-    }
-    setBusy(false); exitMode(); refresh();
+    await coalesceKhoChanged(async () => {
+      for (const d of docs) {
+        try {
+          const oldRel = root ? relPathFromUris(root, d.pdfUri) : null;
+          const newBase = await moveDocument(decoded, baseOf(d), destUri);
+          const destRel = root ? relPathFromUris(root, destUri) : null;
+          if (oldRel && destRel != null) await moveReading(oldRel, `${destRel}/${newBase}.pdf`, d.name);
+          removeDocLocal(d.pdfUri); // nguồn vơi dần ngay
+          ok += 1;
+        } catch { fail += 1; }
+      }
+    });
+    setBusy(false); exitMode();
     await presentToast({ message: fail ? `Chuyển ${ok}, lỗi ${fail}` : `Đã chuyển ${ok} tài liệu`, duration: 2500, color: fail ? 'danger' : undefined });
   };
 

@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.9.0] — 2026-07-04 — Hiệu năng đường GHI/ACTION (phản ánh tức thì + gom pháo)
+### Changed
+- **Phản ánh TỪNG tài liệu ngay khi op xong** (không đợi hết lô): xóa/chuyển → hàng biến khỏi danh sách ngay khi tài liệu đó xử xong ở tầng file; In lô → cờ in hiện dần; đổi tên → tên đổi liền. Cập nhật ảnh RAM của thư mục (`FolderPage` listing) từ kết-quả-đã-biết — filesystem vẫn là nguồn sự thật (không optimistic đoán trước khi ghi). Bỏ `refresh()` re-read cả folder sau mỗi op.
+- **Gom pháo `khoChanged`**: `coalesceKhoChanged()` ([src/lib/khoEvents.ts](src/lib/khoEvents.ts)) gom mọi emit trong một lô thành ĐÚNG MỘT phát ở cuối (lô N file: N `khoChanged` → 1) — hết bão reload nền chen giữa thao tác. Vòng làm tươi theo sự kiện giữ nguyên vai như v1.8.0.
+- **Import có trạng thái tiến hành nhìn thấy được**: overlay "Đang nhập N/T…" (`IonLoading` + `importBatch(onProgress)`) — file nguồn cloud (Drive) copy = tải mạng trong stream, có thể lâu; cho người dùng thấy nó đang về. (Đo Drive-vs-local: `Docs/perf/2026-07-04-import-drive-vs-local.md`.)
+### Notes
+- **KHÔNG đổi cái gì ghi xuống đĩa** — reading-state/tombstone/companion/dedup `(k)` giữ nguyên tuyệt đối; chỉ đổi NHỊP phản ánh + tần suất phát sự kiện. Toàn vẹn từng-cụm-một v1.6.0 giữ nguyên (lô lỗi giữa chừng: chỉ tài liệu đã xong mới phản ánh, báo ok/lỗi như cũ). Đường đọc v1.8.0 không đụng. Perf marks v1.7.0 giữ nguyên.
+> Verify Flip 4 (đo tạm, đã gỡ): xóa lô 5 → **đúng 1 `khoChanged`** (trước: 5) + danh sách trơ về rỗng, file đầu biến ngay. 113/113 test (thêm `coalesceKhoChanged` TDD). Chờ verify 2 máy QA thật + số Drive.
+
 ## [1.8.0] — 2026-07-04 — Hiệu năng đường đọc (một walk chung + native bulk-query)
 ### Changed
 - **Một lần tải = MỘT walk toàn kho chia chung** (`src/storage/khoSnapshot.ts`): dựng cây kho một lần trong RAM phiên (KHÔNG ghi file cache vào cây Syncthing), rồi `listMon` / `summarizeMon` / `countPrintFlagged` / `listInboxByMon` / `listReading` DẪN XUẤT từ cây đó — không consumer nào tự walk từ root nữa. Nội dung `_reading-*.json` vẫn đọc tươi mỗi lần (giữ đúng tiến độ). Sheet chọn đích dùng lại cây đã cache (0 SAF call thay 16).

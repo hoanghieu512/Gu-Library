@@ -32,12 +32,17 @@ export async function importSharedFile(srcUri: string, originalName: string, pat
 }
 
 // Copy CẢ LÔ vào _inbox/ với cùng một đích. Đường copy DUY NHẤT cho Share + file picker.
+// onProgress báo TRƯỚC khi copy file thứ (done/total) → UI hiện trạng thái tiến hành (file
+// nguồn cloud copy = tải mạng trong stream, không nén được → phải cho người dùng thấy nó đang về).
 export async function importBatch(
   files: { uri: string; name: string }[], path: string[],
+  onProgress?: (done: number, total: number, name: string) => void,
 ): Promise<{ ok: number; fails: string[] }> {
   let ok = 0;
   const fails: string[] = [];
-  for (const f of files) { // tuần tự → dedup "(k)" trước đuôi đúng thứ tự
+  for (let i = 0; i < files.length; i++) { // tuần tự → dedup "(k)" trước đuôi đúng thứ tự
+    const f = files[i];
+    onProgress?.(i + 1, files.length, f.name);
     try { await importSharedFile(f.uri, f.name, path); ok += 1; }
     catch { fails.push(f.name); }
   }
