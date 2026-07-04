@@ -27,6 +27,12 @@
 
 > Số Drive vẫn CHƯA đo (2 lần trên đều nguồn local — nhanh, không mạng). Cách đo khi cần: Thêm → chọn 1 file từ **Drive** → **overlay "Đang nhập…" ở lại bao lâu = thời gian tải mạng**.
 
+## QUYẾT ĐỊNH (2026-07-04): KHÔNG đo Drive — không phải trường hợp của Gú
+
+Gú xác nhận: **mọi file nhập vào app đều đã tải về local máy trước** (không import trực tiếp từ Drive cloud). Vậy nhánh "mạng chui trong stream" **không xảy ra trong thực tế** → khỏi đo số Drive, khỏi cân nhắc beat nhập-nền/huỷ. Ô Drive đóng vĩnh viễn (won't-measure), không phải nợ.
+
+Overlay "Đang nhập N/T…" **vẫn giữ** — có ích cho lô local nhiều file (30 file ≈ 4–7s vẫn nên thấy tiến độ), không phụ thuộc giả thuyết Drive.
+
 ## Kết luận (sơ bộ)
 
 - **Copy local KHÔNG phải nút nghẽn** (20 MB = 79 ms). Outlier 34–50s **không thể** do đĩa local.
