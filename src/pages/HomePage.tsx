@@ -24,6 +24,7 @@ import { onKhoChanged } from '../lib/khoEvents';
 import { countPrintFlagged } from '../print/printRepo';
 import { encodeUriParam } from '../storage/uriParam';
 import { perfColdReady, afterPaint } from '../perf/perf';
+import { invalidateKho } from '../storage/khoSnapshot';
 
 export default function HomePage() {
   const history = useHistory();
@@ -55,14 +56,16 @@ export default function HomePage() {
     // Cold start: Trang chủ vẽ xong danh sách lần đầu (perfColdReady chỉ tính 1 lần/phiên).
     afterPaint(perfColdReady);
   };
+  // MỘT trigger tải lúc vào màn (useIonViewWillEnter bắn cả lần đầu) → hết reload đúp.
   useIonViewWillEnter(() => { reload(); });
   useEffect(() => {
-    reload();
-    // Refresh ngay khi có file mới vào kho (share) dù đang ở Home (overlay sheet
-    // dismiss không kích hoạt useIonViewWillEnter).
+    // Refresh ngay khi có file mới vào kho (share/thao tác) dù đang ở Home (overlay sheet
+    // dismiss không kích hoạt useIonViewWillEnter). Cache khoSnapshot đã bị bỏ ở tầng module
+    // TRƯỚC handler này (đăng ký sớm hơn) → reload đọc cây mới.
     const off = onKhoChanged(() => { reload(); });
-    // Re-scan khi app về foreground (sync từ máy khác, đọc dở ở máy khác, v.v.).
-    const sub = App.addListener('resume', () => { reload(); });
+    // Về foreground: đổi từ máy khác (Syncthing rải về / worker) không phát khoChanged →
+    // phải bỏ cache thủ công rồi tải lại để thấy thay đổi như trước.
+    const sub = App.addListener('resume', () => { invalidateKho(); reload(); });
     return () => {
       off();
       sub.then((h) => h.remove());

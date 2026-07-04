@@ -1,5 +1,5 @@
 import type { FolderListing } from './types';
-import { listFolder } from './repo';
+import { getKhoSnapshot, foldSummary } from './khoSnapshot';
 
 export type FolderLister = (uri: string) => Promise<FolderListing>;
 
@@ -19,6 +19,9 @@ export async function accumulate(uri: string, lister: FolderLister): Promise<Mon
   return { documents, pending };
 }
 
-export function summarizeMon(uri: string): Promise<MonSummary> {
-  return accumulate(uri, listFolder);
+// Tóm tắt số tài liệu/chờ của một môn = fold cây con trong walk chung (không tự walk lại).
+export async function summarizeMon(uri: string): Promise<MonSummary> {
+  const snap = await getKhoSnapshot();
+  const f = snap.byUri.get(uri) ?? snap.monFolders.get(uri);
+  return f ? foldSummary(f) : { documents: 0, pending: 0 };
 }

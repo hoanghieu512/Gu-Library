@@ -1,12 +1,10 @@
 import { Preferences } from '@capacitor/preferences';
 import { Saf } from '../plugins/saf';
 import { classifyEntries } from './classify';
-import { parseMonMeta } from './monjson';
-import type { FolderListing, Mon, MonMeta } from './types';
-import type { SafEntry } from '../plugins/saf';
-import { sortMons } from './sortMon';
+import type { FolderListing, Mon } from './types';
 import { parseDisplayName } from './displayName';
 import { emitKhoChanged } from '../lib/khoEvents';
+import { getKhoSnapshot } from './khoSnapshot';
 
 const ROOT_KEY = 'saf_root_uri';
 
@@ -43,17 +41,6 @@ export async function listFolder(uri: string): Promise<FolderListing> {
   return listing;
 }
 
-async function readMonMeta(entries: SafEntry[]): Promise<MonMeta> {
-  const monFile = entries.find((e) => !e.isDirectory && e.name === '_mon.json');
-  if (!monFile) return {};
-  try {
-    const { data } = await Saf.readFile({ uri: monFile.uri });
-    return parseMonMeta(data);
-  } catch {
-    return {};
-  }
-}
-
 // Tạo môn cấp 1: mkdir + ghi _mon.json {color}. Ném 'exists' nếu trùng.
 export async function createMon(name: string, color: string): Promise<void> {
   const root = await getRootUri();
@@ -70,22 +57,7 @@ export async function createSubfolder(parentUri: string, name: string): Promise<
   return uri;
 }
 
+// Danh sách môn = lấy từ walk chung (khoSnapshot) — không tự quét root + per-mon nữa.
 export async function listMon(): Promise<Mon[]> {
-  const root = await getRootUri();
-  if (!root) return [];
-  const { entries } = await Saf.listFolder({ uri: root });
-  const monDirs = entries.filter(
-    (e) =>
-      e.isDirectory &&
-      !e.name.startsWith('.') && // folder ẩn Syncthing (.stfolder/.stversions)
-      e.name !== '_inbox' &&
-      e.name !== '_print'
-  );
-  const mons: Mon[] = [];
-  for (const d of monDirs) {
-    const { entries: children } = await Saf.listFolder({ uri: d.uri });
-    const meta = await readMonMeta(children);
-    mons.push({ name: d.name, uri: d.uri, meta });
-  }
-  return sortMons(mons);
+  return (await getKhoSnapshot()).mons;
 }

@@ -2,7 +2,7 @@ import { Preferences } from '@capacitor/preferences';
 import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
 import { relPathFromUris } from './paths';
-import { parseDisplayName } from '../storage/displayName';
+import { getKhoSnapshot, folderByPath } from '../storage/khoSnapshot';
 import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry,
          type DeviceReadingFile, type ReadingEntry } from './model';
 
@@ -85,22 +85,19 @@ export async function moveReading(oldPath: string, newPath: string, newName: str
   await writeDeviceFile(root, moveEntry(file, oldPath, newPath, newName, nowMs()));
 }
 
-// Tên hiển thị override (.display.json) cạnh tài liệu ở relPath; null nếu không có.
-async function readDisplayNameNextTo(root: string, relPath: string): Promise<string | null> {
+// Resolve một reading path trong CÂY chung (không walk lại): trả uri + tên hiển thị.
+// null nếu file không còn (ẩn khỏi danh sách như trước).
+function resolveInSnapshot(
+  snap: Awaited<ReturnType<typeof getKhoSnapshot>>, relPath: string,
+): { uri: string; displayName: string | null } | null {
   const segs = relPath.split('/').filter(Boolean);
-  const fileSeg = segs.pop(); if (!fileSeg) return null;
-  const base = fileSeg.replace(/\.[^.]+$/, '');
-  let cur = root;
-  for (const s of segs) {
-    const { entries } = await Saf.listFolder({ uri: cur });
-    const h = entries.find((en) => en.isDirectory && en.name === s);
-    if (!h) return null;
-    cur = h.uri;
-  }
-  const { entries } = await Saf.listFolder({ uri: cur });
-  const d = entries.find((en) => !en.isDirectory && en.name === `${base}.display.json`);
-  if (!d) return null;
-  try { const { data } = await Saf.readFile({ uri: d.uri }); return parseDisplayName(data); } catch { return null; }
+  if (segs.length === 0) return null;
+  const base = segs[segs.length - 1].replace(/\.[^.]+$/, '');
+  const folder = folderByPath(snap, segs.slice(0, -1));
+  if (!folder) return null;
+  const doc = folder.listing.documents.find((d) => (d.fileBase ?? d.name) === base);
+  if (!doc) return null;
+  return { uri: doc.pdfUri, displayName: folder.displayNames.get(base) ?? null };
 }
 
 // Trang để khôi phục khi mở (union mọi máy, mới nhất theo path).
@@ -113,30 +110,19 @@ export async function getResumePage(docUri: string): Promise<number> {
 
 // Danh sách đang đọc dở (union) + resolve uri trên máy này; ẩn entry không còn file.
 export interface ReadingItem extends ReadingEntry { uri: string; }
+// Danh sách đang-đọc-dở: NỘI DUNG _reading-*.json đọc TƯƠI mỗi lần (tiến độ), nhưng resolve
+// uri + tên hiển thị bằng CÂY chung (khoSnapshot) — bỏ walk-từ-root ×2/entry (thủ phạm ~19s).
 export async function listReading(): Promise<ReadingItem[]> {
   const root = await getRootUri(); if (!root) return [];
-  const merged = mergeReading(await readAllFiles(root));
+  const [merged, snap] = await Promise.all([
+    readAllFiles(root).then(mergeReading),
+    getKhoSnapshot(),
+  ]);
   const out: ReadingItem[] = [];
   for (const e of merged) {
-    const uri = await resolveUriFromRelPath(root, e.path);
-    if (!uri) continue;
-    const display = await readDisplayNameNextTo(root, e.path); // tên đổi (nếu có) > tên lưu trong entry
-    out.push({ ...e, uri, name: display ?? e.name });
+    const r = resolveInSnapshot(snap, e.path);
+    if (!r) continue; // file không còn → ẩn
+    out.push({ ...e, uri: r.uri, name: r.displayName ?? e.name }); // tên đổi (nếu có) > tên trong entry
   }
   return out;
-}
-
-// path (vd "Môn/Chương/x.pdf") → SAF document uri trên máy hiện tại; null nếu không còn.
-async function resolveUriFromRelPath(root: string, path: string): Promise<string | null> {
-  const segs = path.split('/').filter(Boolean);
-  let curUri = root;
-  for (let i = 0; i < segs.length; i++) {
-    const { entries } = await Saf.listFolder({ uri: curUri });
-    const want = segs[i];
-    const isLast = i === segs.length - 1;
-    const hit = entries.find((e) => e.name === want && (isLast ? !e.isDirectory : e.isDirectory));
-    if (!hit) return null;
-    curUri = hit.uri;
-  }
-  return curUri;
 }
