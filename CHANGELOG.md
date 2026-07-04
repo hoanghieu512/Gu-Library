@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.8.0] — 2026-07-04 — Hiệu năng đường đọc (một walk chung + native bulk-query)
+### Changed
+- **Một lần tải = MỘT walk toàn kho chia chung** (`src/storage/khoSnapshot.ts`): dựng cây kho một lần trong RAM phiên (KHÔNG ghi file cache vào cây Syncthing), rồi `listMon` / `summarizeMon` / `countPrintFlagged` / `listInboxByMon` / `listReading` DẪN XUẤT từ cây đó — không consumer nào tự walk từ root nữa. Nội dung `_reading-*.json` vẫn đọc tươi mỗi lần (giữ đúng tiến độ). Sheet chọn đích dùng lại cây đã cache (0 SAF call thay 16).
+- **Native `SafPlugin.listFolder`**: một truy vấn cursor `DocumentsContract` (id+name+mime cho cả đàn con) thay `DocumentFile.listFiles()` + `getName()`/`isDirectory()` hỏi provider TỪNG con (nameLoop chiếm 60–75% mỗi lần list). Interface không đổi → mọi caller nhanh lên.
+- **HomePage**: một trigger tải lúc vào màn (`useIonViewWillEnter`), bỏ reload mount đúp; làm tươi giữ nguyên vai `khoChanged` (bỏ cache ở tầng module) + `resume` (đổi từ máy khác) → `invalidateKho()` rồi reload.
+### Notes
+- **Không đổi một pixel hành vi nhìn thấy; KHÔNG đụng đường ghi** (emit-per-op, mutate sau action để nguyên cho v1.9.0). Perf marks v1.7.0 giữ nguyên.
+> Verify Flip 4 (đo tạm, đã gỡ): **cold start 17.6s → 1.32s (~13×)**; vòng SAF một cold start **~315 → 53**; dựng cây **2→1 lần/mount**; sheet chọn đích **16→0 SAF**; đối chứng 8 môn + đang-đọc-dở + badge khớp 100%; `khoChanged`→invalidate + `resume`→invalidate verified. Số đầy đủ: `Docs/perf/2026-07-04-ket-qua-v1.8.0.md`. 108/108 test. Chờ verify 2 máy QA thật.
+
 ## [1.7.0] — 2026-07-04 — Bộ đo hiệu năng nội bộ (đo, chưa sửa)
 ### Added
 - **Perf marks 6 luồng xương sống**, neo ở mốc người dùng cảm nhận (vẽ xong trên màn): (1) khởi động → Trang chủ, (2) mở môn → danh sách, (3) mở tài liệu → trang đầu raster, (4) commit zoom → bản nét, (5) import lô → copy _inbox, (6) vào chế độ chọn nhiều. Marks = `performance.now()` diff + Map/array push (rẻ, không profiling thường trực → không observer effect); số đo chỉ giữ **in-memory** (không ghi file, không đẻ file trong cây Syncthing). Module `src/perf/perf.ts` (cap 30 mẫu/luồng).
