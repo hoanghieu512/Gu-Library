@@ -2,6 +2,16 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.10.0] — 2026-07-06 — Nav "bung khi active" + tinh chỉnh lề
+### Changed
+- **Thanh nav dưới kiểu "bung khi active"** (`src/theme/nav.css`, CSS thuần — KHÔNG đụng điều hướng): inactive = chỉ icon, nâu-xám nhạt, hẹp (`flex-grow:1`); active = bung rộng (`flex-grow:1.9`), icon + chữ **nâu accent** (`--gu-brown`, KHÔNG trắng), chữ fade-in + trượt (`translateX -12px→0`), underline ngắn = bề rộng chữ (`scaleX 0→1`), icon bounce (overshoot). Chữ inactive ẩn bằng `max-width/opacity` (KHÔNG `display:none`) → screen-reader vẫn đọc đủ 4 nhãn.
+- **Trang chủ + sheet "Đang đọc dở"**: sửa lề thẻ + header. `IonContent` dùng biến `--padding-start/end` (class `ion-padding` VÔ HIỆU trên IonContent → trước đó thẻ sát lề ~0) → thẻ inset 16px khớp màn "Đi in"; header "Đang đọc dở"/"Môn học" thêm `paddingInlineStart:16` → thẳng nội dung thẻ.
+- **Sheet "Tài liệu"**: ô "Tên hiển thị" dùng `--padding-start` (thay `padding` vô hiệu) → chữ không còn dính viền trái.
+### Notes
+- Chỉ spacing + animation; KHÔNG đụng luồng dữ liệu/điều hướng/hành vi tab. Giữ palette nâu-giấy.
+- Giới hạn Ionic: chữ nav nằm DƯỚI icon (stacked, shadow-DOM không cho đổi layout ngang không hack) — "bung/màu/underline/bounce" đều đạt; nếu cần chữ BÊN CẠNH icon phải làm tab bar tùy biến (đụng nav, để beat sau nếu muốn).
+> Verify Flip 4: Home lề khớp Đi in (thẻ 16px, header thụt); nav active icon+chữ nâu + underline = bề rộng chữ, 3 tab kia icon-only. Chờ verify 2 máy + cảm nhận hoạt ảnh.
+
 ## [1.9.0] — 2026-07-04 — Hiệu năng đường GHI/ACTION (phản ánh tức thì + gom pháo)
 ### Changed
 - **Phản ánh TỪNG tài liệu ngay khi op xong** (không đợi hết lô): xóa/chuyển → hàng biến khỏi danh sách ngay khi tài liệu đó xử xong ở tầng file; In lô → cờ in hiện dần; đổi tên → tên đổi liền. Cập nhật ảnh RAM của thư mục (`FolderPage` listing) từ kết-quả-đã-biết — filesystem vẫn là nguồn sự thật (không optimistic đoán trước khi ghi). Bỏ `refresh()` re-read cả folder sau mỗi op.

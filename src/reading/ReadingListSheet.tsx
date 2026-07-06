@@ -28,7 +28,8 @@ export default function ReadingListSheet({ isOpen, items, onOpen, onRemove, onCl
           <IonButton slot="end" fill="clear" onClick={onClose}>Đóng</IonButton>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      {/* Padding qua biến --padding-* (class ion-padding vô hiệu trên IonContent) → thẻ inset 16px đồng bộ Trang chủ. */}
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
         {items.length === 0 && (
           <p style={{ textAlign: 'center', color: 'var(--gu-grey)', marginTop: 32 }}>
             Chưa có tài liệu nào đang đọc.

@@ -41,7 +41,8 @@ export default function DocActionsSheet({ isOpen, doc, onRename, onMove, onToggl
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0 16px' }}>
           <IonInput value={name} placeholder="Để trống = tên mặc định"
             onIonInput={(e) => setName(String(e.detail.value ?? ''))}
-            style={{ flex: 1, border: '1px solid var(--ion-color-medium)', borderRadius: 8, padding: '4px 8px' }} />
+            style={{ flex: 1, border: '1px solid var(--ion-color-medium)', borderRadius: 8,
+              '--padding-start': '10px', '--padding-end': '10px', '--padding-top': '6px', '--padding-bottom': '6px' } as CSSProperties} />
           <IonButton size="small" shape="round" onClick={() => onRename(name)}>Lưu</IonButton>
         </div>
 

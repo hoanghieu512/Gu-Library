@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, useIonViewWillEnter,
 } from '@ionic/react';
@@ -84,13 +85,15 @@ export default function HomePage() {
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      {/* Padding qua biến --padding-* (class ion-padding VÔ HIỆU trên IonContent) → thẻ inset 16px
+          khớp màn "Đi in". */}
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
         <SearchShortcut />
 
         {cont && (
           // Tapping the surrounding area opens the sheet; card tap opens viewer directly.
           <div onClick={() => setSheetOpen(true)} style={{ cursor: 'pointer' }}>
-            <h2 className="gu-title" style={{ fontSize: 16, margin: '0 0 4px', color: 'var(--gu-brown)' }}>
+            <h2 className="gu-title" style={{ fontSize: 16, margin: '0 0 4px', paddingInlineStart: 16, color: 'var(--gu-brown)' }}>
               Đang đọc dở
             </h2>
             <ContinueReadingCard item={cont} />
@@ -128,7 +131,7 @@ export default function HomePage() {
         {hasRoot && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', marginTop: 16 }}>
-              <h2 className="gu-title" style={{ fontSize: 18, margin: 0, flex: 1 }}>Môn học</h2>
+              <h2 className="gu-title" style={{ fontSize: 18, margin: 0, paddingInlineStart: 16, flex: 1 }}>Môn học</h2>
               <IonButton fill="clear" onClick={() => setCreateMonOpen(true)} aria-label="Tạo môn mới">
                 <IonIcon icon={add} />
               </IonButton>
