@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
-  IonList, IonItem, IonLabel, IonBadge, IonFooter, useIonAlert, useIonToast,
+  IonList, IonItem, IonLabel, IonBadge, IonFooter, IonToast, useIonAlert,
 } from '@ionic/react';
 import {
   folderOutline, chevronForward, hourglassOutline, add,
-  printOutline, trashOutline, swapHorizontalOutline, close,
+  printOutline, trashOutline, swapHorizontalOutline, close, checkmarkCircle, alertCircle, reloadOutline,
 } from 'ionicons/icons';
 import { useParams, useHistory } from 'react-router-dom';
 import { listFolder, createSubfolder, getRootUri } from '../storage/repo';
@@ -37,7 +37,25 @@ export default function FolderPage() {
   const [batchMove, setBatchMove] = useState(false);
   const [busy, setBusy] = useState(false);
   const [presentAlert] = useIonAlert();
-  const [presentToast] = useIonToast();
+
+  // Toast lô 3 trạng thái — MỘT toast morph loading→success/error (đúng 1 toast/lô, khớp coalesce).
+  const [toast, setToast] = useState<{
+    open: boolean; message: string; cls: string; icon?: string; showClose: boolean;
+  }>({ open: false, message: '', cls: '', showClose: false });
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const clearToastTimer = () => { if (toastTimer.current) { clearTimeout(toastTimer.current); toastTimer.current = undefined; } };
+  useEffect(() => () => clearToastTimer(), []);
+  // Loading: icon quay (spinner) + text, persistent, KHÔNG đóng tay được (không nút X, không auto).
+  const toastLoading = (msg: string) => {
+    clearToastTimer();
+    setToast({ open: true, message: msg, cls: 'gu-toast gu-toast-loading', icon: reloadOutline, showClose: false });
+  };
+  // Success/Error: icon + text, tự đóng 3s + nút X.
+  const toastResult = (msg: string, ok: boolean) => {
+    clearToastTimer();
+    setToast({ open: true, message: msg, cls: `gu-toast gu-toast-${ok ? 'success' : 'error'}`, icon: ok ? checkmarkCircle : alertCircle, showClose: true });
+    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, open: false })), 3000);
+  };
 
   const load = useCallback((spinner: boolean) => {
     if (spinner) setListing(null);
@@ -135,9 +153,12 @@ export default function FolderPage() {
       }
     });
     setBusy(false); exitMode();
-    await presentToast({ message: `Đã đánh dấu ${ok} tài liệu cần in`, duration: 2000 });
+    // In lô nhanh → chỉ success (không loading).
+    toastResult(`Đã đánh dấu ${ok} tài liệu cần in`, true);
   };
   const runBatchDelete = async (docs: Document[]) => {
+    const n = docs.length;
+    toastLoading(`Đang xóa ${n} tài liệu…`);
     setBusy(true);
     const root = await getRootUri();
     let ok = 0, fail = 0;
@@ -153,7 +174,8 @@ export default function FolderPage() {
       }
     });
     setBusy(false); exitMode();
-    await presentToast({ message: fail ? `Xóa ${ok}, lỗi ${fail}` : `Đã xóa ${ok} tài liệu`, duration: 2500, color: fail ? 'danger' : undefined });
+    if (fail) toastResult(`Đã xóa ${ok}/${n} · ${fail} lỗi`, false);
+    else toastResult(`Đã xóa ${ok} tài liệu`, true);
   };
   const batchDelete = () => {
     const docs = selectedDocs(); if (!docs.length) return;
@@ -169,6 +191,8 @@ export default function FolderPage() {
   const batchMoveDo = async (_path: string[], destUri: string) => {
     const docs = selectedDocs(); setBatchMove(false);
     if (!docs.length || !destUri) { exitMode(); return; }
+    const n = docs.length;
+    toastLoading(`Đang chuyển ${n} tài liệu…`);
     setBusy(true);
     const root = await getRootUri();
     let ok = 0, fail = 0;
@@ -185,7 +209,8 @@ export default function FolderPage() {
       }
     });
     setBusy(false); exitMode();
-    await presentToast({ message: fail ? `Chuyển ${ok}, lỗi ${fail}` : `Đã chuyển ${ok} tài liệu`, duration: 2500, color: fail ? 'danger' : undefined });
+    if (fail) toastResult(`Đã chuyển ${ok}/${n} · ${fail} lỗi`, false);
+    else toastResult(`Đã chuyển ${ok} tài liệu`, true);
   };
 
   return (
@@ -308,6 +333,18 @@ export default function FolderPage() {
         note={`Chuyển ${selected.size} tài liệu`}
         onPick={batchMoveDo}
         onCancel={() => setBatchMove(false)}
+      />
+
+      {/* Toast lô 3 trạng thái (một toast morph loading→success/error) */}
+      <IonToast
+        isOpen={toast.open}
+        message={toast.message}
+        cssClass={toast.cls}
+        icon={toast.icon}
+        color="primary"
+        position="bottom"
+        buttons={toast.showClose ? [{ icon: close, role: 'cancel' }] : undefined}
+        onDidDismiss={() => { clearToastTimer(); setToast((t) => ({ ...t, open: false })); }}
       />
     </IonPage>
   );

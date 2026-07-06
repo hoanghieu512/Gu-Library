@@ -1,0 +1,34 @@
+/* v1.11.0 — Toast lô 3 trạng thái (loading → success/error), MỞ RỘNG toast Ionic.
+   Nền nâu đậm + chữ kem = color="primary" (#553B08 + contrast --gu-cream, đã set ở variables.css).
+   Phân biệt trạng thái bằng MÀU ICON (không đổi nền): loading = icon reload xoay, success = tích
+   xanh rêu trầm, error = cảnh báo đỏ đất trầm. KHÔNG nền đen thuần. */
+
+/* Nâng CẢ toast (nền nâu ở wrapper) lên trên thanh nav bằng transform host — KHÔNG dùng margin
+   trên ::part(container) (chỉ đẩy nội dung, để lộ dải nâu trống phía dưới → toast cao lêu nghêu). */
+.gu-toast {
+  transform: translateY(-56px);
+}
+
+.gu-toast::part(icon) {
+  color: var(--gu-cream);
+}
+.gu-toast-success::part(icon) {
+  color: #90ab63; /* xanh rêu trầm, đủ nổi trên nền nâu */
+}
+.gu-toast-error::part(icon) {
+  color: #d6805c; /* đỏ đất trầm */
+}
+/* Loading: icon (reload) quay tròn = spinner. IonicSafeString HTML trong message bị Ionic lọc
+   nên dùng icon xoay thay cho span spinner. */
+.gu-toast-loading::part(icon) {
+  color: var(--gu-cream);
+  animation: gu-toast-spin 0.7s linear infinite;
+}
+/* Nút X (đóng tay) màu kem cho khớp chữ. */
+.gu-toast::part(button) {
+  color: var(--gu-cream);
+}
+
+@keyframes gu-toast-spin {
+  to { transform: rotate(360deg); }
+}
