@@ -2,6 +2,16 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.11.0] — 2026-07-06 — Toast lô 3 trạng thái (loading → success/error)
+### Changed
+- **Lô Xoá / Chuyển: toast 3 trạng thái** (một `IonToast` controlled morph, đúng 1 toast/lô — khớp coalesce v1.9.0): Loading = icon reload XOAY + "Đang {xoá|chuyển} {n} tài liệu…", bám tới khi lô resolve, KHÔNG X/không auto; Success = tích xanh rêu + "Đã {xoá|chuyển} {n} tài liệu", tự đóng 3s + nút X; Error (lô có lỗi) = "Đã {xoá} {x}/{n} · {y} lỗi", tự đóng + X. `{n}/{x}/{y}` từ số thật.
+- **Lô In**: chỉ Success "Đã đánh dấu {n} cần in" (thao tác nhanh, không loading).
+- Mở RỘNG toast Ionic (không hệ toast song song): nền nâu `#553B08` + chữ kem (`color="primary"` + contrast có sẵn); phân biệt trạng thái bằng MÀU ICON (`::part(icon)`: loading kem xoay, success `#90ab63`, error `#d6805c`); nâng toast lên trên thanh nav bằng `transform` host (`src/theme/toast.css`).
+### Notes
+- KHÔNG đụng logic xoá/chuyển/in tầng file (per-doc try/catch v1.6.0 + phản-ánh-tức-thì v1.9.0 giữ nguyên); chỉ đổi lớp thông báo.
+- Ghi chú kỹ thuật: spinner qua `IonicSafeString` (HTML trong message) bị Ionic lọc → dùng icon reload xoay; toast lift bằng `transform` host (margin trên `::part(container)` chỉ đẩy nội dung, lộ dải nâu trống → cao lêu nghêu).
+> Verify Flip 4: loading (reload xoay + "Đang xóa N…"), success (tích xanh + "Đã xóa N tài liệu" + X), compact + nằm trên thanh nav, palette nâu/kem. 113 test. Chờ verify 2 máy + trạng thái error/chuyển/in.
+
 ## [1.10.0] — 2026-07-06 — Nav "bung khi active" + tinh chỉnh lề
 ### Changed
 - **Thanh nav dưới kiểu "bung khi active"** (`src/theme/nav.css`, CSS thuần — KHÔNG đụng điều hướng): inactive = chỉ icon, nâu-xám nhạt, hẹp (`flex-grow:1`); active = bung rộng (`flex-grow:1.9`), icon + chữ **nâu accent** (`--gu-brown`, KHÔNG trắng), chữ fade-in + trượt (`translateX -12px→0`), underline ngắn = bề rộng chữ (`scaleX 0→1`), icon bounce (overshoot). Chữ inactive ẩn bằng `max-width/opacity` (KHÔNG `display:none`) → screen-reader vẫn đọc đủ 4 nhãn.
