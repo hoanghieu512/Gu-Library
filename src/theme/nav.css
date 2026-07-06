@@ -15,9 +15,18 @@ ion-tab-bar {
 ion-tab-button {
   --color: var(--gu-grey);
   --color-selected: var(--gu-brown);
+  /* Bỏ ripple + nền-focus mặc định Ionic (vòng tròn nâu lệch tâm khi chạm, lệch trên màn nhỏ).
+     Active chỉ báo bằng màu + underline + bung + bounce. */
+  --ripple-color: transparent;
+  --background-focused: transparent;
+  --background-focused-opacity: 0;
   flex: 1 1 0;
   min-width: 0;
   transition: flex-grow 220ms cubic-bezier(0.34, 1.25, 0.64, 1);
+}
+/* Chặn cả ripple element + highlight còn sót lại từ shadow DOM. */
+ion-tab-button::part(native) {
+  background: transparent;
 }
 ion-tab-button.tab-selected {
   flex-grow: 1.9;
