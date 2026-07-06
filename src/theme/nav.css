@@ -1,0 +1,91 @@
+/* v1.10.0 — Thanh nav dưới kiểu "bung khi active".
+   Inactive: chỉ icon, nâu-xám nhạt, hẹp. Active: bung rộng; icon+chữ nâu accent (KHÔNG trắng);
+   chữ fade + trượt vào; underline ngắn = bề rộng chữ; icon bounce khi đổi tab.
+   Chữ inactive ẩn bằng max-width/opacity (KHÔNG display:none) → screen-reader vẫn đọc 4 nhãn. */
+
+ion-tab-bar {
+  --background: var(--gu-paper-2);
+  border-top: 1px solid var(--gu-cream);
+  padding-top: 4px;
+  padding-bottom: 6px;
+  height: 60px;
+}
+
+/* Mỗi tab: inactive hẹp (flex-grow 1), active bung rộng (flex-grow ~2) — dịch mượt, không giật. */
+ion-tab-button {
+  --color: var(--gu-grey);
+  --color-selected: var(--gu-brown);
+  /* Bỏ ripple + nền-focus mặc định Ionic (vòng tròn nâu lệch tâm khi chạm, lệch trên màn nhỏ).
+     Active chỉ báo bằng màu + underline + bung + bounce. */
+  --ripple-color: transparent;
+  --background-focused: transparent;
+  --background-focused-opacity: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  transition: flex-grow 220ms cubic-bezier(0.34, 1.25, 0.64, 1);
+}
+/* Chặn cả ripple element + highlight còn sót lại từ shadow DOM. */
+ion-tab-button::part(native) {
+  background: transparent;
+}
+ion-tab-button.tab-selected {
+  flex-grow: 1.9;
+}
+
+/* Icon: đổi màu (bước 1) rồi bounce nhẹ (bước cuối) khi thành active. */
+ion-tab-button ion-icon {
+  color: var(--gu-grey);
+  transition: color 160ms ease;
+}
+ion-tab-button.tab-selected ion-icon {
+  color: var(--gu-brown);
+  animation: gu-nav-bounce 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Label: inactive ẩn (max-width 0 + opacity 0, giữ trong DOM cho screen-reader);
+   active fade-in + trượt trái→phải (translateX 12px→0). */
+ion-tab-button ion-label {
+  color: var(--gu-brown);
+  position: relative;
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-12px);
+  overflow: hidden;
+  white-space: nowrap;
+  margin-top: 2px;
+  padding-bottom: 5px; /* chừa chỗ cho underline NẰM TRONG hộp label (overflow:hidden cắt phần ngoài) */
+  font-size: 12px;
+  transition:
+    opacity 180ms ease 40ms,
+    transform 180ms ease 40ms,
+    max-width 220ms cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+ion-tab-button.tab-selected ion-label {
+  max-width: 110px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Underline: chạy ra (scaleX 0→1) sau khi chữ đã vào; dài đúng bằng bề rộng chữ. */
+ion-tab-button ion-label::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gu-brown);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 200ms ease 120ms;
+}
+ion-tab-button.tab-selected ion-label::after {
+  transform: scaleX(1);
+}
+
+@keyframes gu-nav-bounce {
+  0%   { transform: scale(1); }
+  55%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}

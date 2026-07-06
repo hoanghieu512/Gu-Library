@@ -8,6 +8,7 @@ import '@ionic/react/css/structure.css';
 import '@ionic/react/css/typography.css';
 import './theme/fonts';
 import './theme/variables.css';
+import './theme/nav.css';
 import App from './App';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
