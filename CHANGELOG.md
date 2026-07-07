@@ -2,6 +2,22 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.16.0] — 2026-07-07 — Card "Đang đọc dở" thêm affordance đọc-tiếp
+### Added
+- Card "Đang đọc dở" (Home) thêm **chip tròn kem-mờ + mũi tên kem** (`arrowForward`) ở góc phải → tín hiệu "bấm để đọc tiếp" (CTA mời bấm, tương phản trên nền nâu đậm). Card vẫn là MỘT button tổng (chạm bất kỳ đâu = đọc tiếp); chip chỉ là affordance thị giác. Tái dùng `--gu-cream`, không token mới.
+
+## [1.15.0] — 2026-07-07 — Header động theo path (Option C)
+### Changed
+- Header màn duyệt môn/thư mục **theo vị trí thật** thay vì hardcode "Môn / Chương": cấp 1 = tên môn; cấp 2 = "Môn / Thư mục"; cấp ≥3 = "… / Cha / Hiện tại" (giữ 2 tầng cuối để header hẹp Flip gập không tràn). `src/storage/folderHeader.ts` (`folderHeaderTitle` pure + TDD 6 test) từ relPath. CHỈ đổi text tiêu đề — không breadcrumb bấm-nhảy; back arrow giữ nguyên.
+
+## [1.14.2] — 2026-07-07 — Căn lề ngang: Tìm / Thêm / Môn mới
+### Fixed
+- 3 màn Tìm / Thêm / sheet "Môn mới" nội dung dính sát mép → dùng biến `--padding-start/end` trên `IonContent` (class `ion-padding` VÔ HIỆU — cùng bệnh Home v1.10.0) → lề ngang 16px khớp Home; nút "Chọn file từ máy" không còn tràn.
+
+## [1.14.1] — 2026-07-07 — Toast "back lần nữa để thoát" khớp palette
+### Fixed
+- Toast xác nhận thoát ("Nhấn back lần nữa để thoát") dùng palette neutral hệ toast v1.11.0 (`color="primary"` + `cssClass="gu-toast"` → nền nâu `#553B08` + chữ kem) thay nền xám mặc định Ionic. Toast neutral (không icon trạng thái); KHÔNG đổi luồng back-exit.
+
 ## [1.14.0] — 2026-07-07 — Empty-state khi không mở được tài liệu
 ### Changed
 - **Thay dòng lỗi trần trong Viewer bằng empty-state tử tế** (khi v1.4.1 phát hiện OOM/file quá nặng): minh họa **panda buồn** (`src/assets/gu-mascot-sad.svg`, mascot app mặt buồn) căn giữa + tiêu đề "Uh oh" + câu thông báo giọng-Gú (GIỮ NGUYÊN lời) + nút **"Về Trang chủ"** (nâu bo tròn) → `history.push('/home')`.

@@ -54,6 +54,10 @@ export function useAndroidBackButton(): void {
         await presentToast({
           message: 'Nhấn back lần nữa để thoát',
           duration: EXIT_CONFIRM_WINDOW_MS,
+          // Toast neutral: cùng palette nâu/kem hệ toast v1.11.0 (color=primary + cssClass gu-toast),
+          // KHÔNG icon trạng thái. Bỏ nền xám mặc định Ionic.
+          color: 'primary',
+          cssClass: 'gu-toast',
         });
       });
     };

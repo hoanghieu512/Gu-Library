@@ -13,6 +13,7 @@ import { setDisplayName, moveDocument, deleteDocument } from '../storage/docRepo
 import { setPrintFlag, clearPrintFlag } from '../print/printRepo';
 import { removeReading, moveReading } from '../reading/store';
 import { relPathFromUris } from '../reading/paths';
+import { folderHeaderTitle } from '../storage/folderHeader';
 import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
 import type { FolderListing, Document } from '../storage/types';
 import CreateFolderModal from '../components/CreateFolderModal';
@@ -29,6 +30,16 @@ export default function FolderPage() {
   const history = useHistory();
   const [listing, setListing] = useState<FolderListing | null>(null);
   const [error, setError] = useState<string>('');
+  // Header động theo path (Option C): tên môn / "Môn / Thư mục" / "… / Cha / Hiện tại".
+  const [headerTitle, setHeaderTitle] = useState('Môn / Chương');
+  useEffect(() => {
+    let alive = true;
+    getRootUri().then((root) => {
+      const rel = root ? relPathFromUris(root, decoded) : null;
+      if (alive) setHeaderTitle(folderHeaderTitle(rel ? rel.split('/') : []));
+    });
+    return () => { alive = false; };
+  }, [decoded]);
   const [createOpen, setCreateOpen] = useState(false);
   const [actionsDoc, setActionsDoc] = useState<Document | null>(null); // ⋯ sheet (đơn)
   const [moveDoc, setMoveDoc] = useState<Document | null>(null);       // Chuyển đơn
@@ -229,7 +240,7 @@ export default function FolderPage() {
           ) : (
             <>
               <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
-              <IonTitle className="gu-title">Môn / Chương</IonTitle>
+              <IonTitle className="gu-title">{headerTitle}</IonTitle>
               <IonButtons slot="end">
                 <IonButton fill="clear" onClick={() => setCreateOpen(true)} aria-label="Tạo thư mục mới">
                   <IonIcon icon={add} />
