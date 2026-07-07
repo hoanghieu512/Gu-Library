@@ -2,6 +2,14 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.12.0] — 2026-07-06 — Modal import có tiến trình + Hủy
+### Changed
+- **Thay overlay "Đang nhập N/T…" (IonLoading v1.9.0) bằng modal tiến trình** (`src/import/ImportProgressModal.tsx`, dùng `IonModal` có sẵn): vòng % (SVG) + "Đang nhập {i}/{tổng}…" + "Vui lòng không tắt ứng dụng." + nút **Hủy**. Xong → modal success: dấu tích xanh + "Đã nhập {ok}/{tổng} file" + phụ đề + nút **Xem kho** (đóng modal, về Trang chủ). **CHỈ một điểm kết** — bỏ toast xác nhận lặp lại sau đó.
+- **Hủy** = dừng nhập các file CÒN LẠI ở **ranh giới giữa hai file** (không cắt ngang file đang copy), GIỮ nguyên file đã nhập xong (không rollback): `importBatch` thêm `shouldCancel?()` kiểm ở đầu mỗi vòng → `break`.
+### Notes
+- Không đụng logic import/worker/baseline `.tmp`; chỉ đổi lớp UI + thêm khả năng dừng vòng lặp ở ranh giới file. % dựa trên tiến trình copy N/T (local ~150–230ms/file, copy-bound). Palette nâu/kem; ring nâu, tích xanh rêu.
+> Verify Flip 4 (modal forced-open): importing (ring 60% "Đang nhập 3/5…" + Hủy) + success (tích xanh "Đã nhập 5/5 file" + Xem kho) khớp mockup. 113 test. Chờ verify 2 máy thật (picker → nhập → Hủy giữa chừng → Xem kho).
+
 ## [1.11.0] — 2026-07-06 — Toast lô 3 trạng thái (loading → success/error)
 ### Changed
 - **Lô Xoá / Chuyển: toast 3 trạng thái** (một `IonToast` controlled morph, đúng 1 toast/lô — khớp coalesce v1.9.0): Loading = icon reload XOAY + "Đang {xoá|chuyển} {n} tài liệu…", bám tới khi lô resolve, KHÔNG X/không auto; Success = tích xanh rêu + "Đã {xoá|chuyển} {n} tài liệu", tự đóng 3s + nút X; Error (lô có lỗi) = "Đã {xoá} {x}/{n} · {y} lỗi", tự đóng + X. `{n}/{x}/{y}` từ số thật.

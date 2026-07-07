@@ -1,39 +1,34 @@
-import { useState } from 'react';
-import { useIonToast, IonLoading } from '@ionic/react';
+import { useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import type { SharedFile } from '../plugins/shareTarget';
 import ChooseMonSheet from './ChooseMonSheet';
+import ImportProgressModal from './ImportProgressModal';
 import { importBatch } from './inboxRepo';
 import { perfStart, perfEnd } from '../perf/perf';
 
 // Sheet chọn đích + copy cả lô (dùng chung ShareReceiver + AddPage). batch>0 = mở sheet.
+// v1.12.0: modal tiến trình (vòng % + Hủy) → modal success (Xem kho). CHỈ một điểm kết (không toast lặp).
 export default function ImportDestinationFlow({ batch, onClear }: { batch: SharedFile[]; onClear: () => void }) {
-  const [presentToast] = useIonToast();
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
+  const history = useHistory();
+  const [modal, setModal] = useState<{ open: boolean; phase: 'importing' | 'done'; done: number; total: number; ok: number }>(
+    { open: false, phase: 'importing', done: 0, total: 0, ok: 0 },
+  );
+  const cancelRef = useRef(false);
 
   const pick = async (path: string[]) => { // import chỉ cần path (prefix); bỏ qua destUri
     const files = batch;
     onClear();
     if (files.length === 0) return;
-    const label = path.join(' / ');
-    // Trạng thái tiến hành nhìn thấy được: file nguồn cloud (Drive…) copy = tải mạng trong stream,
-    // có thể lâu — cho người dùng thấy nó đang về (vật lý mạng không nén được, chỉ nén được mù mờ).
-    setMsg(files.length > 1 ? `Đang nhập 0/${files.length}…` : 'Đang nhập…');
-    setBusy(true);
+    cancelRef.current = false;
+    setModal({ open: true, phase: 'importing', done: 0, total: files.length, ok: 0 });
     perfStart('importBatch'); // đo copy cả lô vào _inbox (⏳ xuất hiện khi copy xong)
-    const { ok, fails } = await importBatch(files, path, (done, total) => {
-      setMsg(total > 1 ? `Đang nhập ${done}/${total}…` : 'Đang nhập…');
-    });
+    const { ok } = await importBatch(
+      files, path,
+      (done) => setModal((m) => ({ ...m, done })),   // % + "Đang nhập i/tổng…"
+      () => cancelRef.current,                        // Hủy → dừng ở ranh giới file
+    );
     perfEnd('importBatch');
-    setBusy(false);
-    if (fails.length === 0) {
-      await presentToast({ message: `Đã thêm ${ok} file vào ${label} (chờ xử lý)`, duration: 2500 });
-    } else {
-      await presentToast({
-        message: `Thêm ${ok}/${files.length} file vào ${label}; lỗi: ${fails.join(', ')}`,
-        duration: 3500, color: 'danger',
-      });
-    }
+    setModal((m) => ({ ...m, phase: 'done', ok }));   // điểm kết duy nhất
   };
 
   const note = batch.length === 0 ? null : batch.length === 1 ? batch[0].name : `${batch.length} file`;
@@ -41,7 +36,15 @@ export default function ImportDestinationFlow({ batch, onClear }: { batch: Share
   return (
     <>
       <ChooseMonSheet isOpen={batch.length > 0} note={note} onPick={pick} onCancel={onClear} />
-      <IonLoading isOpen={busy} message={msg} />
+      <ImportProgressModal
+        open={modal.open}
+        phase={modal.phase}
+        done={modal.done}
+        total={modal.total}
+        ok={modal.ok}
+        onCancel={() => { cancelRef.current = true; }}
+        onViewKho={() => { setModal((m) => ({ ...m, open: false })); history.push('/home'); }}
+      />
     </>
   );
 }

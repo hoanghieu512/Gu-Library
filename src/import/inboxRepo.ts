@@ -37,10 +37,13 @@ export async function importSharedFile(srcUri: string, originalName: string, pat
 export async function importBatch(
   files: { uri: string; name: string }[], path: string[],
   onProgress?: (done: number, total: number, name: string) => void,
+  shouldCancel?: () => boolean,
 ): Promise<{ ok: number; fails: string[] }> {
   let ok = 0;
   const fails: string[] = [];
   for (let i = 0; i < files.length; i++) { // tuần tự → dedup "(k)" trước đuôi đúng thứ tự
+    // Hủy: dừng ở RANH GIỚI giữa hai file (không cắt ngang file đang copy) — file đã xong GIỮ nguyên.
+    if (shouldCancel?.()) break;
     const f = files[i];
     onProgress?.(i + 1, files.length, f.name);
     try { await importSharedFile(f.uri, f.name, path); ok += 1; }
