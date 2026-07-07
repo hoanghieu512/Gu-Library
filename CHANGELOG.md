@@ -2,6 +2,14 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.14.0] — 2026-07-07 — Empty-state khi không mở được tài liệu
+### Changed
+- **Thay dòng lỗi trần trong Viewer bằng empty-state tử tế** (khi v1.4.1 phát hiện OOM/file quá nặng): minh họa **panda buồn** (`src/assets/gu-mascot-sad.svg`, mascot app mặt buồn) căn giữa + tiêu đề "Uh oh" + câu thông báo giọng-Gú (GIỮ NGUYÊN lời) + nút **"Về Trang chủ"** (nâu bo tròn) → `history.push('/home')`.
+- Bỏ nhãn kiểu "404" (sai ngữ cảnh — lỗi mở file, không phải 404). Palette + typography app (nền giấy, tiêu đề Merriweather, thân Montserrat).
+### Notes
+- CHỈ đổi lớp hiển thị lỗi; KHÔNG đụng cơ chế phát hiện "không mở được" của v1.4.1 (`readFileBase64` catch Throwable → setErr).
+> Verify Flip 4 (temp-force err): empty-state panda nét (SVG vector) + "Uh oh" + câu cũ + nút; "Về Trang chủ" → Home. 113 test. Chờ verify 2 máy.
+
 ## [1.13.0] — 2026-07-06 — Xác nhận trước khi xóa (chống lỡ tay)
 ### Changed
 - **Dialog xác nhận trước khi xóa** tài liệu — cả xóa lẻ (sheet "Tài liệu"/vuốt → Xóa) và xóa lô (chọn nhiều → Xóa). `src/components/ConfirmDialog.tsx` (IonModal nhỏ giữa màn, palette app): icon cảnh báo tròn (đỏ đất trên nền đỏ-đất nhạt) + tiêu đề + mô tả + **Hủy** (viền nhạt) / **Xóa** (đỏ đất nhấn mạnh). Bấm Xóa → chạy luồng xóa hiện có (v1.11.0 toast loading→success); Hủy → đóng, không xóa gì.
