@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.13.0] — 2026-07-06 — Xác nhận trước khi xóa (chống lỡ tay)
+### Changed
+- **Dialog xác nhận trước khi xóa** tài liệu — cả xóa lẻ (sheet "Tài liệu"/vuốt → Xóa) và xóa lô (chọn nhiều → Xóa). `src/components/ConfirmDialog.tsx` (IonModal nhỏ giữa màn, palette app): icon cảnh báo tròn (đỏ đất trên nền đỏ-đất nhạt) + tiêu đề + mô tả + **Hủy** (viền nhạt) / **Xóa** (đỏ đất nhấn mạnh). Bấm Xóa → chạy luồng xóa hiện có (v1.11.0 toast loading→success); Hủy → đóng, không xóa gì.
+- Tiêu đề động: lẻ "Xóa tài liệu này?"; lô "Xóa {n} tài liệu?".
+- **Bỏ text "không hoàn tác"** (kho có versioning Syncthing ~30 ngày — M8): mô tả trung tính + nhắc nhẹ "Vẫn khôi phục được từ bản sao đồng bộ (~30 ngày)". Thay 2 `useIonAlert` cũ (text dọa "Không hoàn tác").
+### Notes
+- Confirm chèn TRƯỚC loading toast; KHÔNG đổi logic xóa file bên dưới (runDelete/runBatchDelete v1.11.0 nguyên).
+> Verify Flip 4: dialog lẻ "Xóa tài liệu này?" + lô "Xóa 2 tài liệu?" khớp mockup (icon + palette + Hủy/Xóa); Hủy → file còn nguyên trên đĩa. 113 test. Chờ verify 2 máy.
+
 ## [1.12.0] — 2026-07-06 — Modal import có tiến trình + Hủy
 ### Changed
 - **Thay overlay "Đang nhập N/T…" (IonLoading v1.9.0) bằng modal tiến trình** (`src/import/ImportProgressModal.tsx`, dùng `IonModal` có sẵn): vòng % (SVG) + "Đang nhập {i}/{tổng}…" + "Vui lòng không tắt ứng dụng." + nút **Hủy**. Xong → modal success: dấu tích xanh + "Đã nhập {ok}/{tổng} file" + phụ đề + nút **Xem kho** (đóng modal, về Trang chủ). **CHỈ một điểm kết** — bỏ toast xác nhận lặp lại sau đó.
