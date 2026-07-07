@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonIcon,
 } from '@ionic/react';
@@ -21,7 +22,8 @@ export default function AddPage() {
   return (
     <IonPage>
       <IonHeader><IonToolbar><IonTitle>Thêm</IonTitle></IonToolbar></IonHeader>
-      <IonContent className="ion-padding">
+      {/* Lề ngang qua biến --padding-* (class ion-padding vô hiệu trên IonContent) → khớp Home. */}
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
         <p style={{ color: 'var(--gu-grey)' }}>
           Chọn file từ máy (PDF / Word / PowerPoint) để nhập vào kho. Sau khi chọn, chọn môn / thư mục đích.
         </p>
