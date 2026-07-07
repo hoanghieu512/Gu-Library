@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
-  IonList, IonItem, IonLabel, IonBadge, IonFooter, IonToast, useIonAlert,
+  IonList, IonItem, IonLabel, IonBadge, IonFooter, IonToast,
 } from '@ionic/react';
 import {
   folderOutline, chevronForward, hourglassOutline, add,
@@ -18,6 +18,7 @@ import type { FolderListing, Document } from '../storage/types';
 import CreateFolderModal from '../components/CreateFolderModal';
 import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
+import ConfirmDialog from '../components/ConfirmDialog';
 import ChooseMonSheet from '../import/ChooseMonSheet';
 import { coalesceKhoChanged } from '../lib/khoEvents';
 import { perfStart, perfEnd, afterPaint } from '../perf/perf';
@@ -36,7 +37,12 @@ export default function FolderPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());   // pdfUri
   const [batchMove, setBatchMove] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [presentAlert] = useIonAlert();
+  // Dialog xác nhận xóa (chống lỡ tay) — chèn TRƯỚC luồng xóa (toast loading→success).
+  const [confirmDel, setConfirmDel] = useState<{ open: boolean; title: string; message: string; run: () => void }>(
+    { open: false, title: '', message: '', run: () => {} },
+  );
+  const closeConfirm = () => setConfirmDel((c) => ({ ...c, open: false }));
+  const RECOVER = 'Vẫn khôi phục được từ bản sao đồng bộ (~30 ngày).'; // KHÔNG dọa "không hoàn tác"
 
   // Toast lô 3 trạng thái — MỘT toast morph loading→success/error (đúng 1 toast/lô, khớp coalesce).
   const [toast, setToast] = useState<{
@@ -115,13 +121,11 @@ export default function FolderPage() {
     removeDocLocal(d.pdfUri);
   };
   const confirmDelete = (d: Document) => {
-    presentAlert({
-      header: 'Xóa tài liệu?',
-      message: `Xóa hẳn “${d.name}” khỏi kho (mọi máy sau khi đồng bộ). Không hoàn tác trong app.`,
-      buttons: [
-        { text: 'Hủy', role: 'cancel' },
-        { text: 'Xóa', role: 'destructive', handler: () => { void runDelete(d); } },
-      ],
+    setConfirmDel({
+      open: true,
+      title: 'Xóa tài liệu này?',
+      message: `“${d.name}” sẽ bị xóa khỏi kho (đồng bộ mọi máy). ${RECOVER}`,
+      run: () => runDelete(d),
     });
   };
   const doRename = async (d: Document, newName: string) => {
@@ -179,13 +183,11 @@ export default function FolderPage() {
   };
   const batchDelete = () => {
     const docs = selectedDocs(); if (!docs.length) return;
-    presentAlert({
-      header: 'Xóa tài liệu?',
-      message: `Xóa hẳn ${docs.length} tài liệu khỏi kho (mọi máy sau khi đồng bộ). Không hoàn tác.`,
-      buttons: [
-        { text: 'Hủy', role: 'cancel' },
-        { text: 'Xóa', role: 'destructive', handler: () => { void runBatchDelete(docs); } },
-      ],
+    setConfirmDel({
+      open: true,
+      title: `Xóa ${docs.length} tài liệu?`,
+      message: `${docs.length} tài liệu sẽ bị xóa khỏi kho (đồng bộ mọi máy). ${RECOVER}`,
+      run: () => runBatchDelete(docs),
     });
   };
   const batchMoveDo = async (_path: string[], destUri: string) => {
@@ -333,6 +335,15 @@ export default function FolderPage() {
         note={`Chuyển ${selected.size} tài liệu`}
         onPick={batchMoveDo}
         onCancel={() => setBatchMove(false)}
+      />
+
+      {/* Xác nhận xóa (lẻ + lô) — chèn trước luồng xóa */}
+      <ConfirmDialog
+        isOpen={confirmDel.open}
+        title={confirmDel.title}
+        message={confirmDel.message}
+        onConfirm={() => { confirmDel.run(); closeConfirm(); }}
+        onCancel={closeConfirm}
       />
 
       {/* Toast lô 3 trạng thái (một toast morph loading→success/error) */}
