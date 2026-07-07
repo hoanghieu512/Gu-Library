@@ -1,0 +1,77 @@
+<svg viewBox="0 0 260 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mascot panda thẩm phán mặt buồn">
+  <!-- shadow -->
+  <ellipse cx="130" cy="285" rx="80" ry="11" fill="#000000" opacity="0.06"/>
+
+  <!-- arms (drooping = sad) -->
+  <ellipse cx="72" cy="216" rx="16" ry="30" fill="#2B2B2B" transform="rotate(30 72 216)"/>
+  <ellipse cx="188" cy="216" rx="16" ry="30" fill="#2B2B2B" transform="rotate(-30 188 216)"/>
+
+  <!-- body -->
+  <ellipse cx="130" cy="226" rx="60" ry="48" fill="#FFFFFF" stroke="#2B2B2B" stroke-width="4"/>
+
+  <!-- legs + pink pads -->
+  <ellipse cx="98" cy="264" rx="25" ry="16" fill="#2B2B2B"/>
+  <ellipse cx="162" cy="264" rx="25" ry="16" fill="#2B2B2B"/>
+  <ellipse cx="98" cy="264" rx="12" ry="8" fill="#F4B6C2"/>
+  <ellipse cx="162" cy="264" rx="12" ry="8" fill="#F4B6C2"/>
+
+  <!-- ears -->
+  <circle cx="74" cy="66" r="26" fill="#2B2B2B"/>
+  <circle cx="186" cy="66" r="26" fill="#2B2B2B"/>
+
+  <!-- head -->
+  <circle cx="130" cy="118" r="72" fill="#FFFFFF" stroke="#2B2B2B" stroke-width="4"/>
+
+  <!-- black brim under wig -->
+  <path d="M80 72 Q130 46 180 72 Q180 88 130 88 Q80 88 80 72 Z" fill="#2B2B2B"/>
+
+  <!-- barrister wig (cream, rows of curls) -->
+  <g stroke="#CBBF9E" stroke-width="1.6" stroke-linejoin="round">
+    <!-- dome base -->
+    <path d="M82 76 Q84 42 130 38 Q176 42 178 76 Q178 82 172 82 L88 82 Q82 82 82 76 Z" fill="#EAE2CF"/>
+    <!-- top row curls -->
+    <ellipse cx="97" cy="58" rx="7" ry="12" fill="#F0E9D9"/>
+    <ellipse cx="111" cy="53" rx="7" ry="13" fill="#F0E9D9"/>
+    <ellipse cx="125" cy="50" rx="7" ry="13" fill="#F0E9D9"/>
+    <ellipse cx="139" cy="50" rx="7" ry="13" fill="#F0E9D9"/>
+    <ellipse cx="153" cy="53" rx="7" ry="13" fill="#F0E9D9"/>
+    <ellipse cx="167" cy="58" rx="7" ry="12" fill="#F0E9D9"/>
+    <!-- lower row curls (staggered) -->
+    <ellipse cx="90" cy="74" rx="7" ry="11" fill="#E4DBC7"/>
+    <ellipse cx="104" cy="76" rx="7" ry="11" fill="#E4DBC7"/>
+    <ellipse cx="118" cy="77" rx="7" ry="11" fill="#E4DBC7"/>
+    <ellipse cx="132" cy="77" rx="7" ry="11" fill="#E4DBC7"/>
+    <ellipse cx="146" cy="77" rx="7" ry="11" fill="#E4DBC7"/>
+    <ellipse cx="160" cy="76" rx="7" ry="11" fill="#E4DBC7"/>
+    <ellipse cx="174" cy="74" rx="7" ry="11" fill="#E4DBC7"/>
+    <!-- side rolls -->
+    <circle cx="85" cy="83" r="7.5" fill="#EAE2CF"/>
+    <circle cx="175" cy="83" r="7.5" fill="#EAE2CF"/>
+  </g>
+
+  <!-- eye patches (gray, round) -->
+  <ellipse cx="103" cy="130" rx="21" ry="24" fill="#9C9C9C"/>
+  <ellipse cx="157" cy="130" rx="21" ry="24" fill="#9C9C9C"/>
+
+  <!-- eyes (glossy, looking down) -->
+  <ellipse cx="104" cy="136" rx="10" ry="12" fill="#1E1E1E"/>
+  <ellipse cx="156" cy="136" rx="10" ry="12" fill="#1E1E1E"/>
+  <circle cx="107" cy="132" r="3" fill="#FFFFFF"/>
+  <circle cx="159" cy="132" r="3" fill="#FFFFFF"/>
+
+  <!-- worried brows -->
+  <path d="M88 106 Q103 98 116 104" fill="none" stroke="#2B2B2B" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M172 106 Q157 98 144 104" fill="none" stroke="#2B2B2B" stroke-width="3.4" stroke-linecap="round"/>
+
+  <!-- tear -->
+  <path d="M98 148 q-3.5 8 0 12.5 a3.4 3.4 0 0 1 -6.8 0 q0 -6 6.8 -12.5 z" fill="#9FC4E0" opacity="0.9"/>
+
+  <!-- cheeks -->
+  <circle cx="86" cy="154" r="10" fill="#F4B6C2" opacity="0.75"/>
+  <circle cx="174" cy="154" r="10" fill="#F4B6C2" opacity="0.75"/>
+
+  <!-- nose + sad mouth -->
+  <ellipse cx="130" cy="148" rx="6.5" ry="5" fill="#2B2B2B"/>
+  <path d="M130 153 v5" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/>
+  <path d="M117 170 q13 -11 26 0" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round"/>
+</svg>
