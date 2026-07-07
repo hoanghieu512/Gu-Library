@@ -1,5 +1,5 @@
 import { IonIcon } from '@ionic/react';
-import { bookOutline } from 'ionicons/icons';
+import { bookOutline, arrowForward } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import type { ReadingItem } from '../reading/store';
 import { encodeUriParam } from '../storage/uriParam';
@@ -29,6 +29,13 @@ export default function ContinueReadingCard({ item }: { item: ReadingItem }) {
           <div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: '#fff' }} />
         </div>
         <div style={{ fontSize: 12, opacity: .85 }}>Trang {item.page} / {item.total} · chạm để đọc tiếp</div>
+      </div>
+      {/* Affordance "đọc tiếp": chip tròn kem-mờ + mũi tên kem — mời bấm (card vẫn là MỘT button tổng). */}
+      <div style={{
+        flex: '0 0 auto', alignSelf: 'center', width: 40, height: 40, borderRadius: '50%',
+        background: 'rgba(233,229,205,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <IonIcon icon={arrowForward} style={{ fontSize: 20, color: 'var(--gu-cream)' }} />
       </div>
     </div>
   );
