@@ -2,6 +2,12 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.17.0] — 2026-07-08 — Heading "Đang đọc dở" thêm lối vào "Xem tất cả ›"
+### Added
+- Heading "Đang đọc dở" (Home) thêm nhãn **"Xem tất cả ›"** bên phải (đối xứng vị trí "+" của heading "Môn học") → mở đúng sheet danh sách đầy đủ đã có (v0.8.0). Chỉ hiện khi **≥2** tài liệu đang đọc dở (1 cái đã nằm ở card, mở sheet 1 dòng là thừa). Chevron `chevronForward` = ngôn ngữ "drill/mở list" (như cuối mỗi hàng môn), tách bạch với chip mũi tên "đọc tiếp" trên card (v1.16.0). Tái dùng token nâu `--gu-brown`, không token mới.
+### Changed
+- Bỏ lối vào "tap khu vực heading" mơ hồ cũ (`<div onClick>` bọc cả cụm) → thay bằng nút "Xem tất cả ›" rõ ràng, tránh hai lối chồng chéo. Chạm card vẫn = đọc tiếp (card tự `stopPropagation`).
+
 ## [1.16.0] — 2026-07-07 — Card "Đang đọc dở" thêm affordance đọc-tiếp
 ### Added
 - Card "Đang đọc dở" (Home) thêm **chip tròn kem-mờ + mũi tên kem** (`arrowForward`) ở góc phải → tín hiệu "bấm để đọc tiếp" (CTA mời bấm, tương phản trên nền nâu đậm). Card vẫn là MỘT button tổng (chạm bất kỳ đâu = đọc tiếp); chip chỉ là affordance thị giác. Tái dùng `--gu-cream`, không token mới.

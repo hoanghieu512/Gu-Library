@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, useIonViewWillEnter,
 } from '@ionic/react';
-import { add } from 'ionicons/icons';
+import { add, chevronForward } from 'ionicons/icons';
 
 import { useHistory } from 'react-router-dom';
 import { App } from '@capacitor/app';
@@ -91,13 +91,30 @@ export default function HomePage() {
         <SearchShortcut />
 
         {cont && (
-          // Tapping the surrounding area opens the sheet; card tap opens viewer directly.
-          <div onClick={() => setSheetOpen(true)} style={{ cursor: 'pointer' }}>
-            <h2 className="gu-title" style={{ fontSize: 16, margin: '0 0 4px', paddingInlineStart: 16, color: 'var(--gu-brown)' }}>
-              Đang đọc dở
-            </h2>
+          <>
+            {/* Heading = nhãn; action "Xem tất cả ›" nằm bên phải, đối xứng "+" của "Môn học".
+                Chỉ hiện khi ≥2 tài liệu đang đọc dở — 1 cái đã nằm ở card, mở sheet 1 dòng là thừa.
+                Chevron = ngôn ngữ "drill/mở list" (như cuối mỗi hàng môn), tách bạch với chip mũi tên
+                "đọc tiếp" trên card. Card tự xử tap đọc-tiếp (stopPropagation) → bỏ lối "tap khu vực" cũ. */}
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+              <h2 className="gu-title" style={{ fontSize: 16, margin: 0, paddingInlineStart: 16, color: 'var(--gu-brown)', flex: 1 }}>
+                Đang đọc dở
+              </h2>
+              {reading.length >= 2 && (
+                <IonButton
+                  fill="clear"
+                  size="small"
+                  onClick={() => setSheetOpen(true)}
+                  aria-label="Xem tất cả tài liệu đang đọc dở"
+                  style={{ '--color': 'var(--gu-brown)', textTransform: 'none' } as CSSProperties}
+                >
+                  Xem tất cả
+                  <IonIcon icon={chevronForward} slot="end" />
+                </IonButton>
+              )}
+            </div>
             <ContinueReadingCard item={cont} />
-          </div>
+          </>
         )}
 
         {printCount > 0 && (
