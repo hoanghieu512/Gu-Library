@@ -31,7 +31,7 @@ export default function AddPage() {
           <IonIcon slot="start" icon={addCircleOutline} />
           Chọn file từ máy
         </IonButton>
-        <ImportDestinationFlow batch={batch} onClear={() => setBatch([])} />
+        <ImportDestinationFlow batch={batch} onClear={() => setBatch([])} onAddMore={pickFiles} />
       </IonContent>
     </IonPage>
   );

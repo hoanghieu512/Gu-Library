@@ -10,6 +10,8 @@ interface Props {
   ok: number;     // số file đã nhập xong (cho màn done)
   onCancel: () => void;
   onViewKho: () => void;
+  onAddMore?: () => void;      // có → hiện nút "Thêm tiếp" (chỉ luồng chọn-file-từ-máy)
+  onDidDismiss?: () => void;   // dismiss animation xong → parent mở lại picker (v1.18.0)
 }
 
 const R = 34;
@@ -17,12 +19,13 @@ const C = 2 * Math.PI * R;
 
 // Modal tiến trình nhập lô (dialog nhỏ giữa màn, dùng IonModal có sẵn). Không đóng tay lúc đang
 // nhập (backdropDismiss=false); chỉ Hủy (đang nhập) hoặc Xem kho (xong) — CHỈ MỘT điểm kết.
-export default function ImportProgressModal({ open, phase, done, total, ok, onCancel, onViewKho }: Props) {
+export default function ImportProgressModal({ open, phase, done, total, ok, onCancel, onViewKho, onAddMore, onDidDismiss }: Props) {
   const pct = total > 0 ? Math.min(1, done / total) : 0;
   return (
     <IonModal
       isOpen={open}
       backdropDismiss={false}
+      onDidDismiss={onDidDismiss}
       style={{ '--width': '300px', '--height': 'auto', '--border-radius': '18px', '--background': 'var(--gu-paper-2)' } as CSSProperties}
     >
       <div style={{ padding: 26, textAlign: 'center' }}>
@@ -56,7 +59,14 @@ export default function ImportProgressModal({ open, phase, done, total, ok, onCa
             <div style={{ fontSize: 13, color: 'var(--gu-grey)', margin: '6px 0 18px' }}>
               File đang chờ xử lý — sẽ vào môn sau khi phân loại.
             </div>
-            <IonButton shape="round" onClick={onViewKho} style={{ textTransform: 'none' }}>Xem kho</IonButton>
+            {/* "Thêm tiếp" (secondary, outline) chỉ hiện khi có onAddMore = luồng chọn-file-từ-máy;
+                "Xem kho" giữ vai primary (solid nâu). Luồng share không truyền onAddMore → 1 nút như cũ. */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {onAddMore && (
+                <IonButton fill="outline" shape="round" onClick={onAddMore} style={{ textTransform: 'none' }}>Thêm tiếp</IonButton>
+              )}
+              <IonButton shape="round" onClick={onViewKho} style={{ textTransform: 'none' }}>Xem kho</IonButton>
+            </div>
           </>
         )}
       </div>

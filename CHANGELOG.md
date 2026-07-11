@@ -2,6 +2,10 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.18.0] — 2026-07-11 — Popup nhập xong thêm nút "Thêm tiếp"
+### Added
+- Popup "Đã nhập N/N file" (luồng chọn-file-từ-máy) thêm nút **"Thêm tiếp"** (secondary, `fill="outline"`) cạnh "Xem kho" (giữ vai primary). Bấm → đóng popup → mở lại đúng file picker của nút "Chọn file từ máy" (tái dùng `pickFiles`, không luồng nhập mới) → nhập nhiều đợt liên tiếp không phải quay lại màn Thêm. Đóng modal HẲN rồi mới mở picker qua `IonModal.onDidDismiss` + cờ `pendingAddMore` (né picker bị nuốt sự kiện trên Capacitor nếu bật khi modal chưa đóng hết). `onAddMore` là prop **optional** → luồng share (ShareReceiver) không truyền nên giữ nguyên 1 nút "Xem kho". Không dep/token/component mới.
+
 ## [1.17.0] — 2026-07-08 — Heading "Đang đọc dở" thêm lối vào "Xem tất cả ›"
 ### Added
 - Heading "Đang đọc dở" (Home) thêm nhãn **"Xem tất cả ›"** bên phải (đối xứng vị trí "+" của heading "Môn học") → mở đúng sheet danh sách đầy đủ đã có (v0.8.0). Chỉ hiện khi **≥2** tài liệu đang đọc dở (1 cái đã nằm ở card, mở sheet 1 dòng là thừa). Chevron `chevronForward` = ngôn ngữ "drill/mở list" (như cuối mỗi hàng môn), tách bạch với chip mũi tên "đọc tiếp" trên card (v1.16.0). Tái dùng token nâu `--gu-brown`, không token mới.
