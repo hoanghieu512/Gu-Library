@@ -8,12 +8,15 @@ import { perfStart, perfEnd } from '../perf/perf';
 
 // Sheet chọn đích + copy cả lô (dùng chung ShareReceiver + AddPage). batch>0 = mở sheet.
 // v1.12.0: modal tiến trình (vòng % + Hủy) → modal success (Xem kho). CHỈ một điểm kết (không toast lặp).
-export default function ImportDestinationFlow({ batch, onClear }: { batch: SharedFile[]; onClear: () => void }) {
+export default function ImportDestinationFlow({ batch, onClear, onAddMore }: { batch: SharedFile[]; onClear: () => void; onAddMore?: () => void }) {
   const history = useHistory();
   const [modal, setModal] = useState<{ open: boolean; phase: 'importing' | 'done'; done: number; total: number; ok: number }>(
     { open: false, phase: 'importing', done: 0, total: 0, ok: 0 },
   );
   const cancelRef = useRef(false);
+  // "Thêm tiếp": đóng modal trước, chờ dismiss animation xong (onDidDismiss) mới mở picker —
+  // né picker bị nuốt sự kiện trên Capacitor nếu bật khi modal chưa đóng hẳn (v1.18.0).
+  const pendingAddMore = useRef(false);
 
   const pick = async (path: string[]) => { // import chỉ cần path (prefix); bỏ qua destUri
     const files = batch;
@@ -44,6 +47,8 @@ export default function ImportDestinationFlow({ batch, onClear }: { batch: Share
         ok={modal.ok}
         onCancel={() => { cancelRef.current = true; }}
         onViewKho={() => { setModal((m) => ({ ...m, open: false })); history.push('/home'); }}
+        onAddMore={onAddMore ? () => { pendingAddMore.current = true; setModal((m) => ({ ...m, open: false })); } : undefined}
+        onDidDismiss={() => { if (pendingAddMore.current) { pendingAddMore.current = false; onAddMore?.(); } }}
       />
     </>
   );
