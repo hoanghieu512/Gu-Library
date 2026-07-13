@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-11, trạng thái: app v1.17.0 · worker v0.11.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-13, trạng thái: app v1.19.0 · worker v0.11.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -120,6 +120,21 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 - **File kẹt ⏳ lâu:** mở `<kho>\_worker.log`. File đuôi lạ/tmp kẹt lại là *tín hiệu
   dọn tay theo thiết kế*, worker không tự xóa. Segment tiền tố độc → worker route về
   "Chưa phân loại" + WARNING trong log.
+- **Ảnh (jpg/jpeg/png/webp) kẹt ⏳ không thành PDF:** app **nhận ảnh từ v1.19.0** (picker
+  "Chọn file từ máy" + share từ Gallery), nhưng đóng ảnh→PDF là việc của **worker**. Env
+  nào app nhận ảnh thì worker env đó **PHẢI biết xử ảnh TRƯỚC**, không thì ảnh nằm ⏳ vô
+  hạn. Thứ tự deploy bắt buộc: worker-image lên Prod trước → verify → rồi mới đẩy app
+  v1.19.0 sang máy Gú. (App whitelist đúng jpg/png/webp — HEIC/gif KHÔNG nhận, cố ý.)
+- **Thấy folder `_inbox (1)`, `_inbox (2)`… ở gốc kho, hoặc danh sách môn RỖNG dù kho
+  đầy:** đã gặp thật (2026-07-13, Flip 4, khi nhập nhiều ảnh liên tiếp). Gốc: `_inbox` bị
+  worker/Syncthing xóa+tạo lại giữa loạt import → cache SAF stale → app tạo trùng
+  `_inbox (k)`; snapshot cũ coi `_inbox (k)` là môn rồi throw → **môn hiển thị rỗng —
+  DATA KHÔNG MẤT** (folder môn còn nguyên trên đĩa). **Đã fix ở app v1.19.0** (ensureDir
+  dò cursor tươi + tự lành dedup; snapshot lọc `_`-prefix + try/catch từng môn) → không
+  còn tái sinh `_inbox (k)`. Nếu môn vẫn rỗng sau churn cực đoan: DocumentsProvider của
+  OS kẹt index tạm thời → **reboot máy** dọn (data còn nguyên). File trong `_inbox (k)`
+  mồ côi (máy chưa lên v1.19.0) — worker chỉ quét `_inbox` → **dồn tay về `_inbox` rồi
+  xóa folder rác** (giữ nguyên tiền tố `[Môn]`).
 - **Sync đứng, thấy file mồ côi `.syncthing.*.tmp`:** đã gặp thật trên Flip 4.
   **Không phải bug app/worker, không có fix code.** Syncthing tự hòa giải sau vài vòng.
   Chỉ theo dõi xem có tái diễn thành mẫu hình lặp lại hay không; nếu chỉ lẻ tẻ thì bỏ qua.
@@ -144,7 +159,9 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.17.0** trên main, sạch, chỉ còn nhánh `main`.
+- App **v1.19.0** trên main, sạch, chỉ còn nhánh `main`. (v1.18.0 = popup nhập xong thêm
+  nút "Thêm tiếp"; v1.19.0 = **nhận file ảnh** jpg/png/webp + fix `_inbox (k)`/môn-biến-mất.)
+  **Chưa lên Prod** — chờ worker-image Prod trước (coupling ở §6).
 - Worker **v0.11.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
   **Không còn nợ hạ tầng.**
 - Backlog feature (M10 folder-level, breadcrumb bấm-nhảy-tầng, nav chữ-bên-icon) đang
