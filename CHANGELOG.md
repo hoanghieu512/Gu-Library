@@ -2,6 +2,10 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.19.0] — 2026-07-13 — App nhận file ảnh (jpg/png/webp) vào kho
+### Added
+- Mở các đường nhập sẵn có để nhận thêm **ảnh** (jpg/jpeg/png/webp) — Gú chụp/lưu ảnh bài báo đưa vào kho như mọi file. Ảnh đi ĐÚNG luồng import cũ (chọn/nhận môn → áp tiền tố `[Môn]` → dedup `(1)` → vào `_inbox/` → badge ⏳), không luồng riêng. Thay đổi thuần native 3 điểm: (1) `SafPlugin.mimeForName` map `image/jpeg|png|webp` (mime khớp đuôi để SAF provider giữ đuôi, không gắn `.tmp` → worker mới nuốt); (2) `SafPlugin.pickFiles` whitelist thêm 3 mime ảnh (picker "Chọn file từ máy" cho chọn ảnh); (3) `AndroidManifest` intent-filter SEND/SEND_MULTIPLE thêm 3 mime ảnh (app hiện trong share sheet Gallery). Whitelist LOẠI CỤ THỂ (không `image/*`) → né HEIC/gif worker chưa xử sẽ kẹt ⏳. JS-side ext-agnostic sẵn (prefix/importBatch/badge không lọc đuôi) — không đổi. **Coupling deploy: worker phải xử ảnh→PDF TRƯỚC khi bản này lên Prod, nếu không ảnh nằm ⏳ vô hạn.** Không OCR, app KHÔNG xử ảnh.
+
 ## [1.18.0] — 2026-07-11 — Popup nhập xong thêm nút "Thêm tiếp"
 ### Added
 - Popup "Đã nhập N/N file" (luồng chọn-file-từ-máy) thêm nút **"Thêm tiếp"** (secondary, `fill="outline"`) cạnh "Xem kho" (giữ vai primary). Bấm → đóng popup → mở lại đúng file picker của nút "Chọn file từ máy" (tái dùng `pickFiles`, không luồng nhập mới) → nhập nhiều đợt liên tiếp không phải quay lại màn Thêm. Đóng modal HẲN rồi mới mở picker qua `IonModal.onDidDismiss` + cờ `pendingAddMore` (né picker bị nuốt sự kiện trên Capacitor nếu bật khi modal chưa đóng hết). `onAddMore` là prop **optional** → luồng share (ShareReceiver) không truyền nên giữ nguyên 1 nút "Xem kho". Không dep/token/component mới.

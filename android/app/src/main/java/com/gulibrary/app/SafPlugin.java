@@ -164,6 +164,10 @@ public class SafPlugin extends Plugin {
         if (n.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         if (n.endsWith(".ppt")) return "application/vnd.ms-powerpoint";
         if (n.endsWith(".pptx")) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        // Ảnh (v1.19.0): worker đóng ảnh→PDF. Mime khớp đuôi để provider giữ đuôi (đừng để .tmp → worker bỏ).
+        if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "image/jpeg";
+        if (n.endsWith(".png")) return "image/png";
+        if (n.endsWith(".webp")) return "image/webp";
         return "application/octet-stream";
     }
 
@@ -287,7 +291,7 @@ public class SafPlugin extends Plugin {
         } catch (Exception e) { call.reject("delete failed: " + e.getMessage()); }
     }
 
-    // Mở system file picker: nhiều file, chỉ loại worker nhận (pdf/doc/docx/ppt/pptx).
+    // Mở system file picker: nhiều file, chỉ loại worker nhận (pdf/doc/docx/ppt/pptx + ảnh jpg/png/webp).
     @PluginMethod
     public void pickFiles(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -298,7 +302,11 @@ public class SafPlugin extends Plugin {
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            // Ảnh (v1.19.0): whitelist đúng loại worker đóng→PDF (KHÔNG image/* → né HEIC/gif kẹt ⏳).
+            "image/jpeg",
+            "image/png",
+            "image/webp"
         });
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
