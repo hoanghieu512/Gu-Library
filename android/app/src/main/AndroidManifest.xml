@@ -28,6 +28,10 @@
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
                 <data android:mimeType="application/vnd.ms-powerpoint" />
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation" />
+                <!-- Ảnh (v1.19.0): share từ Gallery. Loại cụ thể khớp worker (không image/*) → né HEIC/gif kẹt. -->
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/webp" />
             </intent-filter>
         </activity>
 

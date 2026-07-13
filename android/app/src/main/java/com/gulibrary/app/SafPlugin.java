@@ -164,6 +164,10 @@ public class SafPlugin extends Plugin {
         if (n.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         if (n.endsWith(".ppt")) return "application/vnd.ms-powerpoint";
         if (n.endsWith(".pptx")) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        // Ảnh (v1.19.0): worker đóng ảnh→PDF. Mime khớp đuôi để provider giữ đuôi (đừng để .tmp → worker bỏ).
+        if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "image/jpeg";
+        if (n.endsWith(".png")) return "image/png";
+        if (n.endsWith(".webp")) return "image/webp";
         return "application/octet-stream";
     }
 
@@ -210,23 +214,62 @@ public class SafPlugin extends Plugin {
         } catch (Exception e) { call.reject("copy failed: " + e.getMessage()); }
     }
 
-    /* TEMP M6 spike */
+    // Bảo đảm có folder con tên `name` (reuse nếu đã có) — dùng cho _inbox/_print.
+    // Chống TẠO TRÙNG "_inbox (k)": khi worker/Syncthing vừa xóa+tạo lại _inbox, cache của
+    // DocumentFile.findFile trả stale → tưởng chưa có → createDirectory → Samsung auto-dedup ra
+    // "_inbox (1)". File ghi vào đó thành mồ côi (worker chỉ quét "_inbox") → kẹt + môn có thể
+    // biến mất (snapshot coi "_inbox (k)" là môn rồi throw). Hai lớp chống:
+    //   (1) dò con bằng cursor DocumentsContract TƯƠI trước khi tạo (như listFolder);
+    //   (2) nếu vẫn lỡ tạo bản dedup (tên trả về != tên xin) → xóa bản rỗng, trả bản gốc.
     @PluginMethod
     public void ensureDir(PluginCall call) {
         String parentUri = call.getString("parentUri");
         String name = call.getString("name");
         if (parentUri == null || name == null) { call.reject("parentUri+name required"); return; }
         try {
-            androidx.documentfile.provider.DocumentFile parent =
-                androidx.documentfile.provider.DocumentFile.fromTreeUri(getContext(), android.net.Uri.parse(parentUri));
-            if (parent == null) { call.reject("bad parent"); return; }
-            androidx.documentfile.provider.DocumentFile child = parent.findFile(name);
-            if (child == null || !child.isDirectory()) child = parent.createDirectory(name);
-            if (child == null) { call.reject("createDirectory returned null"); return; }
+            Uri parentTree = android.net.Uri.parse(parentUri);
             com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+            // (1) Dò tươi: đã có đúng folder tên `name` → reuse, không tạo.
+            String existing = findChildDirByName(parentTree, name);
+            if (existing != null) { ret.put("uri", existing); call.resolve(ret); return; }
+            androidx.documentfile.provider.DocumentFile parent =
+                androidx.documentfile.provider.DocumentFile.fromTreeUri(getContext(), parentTree);
+            if (parent == null) { call.reject("bad parent"); return; }
+            androidx.documentfile.provider.DocumentFile child = parent.createDirectory(name);
+            if (child == null) { call.reject("createDirectory returned null"); return; }
+            // (2) Bị dedup ("_inbox (1)")? = bản gốc ĐÃ tồn tại (dò (1) lỡ vì churn). Xóa bản
+            // trùng rỗng vừa tạo rồi trả bản gốc — CHỈ khi xác nhận được gốc (không thì giữ chỗ ghi).
+            if (!name.equals(child.getName())) {
+                String real = findChildDirByName(parentTree, name);
+                if (real != null) { child.delete(); ret.put("uri", real); call.resolve(ret); return; }
+            }
             ret.put("uri", child.getUri().toString());
             call.resolve(ret);
         } catch (Exception e) { call.reject("ensureDir failed: " + e.getMessage()); }
+    }
+
+    // Dò con là THƯ MỤC tên khớp bằng một cursor DocumentsContract tươi (giống listFolder) → không
+    // qua cache DocumentFile.findFile (nguồn stale gây tạo trùng). Trả URI con, hoặc null nếu vắng.
+    private String findChildDirByName(Uri parentTree, String name) {
+        String parentDocId;
+        try { parentDocId = android.provider.DocumentsContract.getDocumentId(parentTree); }
+        catch (Exception e) { parentDocId = android.provider.DocumentsContract.getTreeDocumentId(parentTree); }
+        Uri childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(parentTree, parentDocId);
+        final String[] proj = {
+            android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE
+        };
+        try (android.database.Cursor c =
+                 getContext().getContentResolver().query(childrenUri, proj, null, null, null)) {
+            while (c != null && c.moveToNext()) {
+                if (name.equals(c.getString(1))
+                    && android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) {
+                    return android.provider.DocumentsContract.buildDocumentUriUsingTree(parentTree, c.getString(0)).toString();
+                }
+            }
+        } catch (Exception e) { /* dò lỗi → coi như chưa có, để createDirectory thử */ }
+        return null;
     }
 
     // Tạo folder mới, CHẶN nếu trùng (khác ensureDir reuse). Dùng cho tạo môn/folder con.
@@ -287,7 +330,7 @@ public class SafPlugin extends Plugin {
         } catch (Exception e) { call.reject("delete failed: " + e.getMessage()); }
     }
 
-    // Mở system file picker: nhiều file, chỉ loại worker nhận (pdf/doc/docx/ppt/pptx).
+    // Mở system file picker: nhiều file, chỉ loại worker nhận (pdf/doc/docx/ppt/pptx + ảnh jpg/png/webp).
     @PluginMethod
     public void pickFiles(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -298,7 +341,11 @@ public class SafPlugin extends Plugin {
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            // Ảnh (v1.19.0): whitelist đúng loại worker đóng→PDF (KHÔNG image/* → né HEIC/gif kẹt ⏳).
+            "image/jpeg",
+            "image/png",
+            "image/webp"
         });
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
