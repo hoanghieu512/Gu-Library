@@ -20,7 +20,6 @@ import { onKhoChanged } from '../lib/khoEvents';
 import type { FolderListing, Mon } from './types';
 
 const INBOX = '_inbox';
-const PRINT = '_print';
 
 export interface KhoFolder {
   name: string;
@@ -75,17 +74,24 @@ async function buildSnapshot(): Promise<KhoSnapshot> {
   const root = await getRootUri();
   if (!root) return emptySnapshot();
   const { entries: rootEntries } = await Saf.listFolder({ uri: root });
+  // Môn = folder KHÔNG dotfile và KHÔNG '_'-prefix. Loại theo tiền tố '_' (không chỉ so đúng
+  // '_inbox'/'_print') để mọi folder hệ thống — kể cả bản trùng lỡ sinh như '_inbox (1)' — không
+  // bao giờ bị coi là môn. (validateFolderName đã chặn tên môn bắt đầu bằng '_' nên an toàn.)
   const monDirs = rootEntries.filter(
-    (e) => e.isDirectory && !e.name.startsWith('.') && e.name !== INBOX && e.name !== PRINT,
+    (e) => e.isDirectory && !e.name.startsWith('.') && !e.name.startsWith('_'),
   );
   const mons: Mon[] = [];
   const monFolders = new Map<string, KhoFolder>();
   const byUri = new Map<string, KhoFolder>();
   for (const d of monDirs) {
-    const folder = await buildFolder(d.uri, d.name);
-    mons.push({ name: d.name, uri: d.uri, meta: await readMonMeta(folder.entries) });
-    monFolders.set(d.uri, folder);
-    indexTree(folder, byUri);
+    // Bọc TỪNG môn: một folder lỗi (URI stale khi Syncthing/worker đang churn cây) chỉ làm rớt
+    // đúng môn đó ở lần tải này, KHÔNG throw cả snapshot làm biến mất TOÀN BỘ danh sách môn.
+    try {
+      const folder = await buildFolder(d.uri, d.name);
+      mons.push({ name: d.name, uri: d.uri, meta: await readMonMeta(folder.entries) });
+      monFolders.set(d.uri, folder);
+      indexTree(folder, byUri);
+    } catch { /* bỏ qua môn lỗi tạm thời — lần reload sau dựng lại đủ */ }
   }
   let inboxEntries: SafEntry[] = [];
   const inbox = rootEntries.find((e) => e.isDirectory && e.name === INBOX);
