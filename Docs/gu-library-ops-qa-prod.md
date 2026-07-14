@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-13, trạng thái: app v1.19.0 · worker v0.11.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-13, trạng thái: app v1.19.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -23,7 +23,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 | Folder trên mini PC | `D:\GuLibrary\kho` | `D:\GuLibrary-Prod\kho` |
 | Folder-ID Syncthing | `gu-library-kho` | `gu-library-kho-prod` |
 | Máy trong cụm | Z Flip 4 · S22 Ultra · Z Fold 3 (máy test) | Galaxy Tab S9 (SM-X710) · S20 FE · Z Flip 6 (máy Gú) |
-| Archive chuẩn hóa (v0.10.0) | sibling ngoài cây sync | sibling ngoài cây sync |
+| Archive nguồn (v0.10.0 + v0.13.0) | sibling ngoài cây sync | sibling ngoài cây sync |
 
 - Tách ở **cấp cha** (`GuLibrary-Prod\kho`, không phải `kho-prod` cạnh nhau) — cô lập
   `.stversions/`, `_worker.log`, archive; worker trỏ rạch ròi, khó copy nhầm.
@@ -43,9 +43,18 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 - File nặng (PDF scan jpx/DPI cao) được chuẩn hóa ~0.8s/trang → một quyển lớn có thể
   kéo một vòng quét dài vài phút, kho còn lại trễ tối đa một vòng, tự lành vòng sau.
   PDF có text layer / scan nhẹ sẵn **KHÔNG** bị chuẩn hóa.
-- Bản gốc trước chuẩn hóa được move sang folder archive sibling `…\kho_archive\` (vd
-  `D:\GuLibrary-Prod\kho_archive\`, ngoài Syncthing) — dọn tay định kỳ nếu đầy đĩa,
-  không có gì tự xóa.
+- **Ảnh trong `_inbox/` (v0.12.0):** file ảnh (`.jpg/.jpeg/.png/.webp/.gif/.bmp/.tif/.tiff`)
+  → **mỗi ảnh thành một PDF 1 trang riêng**, khổ trang = tỉ lệ ảnh (ảnh ngang → trang
+  ngang, không ép dọc), **KHÔNG bao giờ gộp** nhiều ảnh. Nhúng lossless (giữ nét); ảnh
+  nặng thì tái dùng chuẩn hóa 150dpi như scan. Ảnh gốc = nguồn đã tiêu thụ (pixel đã nằm
+  trong PDF, Gú giữ bản trên điện thoại) → **xóa, KHÔNG archive**. Sidecar ảnh hợp lệ
+  nhưng rỗng text (`IMAGE_PAGE_MARKER`, không OCR).
+- **Khu archive sibling `…\kho_archive\`** (vd `D:\GuLibrary-Prod\kho_archive\`, ngoài
+  Syncthing) giờ giữ hai loại nguồn: (a) bản gốc PDF scan nặng trước chuẩn hóa (v0.10.0),
+  (b) gốc `.doc`/`.ppt` (OLE cũ) sau khi convert (v0.13.0 — convert LibreOffice làm sidecar
+  degrade về `paragraph`/mất cấu trúc, nên giữ nguồn OOXML để phase 2 re-extract khi làm
+  search). Trùng tên → suffix `(n)`, không đè. `.docx`/`.pptx` + PDF gốc + ảnh **KHÔNG**
+  vào archive. Dọn tay định kỳ nếu đầy đĩa, không có gì tự xóa.
 - **Hai task hạ tầng riêng (v0.11.0 — ĐANG CHẠY, độc lập với `GuLibraryWorker`, chết
   độc lập):** `GuLibraryPrintSync` (mirror `_print/` Prod → `gdrive:GuLibrary/Di-in`
   mỗi ~15 phút) và `GuLibraryBackup` (CN 03:00 — robocopy snapshot → `rclone sync` lên
@@ -65,7 +74,10 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
    (simple versioning) bật — đây là lưới M8.
 3. **Máy Android mới:** cài Syncthing-Fork → trao đổi device-ID với mini PC → share
    ĐÚNG MỘT folder (QA hoặc Prod, không bao giờ cả hai) → chờ sync xong lượt đầu.
-4. **Worker:** nếu là kho mới, thêm đường dẫn vào `-KhoRoot` (tách phẩy) của Scheduled
+4. **Worker:** *(mini PC mới — dựng môi trường trước:* cài Python 3.11+ và LibreOffice,
+   `git clone` repo worker, `python -m venv .venv` rồi `.venv\Scripts\python -m pip install
+   -e .`; soffice auto-detect nên không cần sửa PATH — chi tiết README worker.*)*
+   Nếu là kho mới, thêm đường dẫn vào `-KhoRoot` (tách phẩy) của Scheduled
    Task; chạy `scripts\register-task.ps1` (Admin) và **tin vào bước verify của nó** (nó tự
    `Get-ScheduledTask` kiểm trước khi báo thành công — bài học v0.7.9 báo-thành-công-giả).
    **Nếu dựng lại Prod** cần thêm 2 task hạ tầng: cài rclone + `rclone config` (remote
@@ -124,7 +136,11 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   "Chọn file từ máy" + share từ Gallery), nhưng đóng ảnh→PDF là việc của **worker**. Env
   nào app nhận ảnh thì worker env đó **PHẢI biết xử ảnh TRƯỚC**, không thì ảnh nằm ⏳ vô
   hạn. Thứ tự deploy bắt buộc: worker-image lên Prod trước → verify → rồi mới đẩy app
-  v1.19.0 sang máy Gú. (App whitelist đúng jpg/png/webp — HEIC/gif KHÔNG nhận, cố ý.)
+  v1.19.0 sang máy Gú. **Lệch whitelist có chủ ý:** app CHỈ gửi `jpg/jpeg/png/webp`;
+  worker (v0.12.0) xử được TẬP RỘNG hơn (thêm `gif/bmp/tif/tiff`) nhưng app cố tình chưa
+  mở các loại đó (chọn hẹp cho chắc) → không phải bug. HEIC thì **cả app lẫn worker đều
+  không nhận** (Samsung để "high efficiency" mới ra HEIC — Gú giữ JPG là an toàn). Cần
+  nhập gif/bmp/tif thì chỉ việc nới whitelist app (worker sẵn sàng) — beat nhỏ.
 - **Thấy folder `_inbox (1)`, `_inbox (2)`… ở gốc kho, hoặc danh sách môn RỖNG dù kho
   đầy:** đã gặp thật (2026-07-13, Flip 4, khi nhập nhiều ảnh liên tiếp). Gốc: `_inbox` bị
   worker/Syncthing xóa+tạo lại giữa loạt import → cache SAF stale → app tạo trùng
@@ -162,8 +178,10 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 - App **v1.19.0** trên main, sạch, chỉ còn nhánh `main`. (v1.18.0 = popup nhập xong thêm
   nút "Thêm tiếp"; v1.19.0 = **nhận file ảnh** jpg/png/webp + fix `_inbox (k)`/môn-biến-mất.)
   **Chưa lên Prod** — chờ worker-image Prod trước (coupling ở §6).
-- Worker **v0.11.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
-  **Không còn nợ hạ tầng.**
+- Worker **v0.13.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
+  **Không còn nợ hạ tầng.** Beat gần đây: ảnh→PDF 1 trang (v0.12.0), archive gốc
+  `.doc`/`.ppt` thay vì xóa (v0.13.0). Nợ Phase 2 đã đặt cọc: re-extract cấu trúc từ
+  các nguồn `.doc`/`.ppt` đã archive (làm cùng lúc thiết kế search).
 - Backlog feature (M10 folder-level, breadcrumb bấm-nhảy-tầng, nav chữ-bên-icon) đang
   **đóng băng có chủ ý**: Gú đang dùng thật, chưa phát sinh feedback. Không mở beat mới
   cho tới khi có vấn đề quan sát được từ người dùng thật — không suy diễn nhu cầu.
