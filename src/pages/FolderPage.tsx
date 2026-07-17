@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
-  IonList, IonItem, IonLabel, IonBadge, IonFooter, IonToast,
+  IonList, IonItem, IonLabel, IonBadge, IonFooter, IonToast, useIonRouter,
 } from '@ionic/react';
 import {
   folderOutline, chevronForward, hourglassOutline, add,
@@ -13,7 +13,8 @@ import { setDisplayName, moveDocument, deleteDocument } from '../storage/docRepo
 import { setPrintFlag, clearPrintFlag } from '../print/printRepo';
 import { removeReading, moveReading } from '../reading/store';
 import { relPathFromUris } from '../reading/paths';
-import { folderHeaderTitle } from '../storage/folderHeader';
+import { getKhoSnapshot, folderByPath } from '../storage/khoSnapshot';
+import HeaderBreadcrumb, { type Crumb } from '../components/HeaderBreadcrumb';
 import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
 import type { FolderListing, Document } from '../storage/types';
 import CreateFolderModal from '../components/CreateFolderModal';
@@ -28,18 +29,36 @@ export default function FolderPage() {
   const { uri } = useParams<{ uri: string }>();
   const decoded = decodeUriParam(uri);
   const history = useHistory();
+  const ionRouter = useIonRouter();
   const [listing, setListing] = useState<FolderListing | null>(null);
   const [error, setError] = useState<string>('');
-  // Header động theo path (Option C): tên môn / "Môn / Thư mục" / "… / Cha / Hiện tại".
-  const [headerTitle, setHeaderTitle] = useState('Môn / Chương');
+  // Header bấm-nhảy-tầng (v1.20.0): crumbs = mọi tầng (môn→hiện tại) kèm URI để nhảy lên. Giữ rule
+  // rút gọn folderHeaderTitle v1.15.0 (render trong HeaderBreadcrumb). URI tầng cha resolve qua
+  // khoSnapshot (folderByPath); tầng cuối = decoded (chắc chắn đúng).
+  const [crumbs, setCrumbs] = useState<Crumb[]>([]);
   useEffect(() => {
     let alive = true;
-    getRootUri().then((root) => {
+    (async () => {
+      const root = await getRootUri();
       const rel = root ? relPathFromUris(root, decoded) : null;
-      if (alive) setHeaderTitle(folderHeaderTitle(rel ? rel.split('/') : []));
-    });
+      const segs = rel ? rel.split('/').filter(Boolean) : [];
+      if (segs.length === 0) { if (alive) setCrumbs([]); return; }
+      let snap = null;
+      try { snap = await getKhoSnapshot(); } catch { snap = null; }
+      const built: Crumb[] = segs.map((name, i) =>
+        i === segs.length - 1
+          ? { name, uri: decoded }
+          : { name, uri: (snap && folderByPath(snap, segs.slice(0, i + 1))?.uri) || '' });
+      if (alive) setCrumbs(built);
+    })();
     return () => { alive = false; };
   }, [decoded]);
+  // Nhảy LÊN tầng cha: direction 'back' → Ionic unwind stack tới view đã có (như bấm back nhiều
+  // lần) nên back từ tầng vừa nhảy tới về đúng CHA của nó, không quay lại tầng sâu vừa rời.
+  const jumpTo = (targetUri: string) => {
+    if (!targetUri || targetUri === decoded) return;
+    ionRouter.push(`/folder/${encodeUriParam(targetUri)}`, 'back');
+  };
   const [createOpen, setCreateOpen] = useState(false);
   const [actionsDoc, setActionsDoc] = useState<Document | null>(null); // ⋯ sheet (đơn)
   const [moveDoc, setMoveDoc] = useState<Document | null>(null);       // Chuyển đơn
@@ -240,7 +259,7 @@ export default function FolderPage() {
           ) : (
             <>
               <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
-              <IonTitle className="gu-title">{headerTitle}</IonTitle>
+              <IonTitle className="gu-title"><HeaderBreadcrumb crumbs={crumbs} onJump={jumpTo} /></IonTitle>
               <IonButtons slot="end">
                 <IonButton fill="clear" onClick={() => setCreateOpen(true)} aria-label="Tạo thư mục mới">
                   <IonIcon icon={add} />
