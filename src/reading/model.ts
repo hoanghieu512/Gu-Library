@@ -52,3 +52,17 @@ export function moveEntry(file: DeviceReadingFile, oldPath: string, newPath: str
   if (!cur) return next;
   return upsertEntry(next, { ...cur, path: newPath, name: newName, monName: newPath.split('/')[0], lastReadAt: at });
 }
+
+// Đổi tên một THƯ MỤC (khi rename môn/thư mục) → dời MỌI entry đọc-dở của máy này nằm dưới nó.
+// oldFolder/newFolder = relPath thư mục ("Môn" hoặc "Môn/Con"). Entry "Môn/Con/tài liệu" giữ tên
+// tài liệu, chỉ đổi đoạn thư mục cha. Entry máy khác trỏ path cũ → repo lọc im lặng (không đụng).
+export function renameReadingSubtree(file: DeviceReadingFile, oldFolder: string, newFolder: string, at: number): DeviceReadingFile {
+  let out = file;
+  for (const oldPath of Object.keys(file.entries)) {
+    if (oldPath === oldFolder || oldPath.startsWith(oldFolder + '/')) {
+      const newPath = newFolder + oldPath.slice(oldFolder.length); // thay đúng đoạn prefix
+      out = moveEntry(out, oldPath, newPath, file.entries[oldPath].name, at);
+    }
+  }
+  return out;
+}

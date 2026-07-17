@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
-  IonInput, IonLabel,
+  IonLabel,
 } from '@ionic/react';
 import { MON_PALETTE } from '../storage/palette';
-import { validateFolderName } from '../storage/folderName';
+import { validateFolderName, dupFolderError } from '../storage/folderName';
+import NameField from './NameField';
 
 interface Props {
   isOpen: boolean;
@@ -24,7 +25,6 @@ export default function CreateFolderModal({
   const [colorIdx, setColorIdx] = useState(0);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [focused, setFocused] = useState(false);
 
   // Reset when opened
   useEffect(() => {
@@ -33,13 +33,8 @@ export default function CreateFolderModal({
       setColorIdx(0);
       setError('');
       setBusy(false);
-      setFocused(false);
     }
   }, [isOpen]);
-
-  // Nhãn nổi lên viền khi đang gõ (focus) hoặc đã có chữ.
-  const floated = focused || name.length > 0;
-  const accent = error ? 'var(--ion-color-danger)' : focused ? 'var(--gu-brown)' : 'var(--gu-grey)';
 
   const handleCreate = async () => {
     const result = validateFolderName(name);
@@ -48,8 +43,11 @@ export default function CreateFolderModal({
       return;
     }
     const value = result.value;
-    if (existingNames.includes(value)) {
-      setError('Đã tồn tại');
+    // Trùng KHÔNG PHÂN BIỆT HOA/THƯỜNG (đĩa Samsung case-insensitive → "Slide" vs "slide" đụng nhau,
+    // provider tự đẻ "slide (1)"). Chặn theo case-insensitive để không bao giờ ra "(1)".
+    const lower = value.toLowerCase();
+    if (existingNames.some((n) => n.toLowerCase() === lower)) {
+      setError(dupFolderError(noun));
       return;
     }
     setBusy(true);
@@ -59,7 +57,7 @@ export default function CreateFolderModal({
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes('exists')) {
-        setError('Đã tồn tại');
+        setError(dupFolderError(noun));
       } else {
         setError(msg || 'Lỗi không xác định');
       }
@@ -80,54 +78,7 @@ export default function CreateFolderModal({
       </IonHeader>
       {/* Lề ngang qua biến --padding-* (class ion-padding vô hiệu trên IonContent) → khớp Home. */}
       <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
-        {/* Ô nhập floating label TỰ VẼ (v1.21.0): viền + nhãn do đệ dựng ở light-DOM, nhãn canh giữa
-            bằng `top:50% + translateY(-50%)` THẬT → render GIỐNG HỆT mọi WebView (khác bản floating-label
-            shadow của Ionic vốn dùng translateY(100%) phụ thuộc metric WebView → lệch khác nhau mỗi máy).
-            IonInput chỉ lo phần nhập (trong suốt, KHÔNG viền/nhãn riêng). 4 trạng thái: mặc-định (nhãn
-            giữa ô) / focus (nhãn trượt lên viền + placeholder gợi ý, viền+nhãn nâu) / đã-nhập (nhãn trên
-            viền) / lỗi (viền+nhãn+dòng lỗi đỏ). */}
-        <div
-          style={{
-            position: 'relative', display: 'flex', alignItems: 'stretch', minHeight: 54,
-            border: `${focused || error ? 2 : 1.5}px solid ${accent}`, borderRadius: 10,
-            background: 'var(--gu-cream)', marginTop: 4,
-            transition: 'border-color 150ms ease-out',
-          }}
-        >
-          <IonInput
-            aria-label={`Tên ${noun}`}
-            value={name}
-            onIonInput={(e) => { setName(String(e.detail.value ?? '')); setError(''); }}
-            onIonFocus={() => setFocused(true)}
-            onIonBlur={() => setFocused(false)}
-            placeholder={floated ? `Nhập tên ${noun}…` : ''}
-            clearInput
-            style={{
-              flex: 1, '--background': 'transparent', '--padding-start': '12px',
-              '--color': 'var(--gu-brown-deep)', fontSize: '16px',
-              // Tắt gạch chân + đường highlight mặc định của IonInput không-fill (viền đã do div ngoài vẽ).
-              '--border-width': '0', '--highlight-height': '0',
-            } as CSSProperties}
-          />
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute', left: 10, pointerEvents: 'none', whiteSpace: 'nowrap',
-              maxWidth: 'calc(100% - 24px)', overflow: 'hidden', textOverflow: 'ellipsis',
-              top: floated ? 0 : '50%',
-              transform: floated ? 'translateY(-50%) scale(0.8)' : 'translateY(-50%)',
-              transformOrigin: 'left center',
-              padding: '0 6px', background: floated ? 'var(--gu-cream)' : 'transparent',
-              fontSize: 16, fontWeight: floated ? 600 : 400, lineHeight: 1, color: accent,
-              transition: 'top 190ms ease-out, transform 190ms ease-out, color 150ms ease-out',
-            }}
-          >
-            Tên {noun}
-          </span>
-        </div>
-        {error ? (
-          <p style={{ color: 'var(--ion-color-danger)', fontSize: 13, margin: '6px 0 0', paddingInlineStart: 4 }}>{error}</p>
-        ) : null}
+        <NameField noun={noun} value={name} error={error} onChange={(v) => { setName(v); setError(''); }} />
 
         {withColor && (
           <div style={{ marginTop: 20 }}>

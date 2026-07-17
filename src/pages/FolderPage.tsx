@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
   IonList, IonItem, IonLabel, IonBadge, IonFooter, IonToast, useIonRouter,
+  IonItemSliding, IonItemOptions, IonItemOption,
 } from '@ionic/react';
 import {
   folderOutline, chevronForward, hourglassOutline, add,
@@ -18,6 +19,8 @@ import HeaderBreadcrumb, { type Crumb } from '../components/HeaderBreadcrumb';
 import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
 import type { FolderListing, Document } from '../storage/types';
 import CreateFolderModal from '../components/CreateFolderModal';
+import RenameModal from '../components/RenameModal';
+import { renameFolder } from '../storage/folderRepo';
 import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -60,6 +63,7 @@ export default function FolderPage() {
     ionRouter.push(`/folder/${encodeUriParam(targetUri)}`, 'back');
   };
   const [createOpen, setCreateOpen] = useState(false);
+  const [renameSub, setRenameSub] = useState<{ uri: string; name: string } | null>(null);
   const [actionsDoc, setActionsDoc] = useState<Document | null>(null); // ⋯ sheet (đơn)
   const [moveDoc, setMoveDoc] = useState<Document | null>(null);       // Chuyển đơn
   // Chế độ chọn nhiều
@@ -277,13 +281,18 @@ export default function FolderPage() {
         )}
         {listing && (
           <IonList>
-            {/* Folder con: không tick, không long-press (M10 folder = beat khác) */}
+            {/* Folder con: không tick/long-press (v1.6.0); VUỐT TRÁI → "Đổi tên" (v1.22.0). */}
             {listing.folders.map((f) => (
-              <IonItem key={f.uri} button disabled={selectMode} onClick={() => history.push(`/folder/${encodeUriParam(f.uri)}`)}>
-                <IonIcon icon={folderOutline} slot="start" />
-                <IonLabel className="gu-serif">{f.name}</IonLabel>
-                <IonIcon icon={chevronForward} slot="end" />
-              </IonItem>
+              <IonItemSliding key={f.uri} disabled={selectMode}>
+                <IonItem button detail={false} onClick={() => history.push(`/folder/${encodeUriParam(f.uri)}`)}>
+                  <IonIcon icon={folderOutline} slot="start" />
+                  <IonLabel className="gu-serif">{f.name}</IonLabel>
+                  <IonIcon icon={chevronForward} slot="end" />
+                </IonItem>
+                <IonItemOptions side="end">
+                  <IonItemOption onClick={() => setRenameSub({ uri: f.uri, name: f.name })} aria-label="Đổi tên">Đổi tên</IonItemOption>
+                </IonItemOptions>
+              </IonItemSliding>
             ))}
             {/* Tài liệu */}
             {listing.documents.map((d) => (
@@ -341,6 +350,20 @@ export default function FolderPage() {
         existingNames={listing?.folders.map((f) => f.name) ?? []}
         onCreate={async (name) => { await createSubfolder(decoded, name); loadListing(); }}
         onClose={() => setCreateOpen(false)}
+      />
+
+      <RenameModal
+        isOpen={!!renameSub}
+        noun="thư mục"
+        currentName={renameSub?.name ?? ''}
+        onSave={async (newName) => {
+          if (!renameSub) return null;
+          const siblings = (listing?.folders ?? []).filter((f) => f.uri !== renameSub.uri).map((f) => f.name);
+          const r = await renameFolder(renameSub.uri, siblings, newName, 'thư mục');
+          if (r.ok) loadListing(); // rename thư mục con → refresh listing màn hiện tại
+          return r.ok ? null : r.error;
+        }}
+        onClose={() => setRenameSub(null)}
       />
 
       <DocActionsSheet

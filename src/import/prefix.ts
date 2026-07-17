@@ -17,6 +17,16 @@ export function makeInboxName(path: string[], originalName: string): string {
   return `${prefix} ${stripTempSuffix(originalName)}`;
 }
 
+// Tách TOÀN BỘ đường dẫn ngoặc "[A][B][C] <tên>" -> ["A","B","C"] (đủ tầng, đúng thứ tự);
+// null nếu không phải mẫu (không nhóm ngoặc đầu + space). Dùng để biết file chờ trong _inbox
+// nằm dưới thư mục nào (chặn đổi tên khi còn file chờ dưới cây).
+export function parseInboxPath(fileName: string): string[] | null {
+  const m = /^((?:\[[^\]]+\])+)\s/.exec(fileName);
+  if (!m) return null;
+  const segs = [...m[1].matchAll(/\[([^\]]+)\]/g)].map((x) => x[1]);
+  return segs.length ? segs : null;
+}
+
 // Tách tiền tố lồng "[Môn][Con]... <tên>" -> {mon = NGOẶC ĐẦU, name}; null nếu không khớp.
 export function parseInboxPrefix(fileName: string): { mon: string; name: string } | null {
   const first = /^\[([^\]]+)\]/.exec(fileName);

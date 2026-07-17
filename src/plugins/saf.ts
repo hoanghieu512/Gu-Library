@@ -17,6 +17,7 @@ export interface SafPlugin {
   /* TEMP M6 spike */
   ensureDir(options: { parentUri: string; name: string }): Promise<{ uri: string }>;
   createDir(options: { parentUri: string; name: string }): Promise<{ uri: string; name: string }>;
+  renameDir(options: { uri: string; newName: string }): Promise<{ uri: string }>;
   writeFile(options: { dirUri: string; name: string; content: string }): Promise<{ uri: string }>;
   deleteFile(options: { uri: string }): Promise<void>;
 }

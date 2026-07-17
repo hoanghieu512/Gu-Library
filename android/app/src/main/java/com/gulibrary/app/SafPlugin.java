@@ -293,6 +293,25 @@ public class SafPlugin extends Plugin {
         } catch (Exception e) { call.reject("createDir failed: " + e.getMessage()); }
     }
 
+    // Đổi tên THẬT một thư mục (rename tại chỗ trên đĩa) → tên trong app khớp tên thật ở mini PC/Drive.
+    // renameDocument trả URI MỚI (docId của tree dựa đường dẫn nên đổi tên = đổi uri; con bên trong
+    // giữ vị trí, companion .print.json/.display.json theo cùng). Caller (JS) đã chặn trùng anh-em TRƯỚC
+    // nên ở đây không tự dedup. Trả cả uri mới cho caller cập nhật điều hướng nếu cần.
+    @PluginMethod
+    public void renameDir(PluginCall call) {
+        String uriStr = call.getString("uri");
+        String newName = call.getString("newName");
+        if (uriStr == null || newName == null) { call.reject("uri+newName required"); return; }
+        try {
+            android.net.Uri newUri = android.provider.DocumentsContract.renameDocument(
+                getContext().getContentResolver(), android.net.Uri.parse(uriStr), newName);
+            if (newUri == null) { call.reject("rename returned null"); return; }
+            com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+            ret.put("uri", newUri.toString());
+            call.resolve(ret);
+        } catch (Exception e) { call.reject("rename failed: " + e.getMessage()); }
+    }
+
     /* TEMP M6 spike */
     @PluginMethod
     public void writeFile(PluginCall call) {
