@@ -172,6 +172,7 @@ export default function HomePage() {
       <CreateFolderModal
         isOpen={createMonOpen}
         title="Môn mới"
+        noun="môn"
         withColor
         existingNames={mons.map((m) => m.name)}
         onCreate={async (name, color) => { await createMon(name, color!); reload(); }}

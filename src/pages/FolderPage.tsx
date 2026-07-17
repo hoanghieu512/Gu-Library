@@ -336,6 +336,7 @@ export default function FolderPage() {
       <CreateFolderModal
         isOpen={createOpen}
         title="Thư mục mới"
+        noun="thư mục"
         withColor={false}
         existingNames={listing?.folders.map((f) => f.name) ?? []}
         onCreate={async (name) => { await createSubfolder(decoded, name); loadListing(); }}
