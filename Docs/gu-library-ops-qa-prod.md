@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-13, trạng thái: app v1.19.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-18, trạng thái: app v1.25.1 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -151,6 +151,12 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   OS kẹt index tạm thời → **reboot máy** dọn (data còn nguyên). File trong `_inbox (k)`
   mồ côi (máy chưa lên v1.19.0) — worker chỉ quét `_inbox` → **dồn tay về `_inbox` rồi
   xóa folder rác** (giữ nguyên tiền tố `[Môn]`).
+- **Thấy folder `<tên>-gu-case-<số>` ở trong môn/thư mục:** residue rất hiếm của đổi
+  tên case-only (v1.25.1 đổi 2 bước qua tên tạm để né `(1)` — xem CHANGELOG). Chỉ đọng
+  nếu app bị kill GIỮA hai bước rename. An toàn: đổi tên tay folder đó về tên đích (bỏ
+  đuôi `-gu-case-<số>`). Không mất data — con bên trong còn nguyên.
+- **Đổi tên môn/thư mục ra `… (1)`:** đã fix ở app v1.25.1 (đổi tên sang biến thể chỉ
+  khác hoa/thường của chính nó). Nếu còn thấy `(1)` sau đổi tên → máy đó chưa lên v1.25.1.
 - **Sync đứng, thấy file mồ côi `.syncthing.*.tmp`:** đã gặp thật trên Flip 4.
   **Không phải bug app/worker, không có fix code.** Syncthing tự hòa giải sau vài vòng.
   Chỉ theo dõi xem có tái diễn thành mẫu hình lặp lại hay không; nếu chỉ lẻ tẻ thì bỏ qua.
@@ -175,13 +181,20 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.19.0** trên main, sạch, chỉ còn nhánh `main`. (v1.18.0 = popup nhập xong thêm
-  nút "Thêm tiếp"; v1.19.0 = **nhận file ảnh** jpg/png/webp + fix `_inbox (k)`/môn-biến-mất.)
-  **Chưa lên Prod** — chờ worker-image Prod trước (coupling ở §6).
+- App **v1.25.1** trên main, sạch, chỉ còn nhánh `main` (tag `v1.25.1` đã push). Từ v1.19.0
+  đến nay là **polish UI/UX thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc lập, không
+  chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng nhất mọi
+  WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ quy, chặn
+  pending) + v1.23.1 empty-state panda khi thư mục bị máy khác xóa + v1.25.1 fix đổi-tên case-only
+  ra `(1)` · v1.24 định vị cây sâu (phụ đề "Đang đọc dở" rút gọn `…` + avatar ô-màu-thuần) ·
+  v1.25.0 toast phản hồi cho MỌI thao tác đơn (giọng Gú). **Nav chữ-bên-icon = won't-do (đóng sổ).**
+  **v1.19.0 image-coupling ĐÃ GIẢI:** worker Prod v0.13.0 xử ảnh→PDF từ v0.12.0 → app nhận-ảnh lên
+  Prod được. *Bản APK thực trên tablet Gú (Prod): huynh xác nhận đang ở version nào — doc không tự suy.*
 - Worker **v0.13.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
   **Không còn nợ hạ tầng.** Beat gần đây: ảnh→PDF 1 trang (v0.12.0), archive gốc
   `.doc`/`.ppt` thay vì xóa (v0.13.0). Nợ Phase 2 đã đặt cọc: re-extract cấu trúc từ
   các nguồn `.doc`/`.ppt` đã archive (làm cùng lúc thiết kế search).
-- Backlog feature (M10 folder-level, breadcrumb bấm-nhảy-tầng, nav chữ-bên-icon) đang
-  **đóng băng có chủ ý**: Gú đang dùng thật, chưa phát sinh feedback. Không mở beat mới
-  cho tới khi có vấn đề quan sát được từ người dùng thật — không suy diễn nhu cầu.
+- Backlog cũ (M10 folder-level, breadcrumb, nav chữ-bên-icon) đã **giải quyết xong** (M10 +
+  breadcrumb đã làm; nav = won't-do). **Không còn backlog feature Phase 1 mở.** Nguyên tắc giữ
+  nguyên: không mở beat mới cho tới khi có vấn đề quan sát được từ người dùng thật — không suy
+  diễn nhu cầu. (Các beat v1.20→v1.25 vừa qua đều xuất phát từ feedback thật của Gú khi dùng.)
