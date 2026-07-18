@@ -3,7 +3,7 @@ import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
 import { relPathFromUris } from './paths';
 import { getKhoSnapshot, folderByPath } from '../storage/khoSnapshot';
-import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry, renameReadingSubtree,
+import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry, renameReadingSubtree, removeReadingSubtree,
          type DeviceReadingFile, type ReadingEntry } from './model';
 
 const DEVICE_KEY = 'device_id';
@@ -92,6 +92,14 @@ export async function renameReadingFolder(oldFolder: string, newFolder: string):
   const deviceId = await getDeviceId();
   const file = await readDeviceFile(root, deviceId);
   await writeDeviceFile(root, renameReadingSubtree(file, oldFolder, newFolder, nowMs()));
+}
+
+// Xóa THƯ MỤC → tombstone mọi entry đọc-dở của máy này dưới cây (cưỡi lên removeEntry v1.5.0).
+export async function removeReadingFolder(folder: string): Promise<void> {
+  const root = await getRootUri(); if (!root) return;
+  const deviceId = await getDeviceId();
+  const file = await readDeviceFile(root, deviceId);
+  await writeDeviceFile(root, removeReadingSubtree(file, folder, nowMs()));
 }
 
 // Resolve một reading path trong CÂY chung (không walk lại): trả uri + tên hiển thị.

@@ -124,6 +124,14 @@ export function foldSummary(f: KhoFolder): { documents: number; pending: number 
   return { documents, pending };
 }
 
+// Đếm ĐỆ QUY cả cây: tổng tài liệu + tổng thư mục con (cho hộp xác nhận Xóa nêu số lượng thật).
+export function foldCounts(f: KhoFolder): { docs: number; folders: number } {
+  let docs = f.listing.documents.length;
+  let folders = f.children.length;
+  for (const c of f.children) { const s = foldCounts(c); docs += s.docs; folders += s.folders; }
+  return { docs, folders };
+}
+
 export function countFlagged(f: KhoFolder): number {
   let n = f.listing.documents.reduce((a, d) => a + (d.printFlagged ? 1 : 0), 0);
   for (const c of f.children) n += countFlagged(c);

@@ -6,14 +6,15 @@ interface Props {
   isOpen: boolean;
   title: string;
   message: string;
-  confirmText?: string;   // mặc định "Xóa"
+  confirmText?: string;    // mặc định "Xóa"
+  singleAction?: boolean;  // true = chỉ 1 nút (dùng cho thông báo chặn, không có Hủy)
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 // Dialog xác nhận (chống lỡ tay) — IonModal nhỏ giữa màn, palette app. Nút Xóa đỏ đất nhấn mạnh,
 // Hủy viền nhạt. Backdrop/back = Hủy (an toàn: đóng = không làm gì).
-export default function ConfirmDialog({ isOpen, title, message, confirmText = 'Xóa', onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({ isOpen, title, message, confirmText = 'Xóa', singleAction = false, onConfirm, onCancel }: Props) {
   return (
     <IonModal
       isOpen={isOpen}
@@ -34,12 +35,14 @@ export default function ConfirmDialog({ isOpen, title, message, confirmText = 'X
           {message}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <IonButton
-            fill="outline" onClick={onCancel}
-            style={{ flex: 1, textTransform: 'none', '--border-color': 'var(--gu-grey)', '--color': 'var(--gu-brown-deep)' } as CSSProperties}
-          >
-            Hủy
-          </IonButton>
+          {!singleAction && (
+            <IonButton
+              fill="outline" onClick={onCancel}
+              style={{ flex: 1, textTransform: 'none', '--border-color': 'var(--gu-grey)', '--color': 'var(--gu-brown-deep)' } as CSSProperties}
+            >
+              Hủy
+            </IonButton>
+          )}
           <IonButton color="danger" onClick={onConfirm} style={{ flex: 1, textTransform: 'none' }}>
             {confirmText}
           </IonButton>

@@ -2,6 +2,14 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.23.0] — 2026-07-18 — M10b phần 2: xóa môn + thư mục
+### Added
+- **Xóa môn** (vuốt trái hàng môn ở Home → "Xóa" đỏ, cạnh "Đổi tên") và **xóa thư mục con** (vuốt trái hàng thư mục → "Xóa"). Hộp xác nhận (`ConfirmDialog` v1.13.0) **nêu SỐ LƯỢNG thật, đếm ĐỆ QUY cả cây**: "Bên trong … có N tài liệu và M thư mục con" (rỗng → "… đang trống", không "0 tài liệu"). KHÔNG dọa "không thể hoàn tác" (sai — có `.stversions`, và không phải giọng app; bài học v1.13.0) — nêu số lượng là đủ để Gú tự cân.
+- **Xóa = xóa THẬT trọn cây trên đĩa** (`deleteDocument` trên dir = đệ quy cả file bên trong, gồm companion `.print.json`/`.display.json` → cờ đi-in + tên hiển thị dọn theo; `_print/` do worker tự lành). Reading entry của MÁY NÀY dưới cây → tombstone (`removeReadingSubtree`, cưỡi lên `removeEntry` v1.5.0 — không fork); entry máy khác trỏ path chết → `listReading` bỏ qua im lặng. Sau xóa không còn hàng ma ở Đang-đọc-dở / Đi-in.
+- **CHẶN xóa khi còn file chờ ⏳** trong `_inbox/` dưới cây (kể cả thư mục con sâu) — worker mkdir-if-missing dựng lại thư mục ma. Hộp báo thân thiện 1 nút (`ConfirmDialog singleAction`), không thuật ngữ. App CHỈ đọc `_inbox` đếm, tuyệt đối không đụng. Helpers `foldCounts` (đếm đệ quy) + `deleteFolderMessage` (TDD).
+### Changed
+- KHÔNG thùng rác trong app — lưới an toàn là `.stversions` của Syncthing (~30 ngày, chốt từ v1.5.0). "Chưa phân loại" không có action Xóa (UI `onDelete` undefined). Component chung `DeleteFolderConfirm` (Home + màn duyệt); double-tap "Xóa" khi cây lớn được chặn (`busyRef`). Không đụng đổi tên v1.22.0, không dep/token mới.
+
 ## [1.22.0] — 2026-07-18 — M10b phần 1: đổi tên môn + thư mục
 ### Added
 - **Đổi tên môn** (vuốt trái hàng môn ở Home → "Đổi tên") và **đổi tên thư mục con** (vuốt trái hàng thư mục ở màn duyệt → "Đổi tên") — cùng ngôn ngữ vuốt-trái v1.5.0, không pattern mới. Sheet đổi tên (`RenameModal`) điền sẵn tên hiện tại, nhãn "Tên môn"/"Tên thư mục" theo ngữ cảnh, nút "Lưu".

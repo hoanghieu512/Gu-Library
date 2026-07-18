@@ -66,3 +66,13 @@ export function renameReadingSubtree(file: DeviceReadingFile, oldFolder: string,
   }
   return out;
 }
+
+// Xóa một THƯ MỤC (rename môn/thư mục) → tombstone MỌI entry đọc-dở của máy này dưới cây (như
+// removeReading nhưng cả cây). Cưỡi lên removeEntry (đường v1.5.0); entry máy khác → repo lọc im lặng.
+export function removeReadingSubtree(file: DeviceReadingFile, folder: string, at: number): DeviceReadingFile {
+  let out = file;
+  for (const path of Object.keys(file.entries)) {
+    if (path === folder || path.startsWith(folder + '/')) out = removeEntry(out, path, at);
+  }
+  return out;
+}
