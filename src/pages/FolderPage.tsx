@@ -281,7 +281,7 @@ export default function FolderPage() {
         {/* Thư mục bị xóa từ máy khác (Syncthing rải về) trong lúc đang đứng bên trong → listFolder
             ném FileNotFound. Thay dòng lỗi trần bằng empty-state panda thân thiện + nút về Home. */}
         {error && (
-          <SadPandaState message="Thư mục đã bị xóa gòi dợ iu! Nều là xóa nhầm thì liên hệ chùn để khôi phục." />
+          <SadPandaState message="Thư mục đã bị xóa gòi dợ iu! Nếu là xóa nhầm thì liên hệ chùn để khôi phục." />
         )}
         {listing && listing.folders.length === 0 && listing.documents.length === 0 && listing.pending.length === 0 && (
           <p style={{ color: 'var(--gu-grey)' }}>Thư mục trống.</p>

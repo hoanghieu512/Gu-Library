@@ -4,7 +4,7 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 
 ## [1.23.1] — 2026-07-18 — Empty-state thân thiện khi thư mục bị xóa từ máy khác
 ### Fixed
-- Khi đang đứng bên trong một thư mục mà nó bị **xóa từ máy khác** (Syncthing rải về / worker) rồi mở tiếp thư mục con, màn duyệt trước đây hiện **dòng lỗi trần** ("Không đọc được thư mục: list failed: … FileNotFoundException…"). Nay thay bằng **empty-state panda buồn** (giống Viewer v1.14.0): panda + "Uh oh" + câu giọng-Gú **"Thư mục đã bị xóa gòi dợ iu! Nều là xóa nhầm thì liên hệ chùn để khôi phục."** + nút **"Về Trang chủ"**. (Ca mở FILE trong thư mục bị xóa đã dùng panda này từ v1.14.0.)
+- Khi đang đứng bên trong một thư mục mà nó bị **xóa từ máy khác** (Syncthing rải về / worker) rồi mở tiếp thư mục con, màn duyệt trước đây hiện **dòng lỗi trần** ("Không đọc được thư mục: list failed: … FileNotFoundException…"). Nay thay bằng **empty-state panda buồn** (giống Viewer v1.14.0): panda + "Uh oh" + câu giọng-Gú **"Thư mục đã bị xóa gòi dợ iu! Nếu là xóa nhầm thì liên hệ chùn để khôi phục."** + nút **"Về Trang chủ"**. (Ca mở FILE trong thư mục bị xóa đã dùng panda này từ v1.14.0.)
 ### Changed
 - Tách empty-state panda thành component chung `SadPandaState` (panda + tiêu đề + câu + nút về Home), dùng chung cho `ViewerPage` (không mở được tài liệu) và `FolderPage` (thư mục bị xóa) — không fork. Không đổi logic đọc/list, không dep/token mới.
 
