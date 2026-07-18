@@ -21,8 +21,8 @@ const card: CSSProperties = {
 // Hàng môn (Home): chạm mở, VUỐT TRÁI → "Đổi tên" (v1.22.0, cùng ngôn ngữ vuốt v1.5.0).
 // "Chưa phân loại" không truyền onRename → không có action (worker phụ thuộc, phẳng vĩnh viễn).
 export default function MonCard({
-  mon, inboxPending = 0, refreshKey = 0, onRename,
-}: { mon: Mon; inboxPending?: number; refreshKey?: number; onRename?: () => void }) {
+  mon, inboxPending = 0, refreshKey = 0, onRename, onDelete,
+}: { mon: Mon; inboxPending?: number; refreshKey?: number; onRename?: () => void; onDelete?: () => void }) {
   const history = useHistory();
   const [sum, setSum] = useState<MonSummary | null>(null);
   const slideRef = useRef<HTMLIonItemSlidingElement>(null);
@@ -58,11 +58,18 @@ export default function MonCard({
         )}
         <IonIcon slot="end" icon={chevronForward} style={{ color: 'var(--gu-grey)', marginInlineStart: 8 }} />
       </IonItem>
-      {onRename && (
+      {(onRename || onDelete) && (
         <IonItemOptions side="end">
-          <IonItemOption style={renameOpt} onClick={() => { slideRef.current?.close(); onRename(); }} aria-label="Đổi tên">
-            Đổi tên
-          </IonItemOption>
+          {onRename && (
+            <IonItemOption style={renameOpt} onClick={() => { slideRef.current?.close(); onRename(); }} aria-label="Đổi tên">
+              Đổi tên
+            </IonItemOption>
+          )}
+          {onDelete && (
+            <IonItemOption color="danger" onClick={() => { slideRef.current?.close(); onDelete(); }} aria-label="Xóa">
+              Xóa
+            </IonItemOption>
+          )}
         </IonItemOptions>
       )}
       </IonItemSliding>

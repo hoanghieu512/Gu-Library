@@ -14,6 +14,7 @@ import MonCard from '../components/MonCard';
 import ReadingListSheet from '../reading/ReadingListSheet';
 import CreateFolderModal from '../components/CreateFolderModal';
 import RenameModal from '../components/RenameModal';
+import DeleteFolderConfirm, { type DeleteTarget } from '../components/DeleteFolderConfirm';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { listMon, createMon } from '../storage/repo';
 import { renameFolder } from '../storage/folderRepo';
@@ -40,6 +41,7 @@ export default function HomePage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [createMonOpen, setCreateMonOpen] = useState(false);
   const [renameMon, setRenameMon] = useState<Mon | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [printCount, setPrintCount] = useState(0);
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
   // vì key=uri ổn định nên MonCard không tự remount.
@@ -163,6 +165,7 @@ export default function HomePage() {
                 <MonCard
                   key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} refreshKey={refreshTick}
                   onRename={m.name === UNFILED ? undefined : () => setRenameMon(m)}
+                  onDelete={m.name === UNFILED ? undefined : () => setDeleteTarget({ uri: m.uri, name: m.name, noun: 'môn' })}
                 />
               ))}
 
@@ -199,6 +202,12 @@ export default function HomePage() {
           return r.ok ? null : r.error; // emitKhoChanged trong renameFolder → Home tự reload
         }}
         onClose={() => setRenameMon(null)}
+      />
+
+      <DeleteFolderConfirm
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={reload}
       />
     </IonPage>
   );

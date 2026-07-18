@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeReading, upsertEntry, removeEntry, moveEntry, renameReadingSubtree } from './model';
+import { mergeReading, upsertEntry, removeEntry, moveEntry, renameReadingSubtree, removeReadingSubtree } from './model';
 import type { DeviceReadingFile, ReadingEntry } from './model';
 
 const E = (path: string, page: number, at: number): ReadingEntry =>
@@ -92,5 +92,21 @@ describe('renameReadingSubtree (đổi tên thư mục → dời mọi entry dư
     f = renameReadingSubtree(f, 'Logic/Slide', 'Logic/S', 700);
     expect(f.entries['Logic/Slideshow/y.pdf']).toBeDefined();   // 'Slideshow' KHÔNG dưới 'Slide'
     expect(f.entries['Logic/S/x.pdf']).toBeDefined();
+  });
+});
+
+describe('removeReadingSubtree (xóa thư mục → tombstone mọi entry dưới nó)', () => {
+  it('tombstone toàn bộ dưới cây, chừa entry ngoài', () => {
+    let f = F('d1', [E('Logic/Slide/x.pdf', 1, 100), E('Logic/Slide/con/y.pdf', 1, 100), E('Logic/Khac/z.pdf', 1, 100)]);
+    f = removeReadingSubtree(f, 'Logic/Slide', 500);
+    expect(f.entries['Logic/Slide/x.pdf']).toBeUndefined();
+    expect(f.entries['Logic/Slide/con/y.pdf']).toBeUndefined();
+    expect(f.tombstones['Logic/Slide/x.pdf']).toBe(500);
+    expect(f.entries['Logic/Khac/z.pdf']).toBeDefined();          // ngoài cây → giữ
+  });
+  it('trùng tiền tố tên không bị dính', () => {
+    let f = F('d1', [E('Logic/Slide/x.pdf', 1, 100), E('Logic/Slideshow/y.pdf', 1, 100)]);
+    f = removeReadingSubtree(f, 'Logic/Slide', 600);
+    expect(f.entries['Logic/Slideshow/y.pdf']).toBeDefined();     // 'Slideshow' KHÔNG dưới 'Slide'
   });
 });

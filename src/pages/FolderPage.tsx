@@ -20,6 +20,7 @@ import { encodeUriParam, decodeUriParam } from '../storage/uriParam';
 import type { FolderListing, Document } from '../storage/types';
 import CreateFolderModal from '../components/CreateFolderModal';
 import RenameModal from '../components/RenameModal';
+import DeleteFolderConfirm, { type DeleteTarget } from '../components/DeleteFolderConfirm';
 import { renameFolder } from '../storage/folderRepo';
 import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
@@ -64,6 +65,7 @@ export default function FolderPage() {
   };
   const [createOpen, setCreateOpen] = useState(false);
   const [renameSub, setRenameSub] = useState<{ uri: string; name: string } | null>(null);
+  const [deleteSub, setDeleteSub] = useState<DeleteTarget | null>(null);
   const [actionsDoc, setActionsDoc] = useState<Document | null>(null); // ⋯ sheet (đơn)
   const [moveDoc, setMoveDoc] = useState<Document | null>(null);       // Chuyển đơn
   // Chế độ chọn nhiều
@@ -290,7 +292,9 @@ export default function FolderPage() {
                   <IonIcon icon={chevronForward} slot="end" />
                 </IonItem>
                 <IonItemOptions side="end">
-                  <IonItemOption onClick={() => setRenameSub({ uri: f.uri, name: f.name })} aria-label="Đổi tên">Đổi tên</IonItemOption>
+                  {/* Đóng slide TRƯỚC khi mở dialog → Hủy xong không treo menu ở vị trí mở (v1.6.0). */}
+                  <IonItemOption onClick={(e) => { (e.currentTarget.closest('ion-item-sliding') as HTMLIonItemSlidingElement | null)?.close(); setRenameSub({ uri: f.uri, name: f.name }); }} aria-label="Đổi tên">Đổi tên</IonItemOption>
+                  <IonItemOption color="danger" onClick={(e) => { (e.currentTarget.closest('ion-item-sliding') as HTMLIonItemSlidingElement | null)?.close(); setDeleteSub({ uri: f.uri, name: f.name, noun: 'thư mục' }); }} aria-label="Xóa">Xóa</IonItemOption>
                 </IonItemOptions>
               </IonItemSliding>
             ))}
@@ -364,6 +368,12 @@ export default function FolderPage() {
           return r.ok ? null : r.error;
         }}
         onClose={() => setRenameSub(null)}
+      />
+
+      <DeleteFolderConfirm
+        target={deleteSub}
+        onClose={() => setDeleteSub(null)}
+        onDeleted={loadListing}
       />
 
       <DocActionsSheet

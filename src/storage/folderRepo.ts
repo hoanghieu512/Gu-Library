@@ -1,13 +1,14 @@
 import { Saf } from '../plugins/saf';
 import { getRootUri } from './repo';
-import { getKhoSnapshot } from './khoSnapshot';
+import { getKhoSnapshot, foldCounts } from './khoSnapshot';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { validateFolderName, dupFolderError } from './folderName';
 import { parseInboxPath } from '../import/prefix';
 import { relPathFromUris } from '../reading/paths';
-import { renameReadingFolder } from '../reading/store';
+import { renameReadingFolder, removeReadingFolder } from '../reading/store';
 
 export type RenameResult = { ok: true; uri: string } | { ok: false; error: string };
+export type DeleteResult = { ok: true } | { ok: false; error: string };
 
 // Đếm file chờ trong `_inbox/` nằm DƯỚI/BẰNG một thư mục (theo đoạn tên). Chặn đổi tên nếu >0:
 // tiền tố file chờ trỏ TÊN CŨ, worker mkdir-if-missing sẽ dựng lại thư mục tên cũ → thư mục ma.
@@ -56,4 +57,40 @@ export async function renameFolder(folderUri: string, siblingNames: string[], ra
   await renameReadingFolder(oldRel, newRel);
   emitKhoChanged();
   return { ok: true, uri: newUri };
+}
+
+// Chuẩn bị hộp xác nhận Xóa: đếm ĐỆ QUY (docs+folders) + đếm file chờ dưới cây (chặn). Một lần snapshot.
+export async function prepareDelete(folderUri: string): Promise<{ pending: number; docs: number; folders: number }> {
+  const root = await getRootUri();
+  const rel = root ? relPathFromUris(root, folderUri) : null;
+  const snap = await getKhoSnapshot();
+  const f = snap.byUri.get(folderUri);
+  const counts = f ? foldCounts(f) : { docs: 0, folders: 0 };
+  const pending = rel ? pendingUnder(snap, rel.split('/')) : 0;
+  return { pending, ...counts };
+}
+
+// Xóa THẬT trọn cây thư mục (môn/thư mục con) — deleteDocument trên dir xóa đệ quy CẢ file bên trong
+// (gồm companion .print.json/.display.json → cờ in + tên hiển thị dọn theo; _print/ do worker tự lành).
+// Reading của MÁY NÀY dưới cây → tombstone (cưỡi lên removeEntry v1.5.0); máy khác lọc im lặng.
+// CHẶN khi còn file chờ _inbox/ dưới cây (worker mkdir-if-missing dựng lại thư mục ma). Không thùng
+// rác app — lưới an toàn là .stversions Syncthing ~30 ngày (v1.5.0).
+export async function deleteFolder(folderUri: string, noun: string): Promise<DeleteResult> {
+  const root = await getRootUri();
+  if (!root) return { ok: false, error: 'Chưa chọn folder kho' };
+  const rel = relPathFromUris(root, folderUri);
+  if (!rel) return { ok: false, error: 'Không xác định được thư mục' };
+  const segs = rel.split('/');
+
+  const snap = await getKhoSnapshot();
+  const pending = pendingUnder(snap, segs);
+  if (pending > 0) {
+    const what = noun === 'môn' ? 'môn' : 'thư mục';
+    return { ok: false, error: `Đang có ${pending} file chờ xử lý trong ${what} này. Chờ xíu rồi thử lại nha dợ iu!` };
+  }
+
+  await Saf.deleteFile({ uri: folderUri }); // deleteDocument trên dir = xóa đệ quy cả cây trên đĩa
+  await removeReadingFolder(rel);
+  emitKhoChanged();
+  return { ok: true };
 }
