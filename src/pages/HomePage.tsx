@@ -26,6 +26,7 @@ import { migrateOnce } from '../reading/migrate';
 import type { Mon } from '../storage/types';
 import { listInboxByMon } from '../import/inboxRepo';
 import { onKhoChanged } from '../lib/khoEvents';
+import { useGuToast } from '../lib/useGuToast';
 import { countPrintFlagged } from '../print/printRepo';
 import { encodeUriParam } from '../storage/uriParam';
 import { perfColdReady, afterPaint } from '../perf/perf';
@@ -42,6 +43,7 @@ export default function HomePage() {
   const [createMonOpen, setCreateMonOpen] = useState(false);
   const [renameMon, setRenameMon] = useState<Mon | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const { toastResult, node: toastNode } = useGuToast();
   const [printCount, setPrintCount] = useState(0);
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
   // vì key=uri ổn định nên MonCard không tự remount.
@@ -199,6 +201,7 @@ export default function HomePage() {
           if (!renameMon) return null;
           const siblings = mons.filter((m) => m.uri !== renameMon.uri).map((m) => m.name);
           const r = await renameFolder(renameMon.uri, siblings, newName, 'môn');
+          if (r.ok) toastResult('Đã đổi tên gòi nha!', true);
           return r.ok ? null : r.error; // emitKhoChanged trong renameFolder → Home tự reload
         }}
         onClose={() => setRenameMon(null)}
@@ -207,8 +210,9 @@ export default function HomePage() {
       <DeleteFolderConfirm
         target={deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onDeleted={reload}
+        onDeleted={() => { reload(); toastResult('Đã xóa môn gòi nha!', true); }}
       />
+      {toastNode}
     </IonPage>
   );
 }

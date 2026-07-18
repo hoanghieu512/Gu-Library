@@ -2,6 +2,13 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.25.0] — 2026-07-18 — Toast phản hồi cho thao tác đơn (giọng Gú)
+### Added
+- **Toast báo thành công cho MỌI thao tác ĐƠN** (trước đây chỉ thao tác LÔ mới có): đánh dấu/bỏ "cần in" 1 tài liệu, xóa 1 tài liệu, đổi tên 1 tài liệu, chuyển 1 tài liệu (màn duyệt); **đổi tên + xóa thư mục con** (màn duyệt); **đổi tên + xóa môn** (Home — trước Home không có hệ toast); **tick "cần in"** trong Viewer. `DeleteFolderConfirm.onDeleted` chỉ fire khi xóa THẬT thành công → không báo nhầm lúc bị chặn (còn file chờ).
+### Changed
+- Tách hệ toast 3 trạng thái của FolderPage (v1.11.0) thành **hook dùng chung `useGuToast()`** (`src/lib/useGuToast.tsx`) — giữ nguyên palette nâu/kem + animation (loading icon quay / success tích xanh / error đỏ đất, tự đóng 3s + nút X); Home + màn duyệt + Viewer cùng dùng, không fork.
+- Câu toast đổi sang **giọng Gú thân thiện** ("… gòi nha!") đồng bộ cả đơn lẫn lô: "Đã đánh dấu cần in gòi nha!" / "Đã bỏ đánh dấu in gòi nha!" / "Đã xóa tài liệu gòi nha!" / "Đã đổi tên gòi nha!" / "Đã chuyển tài liệu gòi nha!" / "Đã xóa môn gòi nha!" / "Đã xóa thư mục gòi nha!"; toast lô cũng nhận đuôi "gòi nha!" cho đồng tông (câu lỗi giữ nguyên, thông tin). Không đụng dữ liệu/sidecar, không dep/token mới.
+
 ## [1.24.0] — 2026-07-18 — Định vị khi cây sâu: phụ đề rút gọn + avatar màu thuần
 ### Changed
 - **Phụ đề "Đang đọc dở" định vị tới thư mục cha** (thay vì chỉ tên môn): hiện môn + đường dẫn thư mục con của tài liệu, **RÚT GỌN theo ĐÚNG luật `…` của breadcrumb** (tái dùng `folderHeaderTitle` v1.15.0/v1.20.0 qua helper mới `readingLocator` — KHÔNG viết logic định vị thứ hai). Tài liệu nằm thẳng trong folder môn → chỉ tên môn (không `/`/`…` thừa); sâu → "… / Cha / Hiện tại". Hai tài liệu cùng môn khác thư mục con giờ phụ đề KHÁC nhau, đọc ra được đang ở ngăn nào. Cả card Home (`ContinueReadingCard`) lẫn sheet "Xem tất cả" (`ReadingListSheet`); phụ đề dài → cắt gọn `ellipsis` một dòng, KHÔNG xuống dòng vỡ thẻ. **Màn "Đi in" KHÔNG đổi** (đã nhóm theo môn bằng header nhóm → nhét path vào từng dòng là lặp). Trade-off đã chấp nhận: hai thư mục con trùng tên ở hai nhánh (cùng ra "… / Buổi 2") không giải — full path vỡ layout Flip gập.

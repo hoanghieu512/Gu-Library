@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
-  IonList, IonItem, IonLabel, IonBadge, IonFooter, IonToast, useIonRouter,
+  IonList, IonItem, IonLabel, IonBadge, IonFooter, useIonRouter,
   IonItemSliding, IonItemOptions, IonItemOption,
 } from '@ionic/react';
 import {
   folderOutline, chevronForward, hourglassOutline, add,
-  printOutline, trashOutline, swapHorizontalOutline, close, checkmarkCircle, alertCircle, reloadOutline,
+  printOutline, trashOutline, swapHorizontalOutline, close,
 } from 'ionicons/icons';
 import { useParams, useHistory } from 'react-router-dom';
 import { listFolder, createSubfolder, getRootUri } from '../storage/repo';
@@ -28,6 +28,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import ChooseMonSheet from '../import/ChooseMonSheet';
 import SadPandaState from '../components/SadPandaState';
 import { coalesceKhoChanged } from '../lib/khoEvents';
+import { useGuToast } from '../lib/useGuToast';
 import { perfStart, perfEnd, afterPaint } from '../perf/perf';
 
 export default function FolderPage() {
@@ -81,24 +82,8 @@ export default function FolderPage() {
   const closeConfirm = () => setConfirmDel((c) => ({ ...c, open: false }));
   const RECOVER = 'Vẫn khôi phục được từ bản sao đồng bộ (~30 ngày).'; // KHÔNG dọa "không hoàn tác"
 
-  // Toast lô 3 trạng thái — MỘT toast morph loading→success/error (đúng 1 toast/lô, khớp coalesce).
-  const [toast, setToast] = useState<{
-    open: boolean; message: string; cls: string; icon?: string; showClose: boolean;
-  }>({ open: false, message: '', cls: '', showClose: false });
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const clearToastTimer = () => { if (toastTimer.current) { clearTimeout(toastTimer.current); toastTimer.current = undefined; } };
-  useEffect(() => () => clearToastTimer(), []);
-  // Loading: icon quay (spinner) + text, persistent, KHÔNG đóng tay được (không nút X, không auto).
-  const toastLoading = (msg: string) => {
-    clearToastTimer();
-    setToast({ open: true, message: msg, cls: 'gu-toast gu-toast-loading', icon: reloadOutline, showClose: false });
-  };
-  // Success/Error: icon + text, tự đóng 3s + nút X.
-  const toastResult = (msg: string, ok: boolean) => {
-    clearToastTimer();
-    setToast({ open: true, message: msg, cls: `gu-toast gu-toast-${ok ? 'success' : 'error'}`, icon: ok ? checkmarkCircle : alertCircle, showClose: true });
-    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, open: false })), 3000);
-  };
+  // Toast 3 trạng thái (hook dùng chung v1.25.0) — thao tác ĐƠN lẫn LÔ đều bắn qua đây.
+  const { toastLoading, toastResult, node: toastNode } = useGuToast();
 
   const load = useCallback((spinner: boolean) => {
     if (spinner) setListing(null);
@@ -149,6 +134,7 @@ export default function FolderPage() {
   const togglePrint = async (d: Document) => {
     if (d.printFlagged) await clearPrintFlag(d.pdfUri); else await setPrintFlag(d.pdfUri);
     flagDocLocal(d.pdfUri, !d.printFlagged);
+    toastResult(d.printFlagged ? 'Đã bỏ đánh dấu in gòi nha!' : 'Đã đánh dấu cần in gòi nha!', true);
   };
   const runDelete = async (d: Document) => {
     const root = await getRootUri();
@@ -156,6 +142,7 @@ export default function FolderPage() {
     await deleteDocument(decoded, baseOf(d));
     if (rel) await removeReading(rel);
     removeDocLocal(d.pdfUri);
+    toastResult('Đã xóa tài liệu gòi nha!', true);
   };
   const confirmDelete = (d: Document) => {
     setConfirmDel({
@@ -170,6 +157,7 @@ export default function FolderPage() {
     setActionsDoc(null);
     const shown = newName.trim() || (d.fileBase ?? d.name); // rỗng = về tên file
     setListing((l) => (l ? { ...l, documents: l.documents.map((x) => (x.pdfUri === d.pdfUri ? { ...x, name: shown } : x)) } : l));
+    toastResult('Đã đổi tên gòi nha!', true);
   };
   const doMove = async (_path: string[], destUri: string) => {
     const d = moveDoc; setMoveDoc(null);
@@ -180,6 +168,7 @@ export default function FolderPage() {
     const destRel = relPathFromUris(root, destUri);
     if (oldRel && destRel != null) await moveReading(oldRel, `${destRel}/${newBase}.pdf`, d.name);
     removeDocLocal(d.pdfUri);
+    toastResult('Đã chuyển tài liệu gòi nha!', true);
   };
 
   // --- thao tác LÔ (cưỡi lên hàm đơn) ---
@@ -195,7 +184,7 @@ export default function FolderPage() {
     });
     setBusy(false); exitMode();
     // In lô nhanh → chỉ success (không loading).
-    toastResult(`Đã đánh dấu ${ok} tài liệu cần in`, true);
+    toastResult(`Đã đánh dấu ${ok} tài liệu cần in gòi nha!`, true);
   };
   const runBatchDelete = async (docs: Document[]) => {
     const n = docs.length;
@@ -216,7 +205,7 @@ export default function FolderPage() {
     });
     setBusy(false); exitMode();
     if (fail) toastResult(`Đã xóa ${ok}/${n} · ${fail} lỗi`, false);
-    else toastResult(`Đã xóa ${ok} tài liệu`, true);
+    else toastResult(`Đã xóa ${ok} tài liệu gòi nha!`, true);
   };
   const batchDelete = () => {
     const docs = selectedDocs(); if (!docs.length) return;
@@ -249,7 +238,7 @@ export default function FolderPage() {
     });
     setBusy(false); exitMode();
     if (fail) toastResult(`Đã chuyển ${ok}/${n} · ${fail} lỗi`, false);
-    else toastResult(`Đã chuyển ${ok} tài liệu`, true);
+    else toastResult(`Đã chuyển ${ok} tài liệu gòi nha!`, true);
   };
 
   return (
@@ -369,7 +358,7 @@ export default function FolderPage() {
           if (!renameSub) return null;
           const siblings = (listing?.folders ?? []).filter((f) => f.uri !== renameSub.uri).map((f) => f.name);
           const r = await renameFolder(renameSub.uri, siblings, newName, 'thư mục');
-          if (r.ok) loadListing(); // rename thư mục con → refresh listing màn hiện tại
+          if (r.ok) { loadListing(); toastResult('Đã đổi tên gòi nha!', true); } // rename thư mục con → refresh listing màn hiện tại
           return r.ok ? null : r.error;
         }}
         onClose={() => setRenameSub(null)}
@@ -378,7 +367,7 @@ export default function FolderPage() {
       <DeleteFolderConfirm
         target={deleteSub}
         onClose={() => setDeleteSub(null)}
-        onDeleted={loadListing}
+        onDeleted={() => { loadListing(); toastResult('Đã xóa thư mục gòi nha!', true); }}
       />
 
       <DocActionsSheet
@@ -415,17 +404,8 @@ export default function FolderPage() {
         onCancel={closeConfirm}
       />
 
-      {/* Toast lô 3 trạng thái (một toast morph loading→success/error) */}
-      <IonToast
-        isOpen={toast.open}
-        message={toast.message}
-        cssClass={toast.cls}
-        icon={toast.icon}
-        color="primary"
-        position="bottom"
-        buttons={toast.showClose ? [{ icon: close, role: 'cancel' }] : undefined}
-        onDidDismiss={() => { clearToastTimer(); setToast((t) => ({ ...t, open: false })); }}
-      />
+      {/* Toast 3 trạng thái (đơn + lô) — hook dùng chung */}
+      {toastNode}
     </IonPage>
   );
 }

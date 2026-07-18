@@ -6,6 +6,7 @@ import {
 import { useParams } from 'react-router-dom';
 import PdfView from '../components/PdfView';
 import SadPandaState from '../components/SadPandaState';
+import { useGuToast } from '../lib/useGuToast';
 import { readPdfBytes } from '../storage/safFile';
 import { getResumePage, recordProgress } from '../reading/store';
 import { getBaseScale } from '../viewer/fontScale';
@@ -36,6 +37,7 @@ export default function ViewerPage() {
   const [baseScale, setBaseScale] = useState<number | null>(null);
   const [title, setTitle] = useState(name); // tên hiển thị (đổi tên nếu có) > tên file
   const lastSaved = useRef(0);
+  const { toastResult, node: toastNode } = useGuToast();
 
   useEffect(() => {
     let alive = true;
@@ -83,7 +85,10 @@ export default function ViewerPage() {
             {title}
           </IonTitle>
           <IonButtons slot="end">
-            <PrintFlagButton docUri={docUri} flagged={flagged} onChanged={() => setFlagged((v) => !v)} />
+            <PrintFlagButton docUri={docUri} flagged={flagged} onChanged={() => {
+              setFlagged((v) => !v);
+              toastResult(flagged ? 'Đã bỏ đánh dấu in gòi nha!' : 'Đã đánh dấu cần in gòi nha!', true);
+            }} />
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -125,6 +130,7 @@ export default function ViewerPage() {
           </IonToolbar>
         </IonFooter>
       )}
+      {toastNode}
     </IonPage>
   );
 }
