@@ -3,6 +3,7 @@ import { bookOutline, arrowForward } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import type { ReadingItem } from '../reading/store';
 import { encodeUriParam } from '../storage/uriParam';
+import { readingLocator } from '../storage/folderHeader';
 
 export default function ContinueReadingCard({ item }: { item: ReadingItem }) {
   const history = useHistory();
@@ -24,7 +25,7 @@ export default function ContinueReadingCard({ item }: { item: ReadingItem }) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: 17 }}>{item.name}</div>
-        <div style={{ opacity: .8, fontSize: 13 }}>{item.monName}</div>
+        <div style={{ opacity: .8, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{readingLocator(item.path)}</div>
         <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,.25)', margin: '8px 0 4px' }}>
           <div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: '#fff' }} />
         </div>

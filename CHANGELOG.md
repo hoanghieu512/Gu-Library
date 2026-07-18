@@ -2,6 +2,12 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.24.0] — 2026-07-18 — Định vị khi cây sâu: phụ đề rút gọn + avatar màu thuần
+### Changed
+- **Phụ đề "Đang đọc dở" định vị tới thư mục cha** (thay vì chỉ tên môn): hiện môn + đường dẫn thư mục con của tài liệu, **RÚT GỌN theo ĐÚNG luật `…` của breadcrumb** (tái dùng `folderHeaderTitle` v1.15.0/v1.20.0 qua helper mới `readingLocator` — KHÔNG viết logic định vị thứ hai). Tài liệu nằm thẳng trong folder môn → chỉ tên môn (không `/`/`…` thừa); sâu → "… / Cha / Hiện tại". Hai tài liệu cùng môn khác thư mục con giờ phụ đề KHÁC nhau, đọc ra được đang ở ngăn nào. Cả card Home (`ContinueReadingCard`) lẫn sheet "Xem tất cả" (`ReadingListSheet`); phụ đề dài → cắt gọn `ellipsis` một dòng, KHÔNG xuống dòng vỡ thẻ. **Màn "Đi in" KHÔNG đổi** (đã nhóm theo môn bằng header nhóm → nhét path vào từng dòng là lặp). Trade-off đã chấp nhận: hai thư mục con trùng tên ở hai nhánh (cùng ra "… / Buổi 2") không giải — full path vỡ layout Flip gập.
+- **Avatar môn bỏ chữ cái, còn ô màu thuần** (`MonSwatch`): màu là thứ Gú chủ động gán qua picker màu môn (v1.5.0) và nhớ; chữ cái là thứ máy tự suy — thường trùng/sai với tên luật tiếng Việt (Công chứng / hành chính / Lao Động đều ra `L`). Bỏ cái tự-suy-sai, giữ cái người-chủ-động; gỡ luôn prop `icon` (override chữ) không còn cần. KHÔNG thêm quy tắc "đoán chữ thông minh" (strip tiền tố / initials) — mỗi quy tắc là một ổ ca-biên. "Chưa phân loại" giữ nguyên ô `?` viền gạch-đứt (mục built-in, không phải môn có màu). Trade-off: số môn > palette → màu lặp, CHẤP NHẬN (không tệ hơn nhiều ô cùng chữ `L`); không mở rộng palette beat này.
+- Helper `readingLocator` (TDD, `folderHeader.ts`). Không đụng dữ liệu/sidecar, không dep/token mới. Backlog "nav chữ-bên-icon" (tab bar tùy biến) đóng sổ — sẽ không làm.
+
 ## [1.23.1] — 2026-07-18 — Empty-state thân thiện khi thư mục bị xóa từ máy khác
 ### Fixed
 - Khi đang đứng bên trong một thư mục mà nó bị **xóa từ máy khác** (Syncthing rải về / worker) rồi mở tiếp thư mục con, màn duyệt trước đây hiện **dòng lỗi trần** ("Không đọc được thư mục: list failed: … FileNotFoundException…"). Nay thay bằng **empty-state panda buồn** (giống Viewer v1.14.0): panda + "Uh oh" + câu giọng-Gú **"Thư mục đã bị xóa gòi dợ iu! Nếu là xóa nhầm thì liên hệ chùn để khôi phục."** + nút **"Về Trang chủ"**. (Ca mở FILE trong thư mục bị xóa đã dùng panda này từ v1.14.0.)

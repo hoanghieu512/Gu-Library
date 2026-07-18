@@ -119,7 +119,7 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
               {ordered.map((m) => (
                 <div key={m.uri} style={{ marginBottom: 10 }}>
                   <IonItem button detail={false} lines="none" disabled={busy} onClick={() => tapMon(m)} style={card}>
-                    <MonSwatch name={m.name} color={m.meta.color} icon={m.meta.icon} />
+                    <MonSwatch name={m.name} color={m.meta.color} />
                     <IonLabel className="gu-serif" style={{ marginLeft: 12 }}>
                       {m.name}{m.name === last ? '  · vừa dùng' : ''}
                     </IonLabel>

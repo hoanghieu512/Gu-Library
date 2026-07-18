@@ -36,7 +36,7 @@ export default function MonCard({
       <IonItemSliding ref={slideRef}>
       <IonItem button detail={false} lines="none" onClick={open} style={card}>
         <div slot="start" style={{ display: 'flex', alignItems: 'center', marginInlineEnd: 12 }}>
-          {mon.name === UNFILED ? <UnfiledSwatch /> : <MonSwatch name={mon.name} color={mon.meta.color} icon={mon.meta.icon} />}
+          {mon.name === UNFILED ? <UnfiledSwatch /> : <MonSwatch name={mon.name} color={mon.meta.color} />}
         </div>
         <IonLabel>
           {mon.name === UNFILED
