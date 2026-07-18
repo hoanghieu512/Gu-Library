@@ -2,6 +2,12 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.23.1] — 2026-07-18 — Empty-state thân thiện khi thư mục bị xóa từ máy khác
+### Fixed
+- Khi đang đứng bên trong một thư mục mà nó bị **xóa từ máy khác** (Syncthing rải về / worker) rồi mở tiếp thư mục con, màn duyệt trước đây hiện **dòng lỗi trần** ("Không đọc được thư mục: list failed: … FileNotFoundException…"). Nay thay bằng **empty-state panda buồn** (giống Viewer v1.14.0): panda + "Uh oh" + câu giọng-Gú **"Thư mục đã bị xóa gòi dợ iu! Nều là xóa nhầm thì liên hệ chùn để khôi phục."** + nút **"Về Trang chủ"**. (Ca mở FILE trong thư mục bị xóa đã dùng panda này từ v1.14.0.)
+### Changed
+- Tách empty-state panda thành component chung `SadPandaState` (panda + tiêu đề + câu + nút về Home), dùng chung cho `ViewerPage` (không mở được tài liệu) và `FolderPage` (thư mục bị xóa) — không fork. Không đổi logic đọc/list, không dep/token mới.
+
 ## [1.23.0] — 2026-07-18 — M10b phần 2: xóa môn + thư mục
 ### Added
 - **Xóa môn** (vuốt trái hàng môn ở Home → "Xóa" đỏ, cạnh "Đổi tên") và **xóa thư mục con** (vuốt trái hàng thư mục → "Xóa"). Hộp xác nhận (`ConfirmDialog` v1.13.0) **nêu SỐ LƯỢNG thật, đếm ĐỆ QUY cả cây**: "Bên trong … có N tài liệu và M thư mục con" (rỗng → "… đang trống", không "0 tài liệu"). KHÔNG dọa "không thể hoàn tác" (sai — có `.stversions`, và không phải giọng app; bài học v1.13.0) — nêu số lượng là đủ để Gú tự cân.
