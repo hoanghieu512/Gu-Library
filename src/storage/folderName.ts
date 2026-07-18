@@ -7,3 +7,8 @@ export function validateFolderName(raw: string): NameResult {
   if (FORBIDDEN.test(value)) return { ok: false, error: 'Tên chứa ký tự cấm ( / \\ : * ? " < > | [ ] )' };
   return { ok: true, value };
 }
+
+// Câu báo trùng tên theo ngữ cảnh (dùng chung Tạo + Đổi tên).
+export function dupFolderError(noun: string): string {
+  return noun === 'môn' ? 'Môn đã tồn tại gòi dợ iu' : 'Thư mục cùng tên gòi dợ iu';
+}

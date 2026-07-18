@@ -13,8 +13,11 @@ import ContinueReadingCard from '../components/ContinueReadingCard';
 import MonCard from '../components/MonCard';
 import ReadingListSheet from '../reading/ReadingListSheet';
 import CreateFolderModal from '../components/CreateFolderModal';
+import RenameModal from '../components/RenameModal';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { listMon, createMon } from '../storage/repo';
+import { renameFolder } from '../storage/folderRepo';
+import { UNFILED } from '../import/prefix';
 import { getRootUri } from '../storage/repo';
 import type { ReadingItem } from '../reading/store';
 import { listReading, removeReading } from '../reading/store';
@@ -36,6 +39,7 @@ export default function HomePage() {
   const [inboxMap, setInboxMap] = useState<Map<string, number>>(new Map());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [createMonOpen, setCreateMonOpen] = useState(false);
+  const [renameMon, setRenameMon] = useState<Mon | null>(null);
   const [printCount, setPrintCount] = useState(0);
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
   // vì key=uri ổn định nên MonCard không tự remount.
@@ -155,7 +159,12 @@ export default function HomePage() {
             </div>
             {mons.length === 0
               ? <p style={{ color: 'var(--gu-grey)' }}>Chưa có môn nào trong kho.</p>
-              : mons.map((m) => <MonCard key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} refreshKey={refreshTick} />)}
+              : mons.map((m) => (
+                <MonCard
+                  key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} refreshKey={refreshTick}
+                  onRename={m.name === UNFILED ? undefined : () => setRenameMon(m)}
+                />
+              ))}
 
           </>
         )}
@@ -177,6 +186,19 @@ export default function HomePage() {
         existingNames={mons.map((m) => m.name)}
         onCreate={async (name, color) => { await createMon(name, color!); reload(); }}
         onClose={() => setCreateMonOpen(false)}
+      />
+
+      <RenameModal
+        isOpen={!!renameMon}
+        noun="môn"
+        currentName={renameMon?.name ?? ''}
+        onSave={async (newName) => {
+          if (!renameMon) return null;
+          const siblings = mons.filter((m) => m.uri !== renameMon.uri).map((m) => m.name);
+          const r = await renameFolder(renameMon.uri, siblings, newName, 'môn');
+          return r.ok ? null : r.error; // emitKhoChanged trong renameFolder → Home tự reload
+        }}
+        onClose={() => setRenameMon(null)}
       />
     </IonPage>
   );

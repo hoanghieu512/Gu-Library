@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { makeInboxName, parseInboxPrefix, stripTempSuffix, UNFILED } from './prefix';
+import { makeInboxName, parseInboxPrefix, parseInboxPath, stripTempSuffix, UNFILED } from './prefix';
 
 describe('stripTempSuffix', () => {
   it('bỏ .tmp lộ tên thật', () => {
@@ -49,4 +49,12 @@ describe('inbox prefix', () => {
   it('parse bỏ qua file ẩn / .json', () => {
     expect(parseInboxPrefix('.stfolder')).toBeNull();
   });
+});
+
+describe('parseInboxPath (đủ tầng — chặn đổi tên khi còn file chờ dưới cây)', () => {
+  it('một tầng', () => expect(parseInboxPath('[Logic] x.pdf')).toEqual(['Logic']));
+  it('nhiều tầng đúng thứ tự', () =>
+    expect(parseInboxPath('[Logic][Slide bài giảng][Con] y.pdf')).toEqual(['Logic', 'Slide bài giảng', 'Con']));
+  it('không tiền tố → null', () => expect(parseInboxPath('khong-tien-to.pdf')).toBeNull());
+  it('thiếu space → null', () => expect(parseInboxPath('[Logic]x.pdf')).toBeNull());
 });

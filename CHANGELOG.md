@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.22.0] — 2026-07-18 — M10b phần 1: đổi tên môn + thư mục
+### Added
+- **Đổi tên môn** (vuốt trái hàng môn ở Home → "Đổi tên") và **đổi tên thư mục con** (vuốt trái hàng thư mục ở màn duyệt → "Đổi tên") — cùng ngôn ngữ vuốt-trái v1.5.0, không pattern mới. Sheet đổi tên (`RenameModal`) điền sẵn tên hiện tại, nhãn "Tên môn"/"Tên thư mục" theo ngữ cảnh, nút "Lưu".
+- **Rename THẬT** thư mục trên đĩa (`SafPlugin.renameDir` → `DocumentsContract.renameDocument`) — tên trong app khớp tên thật ở mini PC + Drive, KHÔNG dùng companion display-file (thư mục do Gú đặt → sửa cái thật). Companion `.print.json`/`.display.json` + cờ đi-in của tài liệu bên trong theo thư mục tự động (rename dir tại chỗ). Entry đọc-dở của MÁY NÀY tự dời theo (`renameReadingSubtree` đổi prefix path cả cây); entry máy khác trỏ path cũ → `listReading` lọc im lặng (sẵn từ v1.5.0).
+- **Chặn đổi tên khi còn file chờ ⏳** trong `_inbox/` dưới thư mục (kể cả thư mục con) — vì tiền tố `_inbox/` trỏ tên cũ, worker mkdir-if-missing sẽ dựng lại thư mục ma. Báo thân thiện ("Đang có N file chờ xử lý ở đây, chờ chút rồi thử lại nhé"), không thuật ngữ. App CHỈ đọc `_inbox/` để đếm, tuyệt đối không ghi/migrate tiền tố (né race worker). Helper `parseInboxPath` (parse đủ tầng ngoặc) + TDD.
+### Changed
+- Ô nhập floating label tự-vẽ (v1.21.0) tách thành component chung `NameField`, dùng lại ở cả `CreateFolderModal` (Tạo) lẫn `RenameModal` (Đổi tên) — không fork, không quay lại floating-label native Ionic.
+- Hàng thư mục con (v1.5.0 "không action") giờ mở đúng một action vuốt "Đổi tên"; long-press vẫn chọn-nhiều-tài-liệu, hàng thư mục vẫn không tick được (v1.6.0). "Chưa phân loại" không có action đổi tên (worker phụ thuộc). Tên qua `validateFolderName` (chặn `[ ] /` / đầu `_` / rỗng) như cũ. Không đụng breadcrumb v1.20.0, không dep/token mới.
+- **Trùng tên KHÔNG PHÂN BIỆT HOA/THƯỜNG** (ở cả Tạo lẫn Đổi tên): đĩa Samsung case-insensitive nên "Slide" vs "slide" đụng nhau → provider tự đẻ `(1)`; giờ chặn theo case-insensitive (`toLowerCase`) → **không bao giờ ra `(1)`**. Câu báo theo ngữ cảnh (`dupFolderError`): "Môn đã tồn tại gòi dợ iu" / "Thư mục cùng tên gòi dợ iu".
+- Swipe trên thẻ môn bo góc (Home): div bọc ngoài bo góc + `overflow:hidden`, `IonItem --border-radius:0` → thẻ và nút vuốt liền một khối (như `ReadingListSheet`), không hở góc.
+
 ## [1.21.0] — 2026-07-17 — Ô nhập tên floating label + fix chữ sai sheet "Môn mới"
 ### Fixed
 - Sheet **"Môn mới"** (Home → `+` heading Môn học) trước đây placeholder ghi *"Nhập tên thư mục…"* dù đang tạo MÔN — chữ sai. Gốc: chuỗi hardcode dùng chung cho cả hai sheet. Nay nhãn/placeholder suy từ prop `noun` theo ngữ cảnh ("môn" ≠ "thư mục") → hết sai.

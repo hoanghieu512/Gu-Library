@@ -3,7 +3,7 @@ import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
 import { relPathFromUris } from './paths';
 import { getKhoSnapshot, folderByPath } from '../storage/khoSnapshot';
-import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry,
+import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry, renameReadingSubtree,
          type DeviceReadingFile, type ReadingEntry } from './model';
 
 const DEVICE_KEY = 'device_id';
@@ -83,6 +83,15 @@ export async function moveReading(oldPath: string, newPath: string, newName: str
   const deviceId = await getDeviceId();
   const file = await readDeviceFile(root, deviceId);
   await writeDeviceFile(root, moveEntry(file, oldPath, newPath, newName, nowMs()));
+}
+
+// Đổi tên THƯ MỤC (rename môn/thư mục) → dời MỌI entry đọc-dở của máy này dưới cây thư mục đó.
+// Chỉ ghi `_reading-<máy này>.json`; entry máy khác trỏ path cũ → listReading tự lọc im lặng.
+export async function renameReadingFolder(oldFolder: string, newFolder: string): Promise<void> {
+  const root = await getRootUri(); if (!root) return;
+  const deviceId = await getDeviceId();
+  const file = await readDeviceFile(root, deviceId);
+  await writeDeviceFile(root, renameReadingSubtree(file, oldFolder, newFolder, nowMs()));
 }
 
 // Resolve một reading path trong CÂY chung (không walk lại): trả uri + tên hiển thị.
