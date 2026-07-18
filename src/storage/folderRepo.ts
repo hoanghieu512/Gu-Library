@@ -2,7 +2,7 @@ import { Saf } from '../plugins/saf';
 import { getRootUri } from './repo';
 import { getKhoSnapshot, foldCounts } from './khoSnapshot';
 import { emitKhoChanged } from '../lib/khoEvents';
-import { validateFolderName, dupFolderError } from './folderName';
+import { validateFolderName, dupFolderError, isCaseOnlyChange } from './folderName';
 import { parseInboxPath } from '../import/prefix';
 import { relPathFromUris } from '../reading/paths';
 import { renameReadingFolder, removeReadingFolder } from '../reading/store';
@@ -52,7 +52,18 @@ export async function renameFolder(folderUri: string, siblingNames: string[], ra
     return { ok: false, error: `Đang có ${pending} file chờ xử lý ở đây. Chờ xíu rồi thử lại nha dợ iu!` };
   }
 
-  const { uri: newUri } = await Saf.renameDir({ uri: folderUri, newName: v.value });
+  // Đổi tên CHỈ khác hoa/thường của chính nó ("Slide"→"slide") → đĩa Samsung case-insensitive coi
+  // tên đích là chính thư mục đang đổi → renameDocument tự đẻ "(1)". Né bằng 2 BƯỚC: đổi qua tên tạm
+  // duy nhất trước (không đụng ai) rồi mới đổi sang tên đích (giờ FS thấy tên đích trống). Tên tạm
+  // hợp lệ (không đầu '_', không ký tự cấm) + timestamp nên không thể trùng.
+  let newUri: string;
+  if (isCaseOnlyChange(curName, v.value)) {
+    const tmpName = `${v.value}-gu-case-${Date.now()}`;
+    const { uri: tmpUri } = await Saf.renameDir({ uri: folderUri, newName: tmpName });
+    ({ uri: newUri } = await Saf.renameDir({ uri: tmpUri, newName: v.value }));
+  } else {
+    ({ uri: newUri } = await Saf.renameDir({ uri: folderUri, newName: v.value }));
+  }
   const newRel = [...oldSegs.slice(0, -1), v.value].join('/');
   await renameReadingFolder(oldRel, newRel);
   emitKhoChanged();

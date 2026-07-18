@@ -2,6 +2,10 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.25.1] — 2026-07-18 — Fix đổi tên thư mục sang biến thể hoa/thường của chính nó ra "(1)"
+### Fixed
+- Đổi tên môn/thư mục con sang **biến thể CHỈ khác hoa/thường của chính nó** ("Luật Công chứng" → "Luật Công Chứng", "Slide" → "slide") trước đây ra **"… (1)"**. Gốc: đĩa Samsung case-insensitive → `renameDocument` thẳng sang tên đích bị coi là "đã tồn tại" (chính thư mục đang đổi) → provider tự đẻ "(1)". Nay khi phát hiện case-only (`isCaseOnlyChange`, TDD) → đổi **2 bước**: qua tên tạm duy nhất (`<tên>-gu-case-<timestamp>`, không đụng ai) rồi mới sang tên đích (FS lúc này thấy tên đích trống) → ra ĐÚNG tên, không "(1)". Lỗi có sẵn từ rename v1.22.0, lộ khi QA v1.25.0. Không đụng native, không dep mới.
+
 ## [1.25.0] — 2026-07-18 — Toast phản hồi cho thao tác đơn (giọng Gú)
 ### Added
 - **Toast báo thành công cho MỌI thao tác ĐƠN** (trước đây chỉ thao tác LÔ mới có): đánh dấu/bỏ "cần in" 1 tài liệu, xóa 1 tài liệu, đổi tên 1 tài liệu, chuyển 1 tài liệu (màn duyệt); **đổi tên + xóa thư mục con** (màn duyệt); **đổi tên + xóa môn** (Home — trước Home không có hệ toast); **tick "cần in"** trong Viewer. `DeleteFolderConfirm.onDeleted` chỉ fire khi xóa THẬT thành công → không báo nhầm lúc bị chặn (còn file chờ).

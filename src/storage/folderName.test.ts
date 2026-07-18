@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateFolderName, deleteFolderMessage } from './folderName';
+import { validateFolderName, deleteFolderMessage, isCaseOnlyChange } from './folderName';
 describe('validateFolderName', () => {
   it('chấp nhận tên tiếng Việt có dấu (trim)', () => {
     expect(validateFolderName('  Luật Đất đai  ')).toEqual({ ok: true, value: 'Luật Đất đai' });
@@ -39,4 +39,18 @@ describe('deleteFolderMessage (nêu số lượng, không dọa)', () => {
     expect(deleteFolderMessage('X', 5, 2)).toBe('Bên trong “X” có 5 tài liệu và 2 thư mục con.'));
   it('không chứa chữ dọa "không thể hoàn tác"', () =>
     expect(deleteFolderMessage('X', 5, 2)).not.toMatch(/hoàn tác|xóa vĩnh viễn/i));
+});
+
+describe('isCaseOnlyChange (né dedup (1) khi đổi hoa/thường chính nó)', () => {
+  it('khác hoa/thường → true', () => {
+    expect(isCaseOnlyChange('Luật Công chứng', 'Luật Công Chứng')).toBe(true);
+    expect(isCaseOnlyChange('Slide', 'slide')).toBe(true);
+    expect(isCaseOnlyChange('slide', 'SLIDE')).toBe(true);
+  });
+  it('giống hệt → false (không đổi gì)', () =>
+    expect(isCaseOnlyChange('Slide', 'Slide')).toBe(false));
+  it('khác nội dung thật → false (đổi tên thường)', () => {
+    expect(isCaseOnlyChange('Slide', 'Slide bài giảng')).toBe(false);
+    expect(isCaseOnlyChange('Luật Công chứng', 'Luật Đất đai')).toBe(false);
+  });
 });

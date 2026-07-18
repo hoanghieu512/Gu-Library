@@ -8,6 +8,13 @@ export function validateFolderName(raw: string): NameResult {
   return { ok: true, value };
 }
 
+// Đổi tên CHỈ khác hoa/thường của chính nó ("Slide"→"slide", "Luật Công chứng"→"Luật Công Chứng").
+// Trên đĩa Samsung case-insensitive, renameDocument thẳng sang biến thể này bị coi là "tên đích đã
+// tồn tại" (chính nó) → provider tự đẻ "(1)". Cần đổi 2 bước (qua tên tạm) → folderRepo dùng cờ này.
+export function isCaseOnlyChange(oldName: string, newName: string): boolean {
+  return oldName !== newName && oldName.toLowerCase() === newName.toLowerCase();
+}
+
 // Câu báo trùng tên theo ngữ cảnh (dùng chung Tạo + Đổi tên).
 export function dupFolderError(noun: string): string {
   return noun === 'môn' ? 'Môn đã tồn tại gòi dợ iu' : 'Thư mục cùng tên gòi dợ iu';
