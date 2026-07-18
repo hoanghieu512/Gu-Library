@@ -3,9 +3,9 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonInput, IonButton, IonFooter,
 } from '@ionic/react';
-import { useParams, useHistory } from 'react-router-dom';
-import mascotSad from '../assets/gu-mascot-sad.svg';
+import { useParams } from 'react-router-dom';
 import PdfView from '../components/PdfView';
+import SadPandaState from '../components/SadPandaState';
 import { readPdfBytes } from '../storage/safFile';
 import { getResumePage, recordProgress } from '../reading/store';
 import { getBaseScale } from '../viewer/fontScale';
@@ -22,7 +22,6 @@ function baseName(contentUri: string): string {
 
 export default function ViewerPage() {
   const { uri } = useParams<{ uri: string }>();
-  const history = useHistory();
   const docUri = decodeUriParam(uri);
   const name = baseName(docUri);
 
@@ -92,20 +91,8 @@ export default function ViewerPage() {
         {err && (
           // Empty-state khi không mở được tài liệu (v1.4.1 phát hiện OOM/file nặng) — panda buồn +
           // câu thông báo giọng-Gú (giữ nguyên lời) + nút về Trang chủ. KHÔNG nhãn "404".
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            height: '100%', padding: 24, textAlign: 'center',
-          }}>
-            <img src={mascotSad} alt="" style={{ width: 150, height: 'auto', marginBottom: 18 }} />
-            <h2 className="gu-title" style={{ fontSize: 22, margin: '0 0 10px', color: 'var(--gu-brown-deep)' }}>Uh oh</h2>
-            <p style={{ fontSize: 15, color: 'var(--gu-brown)', maxWidth: 300, lineHeight: 1.55, margin: '0 0 24px' }}>
-              Không mở được tài liệu này gòi dợ iu — có thể file quá nặng, liên hệ với chùn để
-              tìm cách fix ngay nà!
-            </p>
-            <IonButton shape="round" onClick={() => history.push('/home')} style={{ textTransform: 'none' }}>
-              Về Trang chủ
-            </IonButton>
-          </div>
+          // Dùng chung SadPandaState (tách v1.23.1) với màn duyệt (thư mục bị xóa).
+          <SadPandaState message="Không mở được tài liệu này gòi dợ iu — có thể file quá nặng, liên hệ với chùn để tìm cách fix ngay nà!" />
         )}
         {!err && !ready && <p className="ion-padding">Đang tải PDF…</p>}
         {ready && (

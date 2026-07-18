@@ -26,6 +26,7 @@ import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ChooseMonSheet from '../import/ChooseMonSheet';
+import SadPandaState from '../components/SadPandaState';
 import { coalesceKhoChanged } from '../lib/khoEvents';
 import { perfStart, perfEnd, afterPaint } from '../perf/perf';
 
@@ -277,7 +278,11 @@ export default function FolderPage() {
       </IonHeader>
       <IonContent className="ion-padding">
         {!listing && !error && <p>Đang tải…</p>}
-        {error && <p style={{ color: 'var(--ion-color-danger)' }}>Không đọc được thư mục: {error}</p>}
+        {/* Thư mục bị xóa từ máy khác (Syncthing rải về) trong lúc đang đứng bên trong → listFolder
+            ném FileNotFound. Thay dòng lỗi trần bằng empty-state panda thân thiện + nút về Home. */}
+        {error && (
+          <SadPandaState message="Thư mục đã bị xóa gòi dợ iu! Nếu là xóa nhầm thì liên hệ chùn để khôi phục." />
+        )}
         {listing && listing.folders.length === 0 && listing.documents.length === 0 && listing.pending.length === 0 && (
           <p style={{ color: 'var(--gu-grey)' }}>Thư mục trống.</p>
         )}
