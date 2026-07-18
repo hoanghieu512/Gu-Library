@@ -7,16 +7,12 @@ function colorFor(name: string, explicit?: string): string {
   return PALETTE[h % PALETTE.length];
 }
 
-export default function MonSwatch({ name, color, icon }: { name: string; color?: string; icon?: string }) {
+// Avatar môn (v1.24.0) = Ô MÀU THUẦN, KHÔNG chữ cái. Màu là thứ Gú chủ động gán qua picker màu
+// môn (v1.5.0) và nhớ; chữ cái là thứ máy tự suy — thường suy SAI/trùng với tên luật tiếng Việt
+// (3 môn "Luật …" đều ra "L"). Bỏ cái tự-suy-sai, giữ cái người-chủ-động. KHÔNG đoán chữ "thông minh".
+export default function MonSwatch({ name, color }: { name: string; color?: string }) {
   const bg = colorFor(name, color);
-  // icon override (từ _mon.json) cho phép một môn dùng chữ khác chữ cái đầu —
-  // vd "Luật Đất đai" → "Đ" để khỏi đụng "Luật Công chứng" ("L").
-  const initial = (icon?.trim() || name.trim()[0] || '?').toUpperCase();
   return (
-    <div style={{
-      width: 44, height: 44, borderRadius: 8, background: bg, color: '#fff',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: 20, flex: '0 0 auto',
-    }}>{initial}</div>
+    <div style={{ width: 44, height: 44, borderRadius: 8, background: bg, flex: '0 0 auto' }} />
   );
 }

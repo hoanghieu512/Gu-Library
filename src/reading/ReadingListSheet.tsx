@@ -4,6 +4,7 @@ import {
   IonList, IonItem, IonItemSliding, IonItemOptions, IonItemOption, IonLabel, IonButton,
 } from '@ionic/react';
 import type { ReadingItem } from './store';
+import { readingLocator } from '../storage/folderHeader';
 
 interface Props {
   isOpen: boolean;
@@ -54,7 +55,7 @@ export default function ReadingListSheet({ isOpen, items, onOpen, onRemove, onCl
                   >
                     <IonLabel>
                       <h2 style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700 }}>{item.name}</h2>
-                      <p style={{ fontSize: 13, color: fg }}>{item.monName}</p>
+                      <p style={{ fontSize: 13, color: fg, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{readingLocator(item.path)}</p>
                       <p style={{ fontSize: 12, color: fg }}>Trang {item.page} / {item.total}</p>
                     </IonLabel>
                   </IonItem>
