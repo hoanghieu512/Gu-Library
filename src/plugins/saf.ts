@@ -13,6 +13,8 @@ export interface SafPlugin {
   listFolder(options: { uri: string }): Promise<{ entries: SafEntry[] }>;
   readFile(options: { uri: string }): Promise<{ data: string }>;
   readFileBase64(options: { uri: string }): Promise<{ data: string }>;
+  probeReadable(options: { uri: string }): Promise<void>; // mở thử (v1.26.0) — gọi trước fetch PDF, gone/thu-quyền → reject
+
   copyToDir(options: { srcUri: string; dirUri: string; name: string }): Promise<{ uri: string; name: string }>;
   /* TEMP M6 spike */
   ensureDir(options: { parentUri: string; name: string }): Promise<{ uri: string }>;
