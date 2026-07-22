@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.27.0] — 2026-07-23 — Split-screen Viewer (MVP): xem 2 tài liệu song song
+### Added
+- **Chia đôi màn hình trong Viewer** (feedback Gú: xem slide bài giảng + tra điều luật song song, khỏi mở app khác). Nút trên header Viewer → chia 50/50 trên/dưới (điện thoại cầm dọc): **pane trên GIỮ tài liệu + đúng trang đang đọc** (component không remount qua toggle); **pane dưới** chọn một tài liệu khác trong kho để tra cứu → hai PDF hiển thị cùng lúc, **cuộn/lật độc lập**. Thoát chia đôi (nút header hoặc back cứng) → về pane trên full-screen đúng trang; tài liệu tra cứu bỏ đi.
+- **Chỉ pane TRÊN ghi reading-state** ("Đang đọc dở"/nhớ trang). Pane dưới là tra cứu ngang — KHÔNG ghi, không làm bẩn "Đang đọc dở" (verify: cuộn pane dưới không cập nhật trang trong reading).
+- Chọn file pane dưới bằng `DocPicker` (mới) — duyệt CÂY `khoSnapshot` có sẵn trong RAM (môn → thư mục con + tài liệu → chạm = chọn), KHÔNG gọi SAF mới, KHÔNG đẻ route điều hướng.
+### Changed
+- Tách `DocPane` (mới) = load + render một pane: read-path v1.26.0 (probe + guard-rỗng + stream) + `PdfView` (windowing/pinch-zoom) + **"chết cho đẹp" NGAY trong pane** khi file lỗi/move-xóa. Dùng chung cho pane chính (Viewer thường + split) lẫn pane tra cứu. Pane tra cứu lỗi → panda nút **"Chọn tài liệu khác"** (không đá cả Viewer về Home); pane chính + app vẫn sống (verify Flip4: xóa file pane dưới → panda pane dưới, top + app RUNNING).
+- `ViewerPage` chuyển sang dùng `DocPane` cho pane chính (không đổi hành vi 1-pane: resume trang, footer nhảy-trang, pinch-zoom, tên hiển thị). `SadPandaState` thêm prop `action`/`compact` (tái dùng cho pane tra cứu). Back cứng Android: đang split → thoát split (nuốt), không rời Viewer.
+### Chưa làm (chờ friction thật)
+- Divider kéo đổi tỉ lệ; nhớ "file tra cứu gần nhất"; layout trái/phải khi xoay ngang; đổi file pane dưới tại chỗ (hiện thoát rồi vào lại). Spike bộ nhớ đã PASS Flip4 8GB + T616 6GB (2 pane render, 0 kill, không leak). **Gate trước khi ship cho Gú (không phải gate merge): verify S20 FE (res cao + 6GB) — ô chưa máy nào đo.**
+
 ## [1.26.0] — 2026-07-22 — Đổi read-path PDF: base64-qua-bridge → fetch local-server (trả nợ OOM v1.4.1)
 ### Fixed
 - **File PDF nặng (~64MB) giờ MỞ được ở chế độ xem thường** — trước đây báo lỗi "file quá nặng" (nợ OOM v1.4.1). Gốc: `Saf.readFileBase64` đọc cả file rồi `Base64.encodeToString` dựng một **String base64 UTF-16 ~170MB** trên Dalvik/Java heap (cap ~256MB) → OutOfMemoryError TRƯỚC cả khi render. (Spike split-screen xác nhận đây là trần cứng cho cả single-viewer.)
