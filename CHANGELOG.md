@@ -2,6 +2,13 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.26.0] — 2026-07-22 — Đổi read-path PDF: base64-qua-bridge → fetch local-server (trả nợ OOM v1.4.1)
+### Fixed
+- **File PDF nặng (~64MB) giờ MỞ được ở chế độ xem thường** — trước đây báo lỗi "file quá nặng" (nợ OOM v1.4.1). Gốc: `Saf.readFileBase64` đọc cả file rồi `Base64.encodeToString` dựng một **String base64 UTF-16 ~170MB** trên Dalvik/Java heap (cap ~256MB) → OutOfMemoryError TRƯỚC cả khi render. (Spike split-screen xác nhận đây là trần cứng cho cả single-viewer.)
+### Changed
+- `readPdfBytes` đổi transport: `Capacitor.convertFileSrc(content://…)` → `fetch` qua **WebViewLocalServer** của Capacitor. Server **STREAM** InputStream của content-URI (8KB/lần, KHÔNG dựng String, KHÔNG buffer cả file ở native); file chỉ materialize thành **ArrayBuffer trong renderer** (Chromium — không dính cap 256MB của Dalvik). Bỏ đường base64. Đo Flip4 mở file 64MB/398 trang: **Java heap 10MB** (trước cần alloc 170MB), PSS 226MB, logcat 0 read-OOM.
+- CHỈ đổi 1 hàm `readPdfBytes` (`safFile.ts`) — `PdfView` (windowing/pinch-zoom/khử-chớp), `ViewerPage`, luồng lỗi, nhớ-trang GIỮ NGUYÊN. Luồng "chết cho đẹp" nguyên vẹn: fetch thất bại (quyền SAF thu hồi / file move-xóa) → throw → empty-state; lưới OOM renderer (`onRenderProcessGone` → recreate) vẫn còn làm lớp đỡ. Native `Saf.readFileBase64` giữ lại (không còn dùng cho PDF). Không đụng split-screen. Không dep/token mới.
+
 ## [1.25.1] — 2026-07-18 — Fix đổi tên thư mục sang biến thể hoa/thường của chính nó ra "(1)"
 ### Fixed
 - Đổi tên môn/thư mục con sang **biến thể CHỈ khác hoa/thường của chính nó** ("Luật Công chứng" → "Luật Công Chứng", "Slide" → "slide") trước đây ra **"… (1)"**. Gốc: đĩa Samsung case-insensitive → `renameDocument` thẳng sang tên đích bị coi là "đã tồn tại" (chính thư mục đang đổi) → provider tự đẻ "(1)". Nay khi phát hiện case-only (`isCaseOnlyChange`, TDD) → đổi **2 bước**: qua tên tạm duy nhất (`<tên>-gu-case-<timestamp>`, không đụng ai) rồi mới sang tên đích (FS lúc này thấy tên đích trống) → ra ĐÚNG tên, không "(1)". Lỗi có sẵn từ rename v1.22.0, lộ khi QA v1.25.0. Không đụng native, không dep mới.

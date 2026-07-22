@@ -1,8 +1,23 @@
-import { Saf } from '../plugins/saf';
-import { base64ToBytes } from './bytes';
+import { Capacitor } from '@capacitor/core';
 
-// Đọc một file (PDF) trong kho qua SAF content-URI -> bytes cho pdf.js.
+// Đọc một file (PDF) trong kho -> bytes cho pdf.js.
+//
+// v1.26.0 — ĐỔI READ-PATH (trả nợ OOM v1.4.1): trước đây `Saf.readFileBase64` đọc cả file rồi
+// `Base64.encodeToString` dựng một String base64 KHỔNG LỒ (UTF-16, ~2× kích thước base64) trên
+// Dalvik/Java heap (cap ~256MB). File luật ~64MB → cần alloc ~170MB String → OutOfMemoryError
+// TRƯỚC cả khi render (spike split-screen xác nhận đây là trần cứng, cả single-viewer).
+//
+// Nay đọc qua LOCAL-SERVER của Capacitor: `convertFileSrc` map content:// → URL
+// `/_capacitor_content_/…`; `fetch` → WebViewLocalServer STREAM InputStream của content-URI
+// (8KB/lần, KHÔNG dựng String, KHÔNG buffer cả file ở native) → `arrayBuffer()` materialize
+// file thành ArrayBuffer trong RENDERER (Chromium, không dính cap 256MB của Dalvik). Không base64.
+//
+// Luồng lỗi giữ NGUYÊN: fetch thất bại (quyền SAF thu hồi / file bị move-xóa) → throw → ViewerPage
+// catch → empty-state "chết cho đẹp". Lưới OOM renderer (onRenderProcessGone → recreate) vẫn còn.
 export async function readPdfBytes(uri: string): Promise<Uint8Array> {
-  const { data } = await Saf.readFileBase64({ uri });
-  return base64ToBytes(data);
+  const url = Capacitor.convertFileSrc(uri);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`đọc file thất bại: HTTP ${res.status}`);
+  const buf = await res.arrayBuffer();
+  return new Uint8Array(buf);
 }
