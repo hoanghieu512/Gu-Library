@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
-  IonInput, IonButton, IonFooter,
+  IonInput, IonButton, IonFooter, IonIcon,
 } from '@ionic/react';
+import { browsersOutline, contractOutline } from 'ionicons/icons';
 import { useParams } from 'react-router-dom';
-import PdfView from '../components/PdfView';
-import SadPandaState from '../components/SadPandaState';
+import DocPane from '../components/DocPane';
+import DocPicker from '../components/DocPicker';
 import { useGuToast } from '../lib/useGuToast';
-import { readPdfBytes } from '../storage/safFile';
 import { getResumePage, recordProgress } from '../reading/store';
 import { getBaseScale } from '../viewer/fontScale';
 import { resolveDocDisplayName } from '../storage/docRepo';
@@ -26,16 +26,18 @@ export default function ViewerPage() {
   const docUri = decodeUriParam(uri);
   const name = baseName(docUri);
 
-  const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [initialPage, setInitialPage] = useState<number | null>(null);
   const [jumpTo, setJumpTo] = useState<number | undefined>(undefined);
   const [target, setTarget] = useState('');
-  const [err, setErr] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [flagged, setFlagged] = useState(false);
   const [baseScale, setBaseScale] = useState<number | null>(null);
   const [title, setTitle] = useState(name); // tên hiển thị (đổi tên nếu có) > tên file
+  // Split-screen (v1.27.0): pane trên = tài liệu này (ghi reading-state); pane dưới = tài liệu tra
+  // cứu (KHÔNG ghi reading-state). `bottomUri` null = đang chọn file cho pane dưới (DocPicker).
+  const [split, setSplit] = useState(false);
+  const [bottomUri, setBottomUri] = useState<string | null>(null);
   const lastSaved = useRef(0);
   const { toastResult, node: toastNode } = useGuToast();
 
@@ -51,16 +53,14 @@ export default function ViewerPage() {
         if (!alive) return;
         setBaseScale(base);
         setInitialPage(resumePage);
-        setBytes(await readPdfBytes(docUri));
         setFlagged(await isPrintFlagged(docUri));
-      } catch (e: unknown) {
-        if (alive) setErr(String(e instanceof Error ? e.message : e));
-      }
+      } catch { /* lỗi meta nhẹ → DocPane vẫn tự thử đọc + báo "chết cho đẹp" nếu file hỏng */ }
     })();
     return () => { alive = false; };
   }, [docUri]);
 
-  const onPageChange = (page: number, totalPages: number) => {
+  // Chỉ pane TRÊN ghi reading-state ("Đang đọc dở" / nhớ trang). Pane dưới là tra cứu → không ghi.
+  const onTopPage = (page: number, totalPages: number) => {
     setCurrentPage(page);
     setTotal(totalPages);
     if (page === lastSaved.current) return;
@@ -74,7 +74,21 @@ export default function ViewerPage() {
     setTarget('');
   };
 
-  const ready = bytes && initialPage != null && baseScale != null;
+  const exitSplit = () => { setSplit(false); setBottomUri(null); };
+  const ready = initialPage != null && baseScale != null;
+
+  // Back cứng Android: đang split → thoát split (nuốt), không rời Viewer; ngoài split → nhường
+  // handler điều hướng (về folder/home). Cùng cơ chế priority-register như FolderPage v1.6.0.
+  const splitRef = useRef(false);
+  useEffect(() => { splitRef.current = split; }, [split]);
+  useEffect(() => {
+    const onBack = (ev: Event) => {
+      (ev as CustomEvent<{ register: (p: number, h: (next: () => void) => void) => void }>).detail
+        .register(60, (next) => { if (splitRef.current) { setSplit(false); setBottomUri(null); } else next(); });
+    };
+    document.addEventListener('ionBackButton', onBack);
+    return () => document.removeEventListener('ionBackButton', onBack);
+  }, []);
 
   return (
     <IonPage>
@@ -85,6 +99,13 @@ export default function ViewerPage() {
             {title}
           </IonTitle>
           <IonButtons slot="end">
+            {/* Chia đôi / thoát chia đôi — quyết định sau khi đã mở tài liệu (v1.27.0). */}
+            <IonButton
+              onClick={() => (split ? exitSplit() : setSplit(true))}
+              aria-label={split ? 'Thoát chia đôi' : 'Chia đôi màn hình'}
+            >
+              <IonIcon slot="icon-only" icon={split ? contractOutline : browsersOutline} />
+            </IonButton>
             <PrintFlagButton docUri={docUri} flagged={flagged} onChanged={() => {
               setFlagged((v) => !v);
               toastResult(flagged ? 'Đã bỏ đánh dấu in gòi nha!' : 'Đã đánh dấu cần in gòi nha!', true);
@@ -92,25 +113,46 @@ export default function ViewerPage() {
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent>
-        {err && (
-          // Empty-state khi không mở được tài liệu (v1.4.1 phát hiện OOM/file nặng) — panda buồn +
-          // câu thông báo giọng-Gú (giữ nguyên lời) + nút về Trang chủ. KHÔNG nhãn "404".
-          // Dùng chung SadPandaState (tách v1.23.1) với màn duyệt (thư mục bị xóa).
-          <SadPandaState message="Không mở được tài liệu này gòi dợ iu — có thể file quá nặng, liên hệ với chùn để tìm cách fix ngay nà!" />
-        )}
-        {!err && !ready && <p className="ion-padding">Đang tải PDF…</p>}
+      <IonContent scrollY={false}>
+        {!ready && <p className="ion-padding">Đang tải PDF…</p>}
         {ready && (
-          <PdfView
-            bytes={bytes}
-            initialPage={initialPage}
-            baseScale={baseScale}
-            onPageChange={onPageChange}
-            jumpTo={jumpTo}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Pane TRÊN — giữ mounted qua toggle split (key ổn định) → giữ đúng trang đang đọc. */}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <DocPane
+                key="top"
+                docUri={docUri}
+                initialPage={initialPage}
+                baseScale={baseScale}
+                onPageChange={onTopPage}
+                jumpTo={jumpTo}
+              />
+            </div>
+            {split && (
+              <>
+                <div style={{ height: 4, background: 'var(--gu-brown)', flexShrink: 0 }} />
+                {/* Pane DƯỚI — tra cứu: chọn file (DocPicker) rồi render; KHÔNG ghi reading-state. */}
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  {bottomUri ? (
+                    <DocPane
+                      key={`bottom-${bottomUri}`}
+                      docUri={bottomUri}
+                      initialPage={1}
+                      baseScale={baseScale}
+                      compactError
+                      onErrorAction={{ label: 'Chọn tài liệu khác', onClick: () => setBottomUri(null) }}
+                    />
+                  ) : (
+                    <DocPicker onPick={(u) => setBottomUri(u)} />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         )}
       </IonContent>
-      {ready && !err && (
+      {/* Footer nhảy-trang chỉ ở chế độ 1 pane (split thì mỗi pane tự cuộn). */}
+      {ready && !split && (
         <IonFooter>
           <IonToolbar>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px' }}>
