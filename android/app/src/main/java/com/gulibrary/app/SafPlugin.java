@@ -153,6 +153,25 @@ public class SafPlugin extends Plugin {
         }
     }
 
+    // Probe "có mở đọc được không" (v1.26.0) — GỌI TRƯỚC khi đọc PDF qua local-server (fetch).
+    // Vì sao cần: readPdfBytes mới fetch content-URI qua WebViewLocalServer của Capacitor; nếu file
+    // đã bị move/xóa (FileNotFoundException) hoặc quyền SAF thu hồi (SecurityException → stream null),
+    // local-server ném lỗi KHÔNG bắt trong shouldInterceptRequest → CRASH cả app (main-process, lưới
+    // onRenderProcessGone không đỡ). Probe mở+chạm 1 byte trong try/catch Throwable → reject êm →
+    // JS (readPdfBytes) throw → ViewerPage catch → empty-state "chết cho đẹp". File OK: resolve, rẻ.
+    @PluginMethod
+    public void probeReadable(PluginCall call) {
+        String uriStr = call.getString("uri");
+        if (uriStr == null) { call.reject("uri required"); return; }
+        try (java.io.InputStream is = getContext().getContentResolver().openInputStream(android.net.Uri.parse(uriStr))) {
+            if (is == null) { call.reject("không mở được file"); return; }
+            is.read(); // chạm 1 byte → chắc chắn stream mở thật (không chỉ dựng đối tượng)
+            call.resolve();
+        } catch (Throwable t) {
+            call.reject("không mở được file: " + t.getMessage());
+        }
+    }
+
     // Mime đúng theo đuôi. PHẢI truyền mime khớp đuôi cho createFile: nếu để
     // "application/octet-stream", SAF provider của Samsung tự gắn ".tmp" vào file
     // trên đĩa (đuôi không khớp mime) → worker bỏ qua → kẹt. (getName() còn nói dối,
