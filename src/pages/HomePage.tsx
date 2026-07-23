@@ -10,7 +10,7 @@ import { App } from '@capacitor/app';
 import SyncPill from '../components/SyncPill';
 import SearchShortcut from '../components/SearchShortcut';
 import ContinueReadingCard from '../components/ContinueReadingCard';
-import MonCard from '../components/MonCard';
+import MonShelf from '../components/MonShelf';
 import ReadingListSheet from '../reading/ReadingListSheet';
 import CreateFolderModal from '../components/CreateFolderModal';
 import RenameModal from '../components/RenameModal';
@@ -18,13 +18,11 @@ import DeleteFolderConfirm, { type DeleteTarget } from '../components/DeleteFold
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { listMon, createMon } from '../storage/repo';
 import { renameFolder } from '../storage/folderRepo';
-import { UNFILED } from '../import/prefix';
 import { getRootUri } from '../storage/repo';
 import type { ReadingItem } from '../reading/store';
 import { listReading, removeReading } from '../reading/store';
 import { migrateOnce } from '../reading/migrate';
 import type { Mon } from '../storage/types';
-import { listInboxByMon } from '../import/inboxRepo';
 import { onKhoChanged } from '../lib/khoEvents';
 import { useGuToast } from '../lib/useGuToast';
 import { countPrintFlagged } from '../print/printRepo';
@@ -38,7 +36,6 @@ export default function HomePage() {
   const [mons, setMons] = useState<Mon[]>([]);
   const [hasRoot, setHasRoot] = useState<boolean | null>(null);
   const [reading, setReading] = useState<ReadingItem[]>([]);
-  const [inboxMap, setInboxMap] = useState<Map<string, number>>(new Map());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [createMonOpen, setCreateMonOpen] = useState(false);
   const [renameMon, setRenameMon] = useState<Mon | null>(null);
@@ -59,7 +56,6 @@ export default function HomePage() {
     } else {
       setMons([]);
     }
-    try { setInboxMap(await listInboxByMon()); } catch { setInboxMap(new Map()); }
     try { setPrintCount(await countPrintFlagged()); } catch { setPrintCount(0); }
     setRefreshTick((t) => t + 1);
     // Cold start: Trang chủ vẽ xong danh sách lần đầu (perfColdReady chỉ tính 1 lần/phiên).
@@ -163,13 +159,10 @@ export default function HomePage() {
             </div>
             {mons.length === 0
               ? <p style={{ color: 'var(--gu-grey)' }}>Chưa có môn nào trong kho.</p>
-              : mons.map((m) => (
-                <MonCard
-                  key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} refreshKey={refreshTick}
-                  onRename={m.name === UNFILED ? undefined : () => setRenameMon(m)}
-                  onDelete={m.name === UNFILED ? undefined : () => setDeleteTarget({ uri: m.uri, name: m.name, noun: 'môn' })}
-                />
-              ))}
+              : <MonShelf
+                  mons={mons} refreshKey={refreshTick}
+                  onOpen={(uri) => history.push(`/folder/${encodeUriParam(uri)}`)}
+                />}
 
           </>
         )}
