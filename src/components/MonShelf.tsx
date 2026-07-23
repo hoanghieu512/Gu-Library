@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Mon } from '../storage/types';
 import { getKhoSnapshot, foldSummary } from '../storage/khoSnapshot';
+import { listInboxByMon } from '../import/inboxRepo';
 import { monColor } from './MonSwatch';
 import { UNFILED } from '../import/prefix';
 import { spineWidth, packShelves } from '../home/shelf';
@@ -138,13 +139,16 @@ export default function MonShelf({ mons, onOpen, refreshKey = 0 }: {
 
   useEffect(() => {
     let alive = true;
-    getKhoSnapshot().then((snap) => {
+    // pending "môn có file ⏳" = file chưa-ghép TRONG cây môn (foldSummary.pending) + file đã import
+    // đang chờ worker ở `_inbox/` gốc kho (listInboxByMon, theo tiền tố tên môn). PHẢI cộng cả hai —
+    // file import qua app nằm ở `_inbox/`, không trong folder môn (bug Beat 2: thiếu nguồn _inbox).
+    Promise.all([getKhoSnapshot(), listInboxByMon().catch(() => new Map<string, number>())]).then(([snap, inbox]) => {
       if (!alive) return;
       const m = new Map<string, Counts>();
       for (const mon of mons) {
         const f = snap.monFolders.get(mon.uri);
         const s = f ? foldSummary(f) : { documents: 0, pending: 0 };
-        m.set(mon.uri, { docs: s.documents, pending: s.pending });
+        m.set(mon.uri, { docs: s.documents, pending: s.pending + (inbox.get(mon.name) ?? 0) });
       }
       setCounts(m);
     }).catch(() => { /* giữ counts cũ */ });
