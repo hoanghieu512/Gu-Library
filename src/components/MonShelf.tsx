@@ -5,6 +5,7 @@ import { getKhoSnapshot, foldSummary } from '../storage/khoSnapshot';
 import { monColor } from './MonSwatch';
 import { UNFILED } from '../import/prefix';
 import { spineWidth, packShelves } from '../home/shelf';
+import { spineLabel } from '../home/spineLabel';
 
 // Home "Tủ sách luật" — Beat 2: DA SÁCH (visual). Khung + layout động = Beat 1 (shelf.ts, KHÔNG đụng).
 // Beat này biến gáy KHỐI TRƠN → gáy sách luật: da nâu tint theo màu môn + band nhũ vàng tên môn chạy
@@ -33,14 +34,17 @@ function LeatherSpine({ mon, width, docs, pending, onOpen }: {
   const base = monColor(mon.name, mon.meta.color);
   return (
     <div style={{ position: 'relative', width, height: SHELF_H, flex: '0 0 auto' }}>
-      {/* Nơ pending ló đầu gáy (chỉ khi môn còn file chờ) */}
+      {/* Nơ pending ló đầu gáy + SỐ file chờ ở giữa (chỉ khi môn còn file chờ) */}
       {pending > 0 && (
-        <div aria-hidden style={{
-          position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)',
-          width: 10, height: 22, background: RIBBON, zIndex: 2,
-          clipPath: 'polygon(0 0,100% 0,100% 100%,50% 74%,0 100%)',
+        <div style={{
+          position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+          width: 18, height: 28, background: RIBBON, zIndex: 3,
+          clipPath: 'polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)',
           boxShadow: '0 1px 2px rgba(0,0,0,.4)',
-        }} />
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 3,
+        }}>
+          <span style={{ color: '#fff', fontWeight: 700, lineHeight: 1, fontSize: pending >= 10 ? 9 : 12 }}>{pending}</span>
+        </div>
       )}
       <div
         onClick={() => onOpen(mon.uri)}
@@ -65,12 +69,15 @@ function LeatherSpine({ mon, width, docs, pending, onOpen }: {
           background: 'linear-gradient(90deg, rgba(0,0,0,.16), rgba(0,0,0,.04))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
+          {/* Tên gáy: bỏ tiền tố "Luật " (spineLabel) + WRAP nhiều cột dọc (whiteSpace normal) thay
+              ellipsis — thu cỡ chữ theo bề dày gáy; ellipsis KHÔNG dùng (né cắt cụt giữa chữ). */}
           <span style={{
             writingMode: 'vertical-rl', textOrientation: 'mixed',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxHeight: '100%',
-            fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: width < 30 ? 11 : 13,
-            color: GOLD, textShadow: '0 1px 1px rgba(0,0,0,.55)', letterSpacing: 0.3,
-          }}>{mon.name}</span>
+            whiteSpace: 'normal', wordBreak: 'break-word', overflow: 'hidden', maxHeight: '100%',
+            fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: width < 32 ? 9.5 : (width < 50 ? 11 : 12.5),
+            color: GOLD, textShadow: '0 1px 1px rgba(0,0,0,.55)', letterSpacing: 0.2,
+            lineHeight: 1.06, textAlign: 'center',
+          }}>{spineLabel(mon.name)}</span>
         </div>
         {/* Band số tài liệu đáy (dập nhũ) */}
         <div style={{
@@ -157,28 +164,36 @@ export default function MonShelf({ mons, onOpen, refreshKey = 0 }: {
   const rows = width > 0 ? packShelves(widths, width, GAP) : [mons.map((_, i) => i)];
 
   return (
-    <div ref={ref} style={{ padding: '4px 12px 8px' }}>
-      {rows.map((row, ri) => (
-        <div key={ri} style={{ marginBottom: 8 }}>
-          {/* Lòng kệ gỗ ấm — spines đứng trên; khe + phần sau bookend lộ gỗ (không tối trung tính) */}
-          <div style={{
-            display: 'flex', alignItems: 'flex-end', gap: GAP, height: SHELF_H,
-            background: WOOD, borderRadius: '3px 3px 0 0', paddingLeft: 2,
-            boxShadow: 'inset 0 6px 8px rgba(0,0,0,.28)', overflow: 'visible',
-          }}>
-            {row.map((idx) => {
-              const m = mons[idx];
-              const c = counts.get(m.uri) ?? { docs: 0, pending: 0 };
-              return m.name === UNFILED
-                ? <PaperSpine key={m.uri} mon={m} width={widths[idx]} docs={c.docs} onOpen={onOpen} />
-                : <LeatherSpine key={m.uri} mon={m} width={widths[idx]} docs={c.docs} pending={c.pending} onOpen={onOpen} />;
-            })}
-            {ri === rows.length - 1 && <Bookend />}
+    // Khung tủ gỗ bao 4 cạnh (viền dày) — bọc mọi hộc → cảm giác "tủ sách" thật.
+    <div style={{
+      margin: '4px 12px 10px', borderRadius: 7, padding: 7,
+      background: 'linear-gradient(135deg, #825731, #5b3d1c)',
+      boxShadow: '0 5px 13px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15)',
+    }}>
+      <div ref={ref}>
+        {rows.map((row, ri) => (
+          <div key={ri}>
+            {/* Mỗi tầng = HỘC có chiều sâu: lòng gỗ ấm + bóng đổ vào trong (đỉnh + 2 thành) +
+                headroom trên để nơ pending ló lên (không đè plank tầng trên). */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-end', gap: GAP, minHeight: SHELF_H + 12, paddingTop: 12,
+              background: WOOD, overflow: 'visible',
+              boxShadow: 'inset 0 7px 10px rgba(0,0,0,.5), inset 7px 0 9px rgba(0,0,0,.32), inset -7px 0 9px rgba(0,0,0,.32)',
+            }}>
+              {row.map((idx) => {
+                const m = mons[idx];
+                const c = counts.get(m.uri) ?? { docs: 0, pending: 0 };
+                return m.name === UNFILED
+                  ? <PaperSpine key={m.uri} mon={m} width={widths[idx]} docs={c.docs} onOpen={onOpen} />
+                  : <LeatherSpine key={m.uri} mon={m} width={widths[idx]} docs={c.docs} pending={c.pending} onOpen={onOpen} />;
+              })}
+              {ri === rows.length - 1 && <Bookend />}
+            </div>
+            {/* Ván đáy hộc (mặt gỗ trên có ánh sáng, dưới có bóng) */}
+            <div style={{ height: BOARD_H, background: 'linear-gradient(180deg, #8a5f2e, #5b3d1c)', boxShadow: '0 3px 4px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.18)' }} />
           </div>
-          {/* Ván kệ gỗ */}
-          <div style={{ height: BOARD_H, background: WOOD, borderRadius: 2, boxShadow: '0 2px 4px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.12)' }} />
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
