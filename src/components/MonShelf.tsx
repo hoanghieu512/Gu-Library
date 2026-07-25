@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Mon } from '../storage/types';
+import MonActionsSheet from './MonActionsSheet';
+import BookPress from './BookPress';
 import { getKhoSnapshot, foldSummary } from '../storage/khoSnapshot';
 import { listInboxByMon } from '../import/inboxRepo';
 import { monColor } from './MonSwatch';
@@ -22,17 +24,38 @@ const GOLD_DIM = '#cba152';
 const RIBBON = '#B5651D';
 const WOOD = 'linear-gradient(180deg, #6b4823, #4f3416)'; // lòng kệ gỗ ấm
 
-// Gờ gân (raised hub) — vạch ngang nổi ở đầu gáy.
+// Gờ gân (raised hub) — vạch ngang NỔI chia gáy thành ô, như sách đóng gáy thật.
 const hub: CSSProperties = {
-  height: 5, flex: '0 0 auto', marginTop: 2,
-  background: 'linear-gradient(rgba(255,255,255,.18), rgba(0,0,0,.30))',
-  boxShadow: '0 1px 1px rgba(0,0,0,.22)',
+  height: 7, flex: '0 0 auto',
+  background: 'linear-gradient(180deg, rgba(255,255,255,.24), rgba(0,0,0,.06) 45%, rgba(0,0,0,.4))',
+  borderTop: '1px solid rgba(255,255,255,.2)',
+  borderBottom: '1px solid rgba(0,0,0,.32)',
+  boxShadow: '0 1px 2px rgba(0,0,0,.28)',
 };
 
-function LeatherSpine({ mon, width, docs, pending, onOpen }: {
-  mon: Mon; width: number; docs: number; pending: number; onOpen: (uri: string) => void;
+function LeatherSpine({ mon, width, docs, pending, pulled, onTap, onLongPress }: {
+  mon: Mon; width: number; docs: number; pending: number; pulled: boolean;
+  onTap: () => void; onLongPress: () => void;
 }) {
   const base = monColor(mon.name, mon.meta.color);
+  // Tap = mở môn; NHẤN GIỮ (450ms) = rút sách + menu. Hủy long-press khi ngón di >10px (cuộn kệ) hoặc
+  // nhấc sớm. `fired` nuốt click phát sinh sau long-press → tap không lẫn (pattern FolderDocRow v1.6.0).
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const fired = useRef(false);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const clear = () => { if (timer.current) { clearTimeout(timer.current); timer.current = undefined; } };
+  useEffect(() => () => clear(), []);
+  const onTouchStart = (e: React.TouchEvent) => {
+    fired.current = false;
+    const t = e.touches[0]; start.current = { x: t.clientX, y: t.clientY };
+    clear();
+    timer.current = setTimeout(() => { fired.current = true; onLongPress(); }, 450);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0]; const s = start.current;
+    if (s && (Math.abs(t.clientX - s.x) > 10 || Math.abs(t.clientY - s.y) > 10)) clear();
+  };
+  const onClick = () => { if (fired.current) { fired.current = false; return; } onTap(); };
   return (
     <div style={{ position: 'relative', width, height: SHELF_H, flex: '0 0 auto' }}>
       {/* Nơ pending ló đầu gáy + SỐ file chờ ở giữa (chỉ khi môn còn file chờ) */}
@@ -48,72 +71,60 @@ function LeatherSpine({ mon, width, docs, pending, onOpen }: {
         </div>
       )}
       <div
-        onClick={() => onOpen(mon.uri)}
+        onClick={onClick}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={clear} onTouchCancel={clear}
         role="button"
         aria-label={`Mở môn ${mon.name} (${docs} tài liệu${pending > 0 ? `, ${pending} chờ xử lý` : ''})`}
         style={{
           width: '100%', height: '100%', cursor: 'pointer', overflow: 'hidden',
-          borderRadius: '4px 4px 0 0',
-          // Da nâu tint theo màu môn: sheen trụ (mép tối, giữa sáng) chồng trên màu môn.
-          background: `linear-gradient(90deg, rgba(0,0,0,.36), rgba(255,255,255,.12) 16%, rgba(255,255,255,.03) 52%, rgba(0,0,0,.40)), ${base}`,
-          boxShadow: 'inset 0 3px 4px rgba(255,255,255,.10), inset 0 -7px 10px rgba(0,0,0,.32)',
-          borderTop: '1px solid rgba(255,255,255,.16)',
+          borderRadius: '5px 5px 0 0',
+          // Da nâu THỰC hơn: (1) vân da mảnh (repeating-gradient mờ) + (2) sheen TRỤ tròn (mép tối →
+          // dải sáng lệch trái → mép tối) chồng trên (3) màu môn → gáy cong như da bò thật.
+          background: `
+            repeating-linear-gradient(0deg, rgba(0,0,0,.05), rgba(0,0,0,.05) 1px, rgba(255,255,255,.02) 1px, rgba(255,255,255,.02) 3px),
+            linear-gradient(90deg, rgba(0,0,0,.5), rgba(0,0,0,.14) 7%, rgba(255,255,255,.16) 22%, rgba(255,255,255,.03) 50%, rgba(0,0,0,.2) 80%, rgba(0,0,0,.52)),
+            ${base}`,
+          borderTop: '1px solid rgba(255,255,255,.2)',
           display: 'flex', flexDirection: 'column', alignItems: 'stretch',
+          // Rút sách: nhấc gáy lên + sáng + đổ bóng khi menu mở.
+          transition: 'transform .18s ease, filter .18s ease, box-shadow .18s ease',
+          transform: pulled ? 'translateY(-16px)' : 'none',
+          filter: pulled ? 'brightness(1.1)' : 'none',
+          position: 'relative', zIndex: pulled ? 4 : 1,
+          boxShadow: pulled
+            ? 'inset 0 3px 4px rgba(255,255,255,.10), 0 9px 16px rgba(0,0,0,.5)'
+            : 'inset 0 3px 4px rgba(255,255,255,.10), inset 0 -7px 10px rgba(0,0,0,.32)',
         }}
       >
-        <div style={hub} />
+        {/* Đầu gáy (head): mép sáng như đỉnh sách bắt sáng */}
+        <div style={{ height: 3, flex: '0 0 auto', background: 'linear-gradient(180deg, rgba(255,255,255,.28), transparent)' }} />
         <div style={{ ...hub, marginTop: 3 }} />
-        {/* Cartouche nhũ vàng: TÊN MÔN chạy dọc, ellipsis khi gáy mỏng/tên dài (không tràn/đè) */}
+        {/* Ô tên: khung nhũ vàng ĐÔI (tooling) + TÊN MÔN chạy dọc, wrap nhiều cột (không ellipsis giữa chữ) */}
         <div style={{
-          flex: 1, minHeight: 0, margin: '6px 3px', padding: '3px 0',
-          border: `1px solid rgba(231,197,110,.5)`, borderRadius: 2, overflow: 'hidden',
-          background: 'linear-gradient(90deg, rgba(0,0,0,.16), rgba(0,0,0,.04))',
+          flex: 1, minHeight: 0, margin: '5px 3px', padding: '4px 0',
+          border: `1px solid rgba(231,197,110,.6)`, borderRadius: 2, overflow: 'hidden',
+          boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.28), inset 0 0 0 3px rgba(231,197,110,.3)',
+          background: 'linear-gradient(90deg, rgba(0,0,0,.22), rgba(0,0,0,.05) 50%, rgba(0,0,0,.22))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {/* Tên gáy: bỏ tiền tố "Luật " (spineLabel) + WRAP nhiều cột dọc (whiteSpace normal) thay
-              ellipsis — thu cỡ chữ theo bề dày gáy; ellipsis KHÔNG dùng (né cắt cụt giữa chữ). */}
           <span style={{
             writingMode: 'vertical-rl', textOrientation: 'mixed',
             whiteSpace: 'normal', wordBreak: 'break-word', overflow: 'hidden', maxHeight: '100%',
             fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: width < 32 ? 9.5 : (width < 50 ? 11 : 12.5),
-            color: GOLD, textShadow: '0 1px 1px rgba(0,0,0,.55)', letterSpacing: 0.2,
+            color: GOLD, textShadow: '0 1px 1px rgba(0,0,0,.6)', letterSpacing: 0.2,
             lineHeight: 1.06, textAlign: 'center',
           }}>{spineLabel(mon.name)}</span>
         </div>
-        {/* Band số tài liệu đáy (dập nhũ) */}
+        <div style={hub} />
+        {/* Ô số tài liệu đáy (dập nhũ) */}
         <div style={{
-          margin: '0 3px 5px', padding: '2px 1px', borderRadius: 2, overflow: 'hidden',
-          borderTop: `1px solid rgba(231,197,110,.45)`, background: 'rgba(0,0,0,.30)', textAlign: 'center',
+          margin: '5px 3px 6px', padding: '3px 1px', borderRadius: 2, overflow: 'hidden',
+          border: '1px solid rgba(231,197,110,.4)', background: 'rgba(0,0,0,.34)', textAlign: 'center',
         }}>
           <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: 14, lineHeight: 1, color: GOLD, textShadow: '0 1px 1px rgba(0,0,0,.5)' }}>{docs}</div>
-          {/* Nhãn "TÀI LIỆU" chỉ khi gáy đủ rộng — gáy mỏng chỉ hiện số (né clip giữa chữ) */}
           {width >= 34 && <div style={{ fontSize: 6, letterSpacing: 0.4, color: GOLD_DIM, marginTop: 1, whiteSpace: 'nowrap' }}>TÀI LIỆU</div>}
         </div>
       </div>
-    </div>
-  );
-}
-
-// "Chưa phân loại" — GIỮ khối giấy đặc biệt Beat 1 (không da sách), phân biệt với môn có màu.
-function PaperSpine({ mon, width, docs, onOpen }: { mon: Mon; width: number; docs: number; onOpen: (uri: string) => void }) {
-  return (
-    <div
-      onClick={() => onOpen(mon.uri)}
-      role="button"
-      aria-label={`Mở ${mon.name} (${docs} tài liệu)`}
-      style={{
-        width, height: SHELF_H, flex: '0 0 auto', cursor: 'pointer', overflow: 'hidden',
-        background: 'var(--gu-paper-2)', border: '1px dashed var(--gu-grey)', borderRadius: '3px 3px 0 0',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 2px 6px',
-      }}
-    >
-      <span style={{
-        writingMode: 'vertical-rl', textOrientation: 'mixed', whiteSpace: 'nowrap', overflow: 'hidden',
-        textOverflow: 'ellipsis', maxHeight: SHELF_H - 34, fontFamily: 'var(--gu-serif)', fontStyle: 'italic',
-        fontWeight: 700, fontSize: 13, color: 'var(--gu-grey)',
-      }}>{mon.name}</span>
-      <span style={{ fontSize: 11, color: 'var(--gu-grey)', opacity: 0.75, lineHeight: 1 }}>{docs}</span>
     </div>
   );
 }
@@ -130,11 +141,17 @@ function Bookend() {
 
 interface Counts { docs: number; pending: number; }
 
-export default function MonShelf({ mons, onOpen, refreshKey = 0 }: {
-  mons: Mon[]; onOpen: (uri: string) => void; refreshKey?: number;
+export default function MonShelf({ mons, onOpen, onRename, onDelete, onColor, refreshKey = 0 }: {
+  mons: Mon[];
+  onOpen: (uri: string) => void;
+  onRename: (mon: Mon) => void;
+  onDelete: (mon: Mon) => void;
+  onColor: (mon: Mon) => void;
+  refreshKey?: number;
 }) {
   const [counts, setCounts] = useState<Map<string, Counts>>(new Map());
   const [width, setWidth] = useState(0);
+  const [menuMon, setMenuMon] = useState<Mon | null>(null); // môn đang mở menu (rút sách)
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -187,17 +204,33 @@ export default function MonShelf({ mons, onOpen, refreshKey = 0 }: {
               {row.map((idx) => {
                 const m = mons[idx];
                 const c = counts.get(m.uri) ?? { docs: 0, pending: 0 };
+                // "Chưa phân loại" = MÁY ÉP SÁCH (book press) — luôn cuối kệ (sortMons), thay khối giấy.
                 return m.name === UNFILED
-                  ? <PaperSpine key={m.uri} mon={m} width={widths[idx]} docs={c.docs} onOpen={onOpen} />
-                  : <LeatherSpine key={m.uri} mon={m} width={widths[idx]} docs={c.docs} pending={c.pending} onOpen={onOpen} />;
+                  ? <BookPress key={m.uri} uri={m.uri} count={c.docs} onOpen={onOpen} />
+                  : <LeatherSpine
+                      key={m.uri} mon={m} width={widths[idx]} docs={c.docs} pending={c.pending}
+                      pulled={menuMon?.uri === m.uri}
+                      onTap={() => onOpen(m.uri)}
+                      onLongPress={() => setMenuMon(m)}
+                    />;
               })}
-              {ri === rows.length - 1 && <Bookend />}
+              {/* Bookend chỉ khi phần tử cuối KHÔNG phải book press (press tự chặn cuối kệ). */}
+              {ri === rows.length - 1 && mons[row[row.length - 1]].name !== UNFILED && <Bookend />}
             </div>
             {/* Ván đáy hộc (mặt gỗ trên có ánh sáng, dưới có bóng) */}
             <div style={{ height: BOARD_H, background: 'linear-gradient(180deg, #8a5f2e, #5b3d1c)', boxShadow: '0 3px 4px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.18)' }} />
           </div>
         ))}
       </div>
+
+      {/* Sheet rút-sách (nhấn giữ gáy môn thường) — kiểu thẻ-rời như DocActionsSheet. Book press không tới đây. */}
+      <MonActionsSheet
+        mon={menuMon}
+        onColor={() => { const m = menuMon; setMenuMon(null); if (m) onColor(m); }}
+        onRename={() => { const m = menuMon; setMenuMon(null); if (m) onRename(m); }}
+        onDelete={() => { const m = menuMon; setMenuMon(null); if (m) onDelete(m); }}
+        onClose={() => setMenuMon(null)}
+      />
     </div>
   );
 }

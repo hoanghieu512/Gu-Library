@@ -15,8 +15,9 @@ import ReadingListSheet from '../reading/ReadingListSheet';
 import CreateFolderModal from '../components/CreateFolderModal';
 import RenameModal from '../components/RenameModal';
 import DeleteFolderConfirm, { type DeleteTarget } from '../components/DeleteFolderConfirm';
+import ColorPickerSheet from '../components/ColorPickerSheet';
 import { useSyncStatus } from '../sync/useSyncStatus';
-import { listMon, createMon } from '../storage/repo';
+import { listMon, createMon, setMonColor } from '../storage/repo';
 import { renameFolder } from '../storage/folderRepo';
 import { getRootUri } from '../storage/repo';
 import type { ReadingItem } from '../reading/store';
@@ -40,6 +41,7 @@ export default function HomePage() {
   const [createMonOpen, setCreateMonOpen] = useState(false);
   const [renameMon, setRenameMon] = useState<Mon | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [colorMon, setColorMon] = useState<Mon | null>(null);
   const { toastResult, node: toastNode } = useGuToast();
   const [printCount, setPrintCount] = useState(0);
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
@@ -162,6 +164,9 @@ export default function HomePage() {
               : <MonShelf
                   mons={mons} refreshKey={refreshTick}
                   onOpen={(uri) => history.push(`/folder/${encodeUriParam(uri)}`)}
+                  onRename={(m) => setRenameMon(m)}
+                  onDelete={(m) => setDeleteTarget({ uri: m.uri, name: m.name, noun: 'môn' })}
+                  onColor={(m) => setColorMon(m)}
                 />}
 
           </>
@@ -204,6 +209,17 @@ export default function HomePage() {
         target={deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onDeleted={() => { reload(); toastResult('Đã xóa môn gòi nha!', true); }}
+      />
+
+      <ColorPickerSheet
+        isOpen={!!colorMon}
+        monName={colorMon?.name ?? ''}
+        current={colorMon?.meta.color}
+        onPick={async (color) => {
+          const m = colorMon; setColorMon(null);
+          if (m) { await setMonColor(m.uri, color); reload(); toastResult('Đã đổi màu gòi nha!', true); }
+        }}
+        onClose={() => setColorMon(null)}
       />
       {toastNode}
     </IonPage>
