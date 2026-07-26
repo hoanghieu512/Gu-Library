@@ -2,6 +2,16 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.28.0] — 2026-07-26 — Redesign Trang chủ: Tủ sách luật
+### Changed
+- **Danh sách môn → "Tủ sách luật"** (Beat 1 — khung + layout): khung tủ gỗ bao 4 cạnh, mỗi tầng là HỘC có chiều sâu (bóng đổ trong + ván đáy), gáy môn xếp đứng. Layout động thuần (`shelf.ts`, TDD): bề rộng gáy giãn theo số tài liệu (clamp min/max + cap), tự xuống dòng khi hết chỗ (greedy pack). Không đụng dữ liệu/điều hướng — chạm gáy vẫn mở môn như cũ.
+- **Gáy sách "da thật"** (Beat 2 + tinh chỉnh): nền da nâu **tint theo màu môn** (dùng chung `monColor` với avatar — MỘT nguồn màu) + vân da (repeating-gradient) + sheen trụ tròn + gờ gân (hub) + khung nhũ vàng ĐÔI quanh **tên môn chạy dọc** (wrap nhiều cột thay ellipsis giữa chữ) + band đáy dập **SỐ tài liệu**. Tên gáy **bỏ tiền tố "Luật " + viết HOA chữ đầu** ("Luật hành chính" → "Hành chính"; `spineLabel` TDD). **Nơ pending** ló đầu gáy có **SỐ file chờ** — đếm cả `_inbox/` gốc kho (file import qua app) + file chưa-ghép trong cây môn (trước Beat 2 thiếu nguồn `_inbox` → không hiện nơ).
+- **"Chưa phân loại" → Máy ép sách** (`BookPress` SVG) cuối kệ: 3 trạng thái theo số file (không / ít / nhiều giấy) + bảng đồng "Chưa phân loại · N tài liệu". (Beat 3a; tinh chỉnh Beat 3b: đổi nhãn từ "CHƯA ĐÓNG GÁY", thu ~10% cho bớt lấn tầng trên máy dọc.)
+- **Cử chỉ nhấn-giữ gáy** (450ms) → **rút sách + sheet thẻ-rời** (`MonActionsSheet`, kiểu `DocActionsSheet`): Đổi màu / Đổi tên / Xóa. Chạm = mở môn (như cũ); phân biệt tap/long-press bằng cờ `fired` + hủy khi ngón di >10px (cuộn kệ không kích nhầm). "Chưa phân loại" không có menu. **Đổi màu** qua `ColorPickerSheet` (bảng `MON_PALETTE` sẵn) → ghi `color` vào `_mon.json` + đổi màu gáy ngay. Rename/Delete **tái dùng** `RenameModal`/`DeleteFolderConfirm` đã ship. (Beat 3a.)
+- **"Đang đọc dở" → bìa da đóng gáy** + ruy-băng đỏ (Beat 3b): màu bìa **MIRROR màu gáy môn** của tài liệu (nhìn màu biết đang đọc môn nào; tài liệu "Chưa phân loại"/môn không rõ → màu trung tính). ≥2 tài liệu đọc dở → **các quyển xếp chồng sau ló mép** + link "Xem tất cả". **"Đi in" → card xấp giấy** (3 tờ lệch + dòng chữ giả) + pill đếm nâu. Header serif nâu + `SyncPill` ✓/⟳/⚠ giữ nguyên.
+### Notes
+- Reskin **lớp trình bày** — KHÔNG đụng reading-state (`_reading-*.json`) / print / sync / điều hướng / `shelf.ts`. Không dep mới, không token màu mới (dùng lại `monColor` + `MON_PALETTE`). Verify Flip4 đủ cụm + huynh QA 2 máy (Flip4 + ZFold3) + cuộn kệ nhiều tầng máy 6GB PASS.
+
 ## [1.27.0] — 2026-07-23 — Split-screen Viewer (MVP): xem 2 tài liệu song song
 ### Added
 - **Chia đôi màn hình trong Viewer** (feedback Gú: xem slide bài giảng + tra điều luật song song, khỏi mở app khác). Nút trên header Viewer → chia 50/50 trên/dưới (điện thoại cầm dọc): **pane trên GIỮ tài liệu + đúng trang đang đọc** (component không remount qua toggle); **pane dưới** chọn một tài liệu khác trong kho để tra cứu → hai PDF hiển thị cùng lúc, **cuộn/lật độc lập**. Thoát chia đôi (nút header hoặc back cứng) → về pane trên full-screen đúng trang; tài liệu tra cứu bỏ đi.
