@@ -2,18 +2,28 @@ import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
-  IonList, IonItem, IonItemSliding, IonItemOptions, IonItemOption, IonLabel, IonBadge, IonButton, IonFooter,
+  IonButton, IonFooter,
 } from '@ionic/react';
+import { trash } from 'ionicons/icons';
 import { App } from '@capacitor/app';
 import { listPrintRows, gomToPrint, markPrinted, clearPrintFlag, type PrintRow } from '../print/printRepo';
 import { onKhoChanged } from '../lib/khoEvents';
+import { listMon } from '../storage/repo';
+import KhoRow, { StatusPill } from '../components/KhoRow';
+import MonSwatch from '../components/MonSwatch';
 
 export default function PrintPage() {
   const [rows, setRows] = useState<PrintRow[]>([]);
   const [busy, setBusy] = useState(false);
+  // Màu môn cho swatch ở header nhóm — ĐỌC từ `_mon.json` (cùng nguồn màu gáy kệ Home), không
+  // suy từ tên: môn Gú đã gán màu phải ra ĐÚNG màu đó. Lỗi đọc → bỏ swatch, không chặn màn.
+  const [monColors, setMonColors] = useState<Map<string, string | undefined>>(new Map());
 
   const reload = useCallback(() => {
     listPrintRows().then(setRows).catch(() => setRows([]));
+    listMon()
+      .then((ms) => setMonColors(new Map(ms.map((m) => [m.name, m.meta.color] as const))))
+      .catch(() => { /* giữ map cũ */ });
   }, []);
 
   useEffect(() => {
@@ -44,6 +54,8 @@ export default function PrintPage() {
   };
 
   // Vuốt để bỏ "cần in" (chỉ dòng chưa gom): xóa companion, khỏi cần ra môn untick.
+  // KHÔNG xóa file thật — giữ nguyên hành vi có từ v0.10.0, beat B1 chỉ đổi HÌNH (icon thùng
+  // rác đỏ thay chữ "Bỏ"), không đổi việc nó làm.
   const doRemove = async (row: PrintRow) => {
     setBusy(true);
     try { await clearPrintFlag(row.pdfUri); reload(); } finally { setBusy(false); }
@@ -59,47 +71,40 @@ export default function PrintPage() {
       </IonHeader>
       {/* Padding NGANG ở content; padding DỌC nằm trong từng header (h2) → dải nền header
           đồng đều mọi nhóm (nhóm đầu không còn mỏng hơn do padding-top của content). */}
-      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px' } as CSSProperties}>
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-bottom': '16px' } as CSSProperties}>
         {rows.length === 0 && (
           <p style={{ color: 'var(--gu-grey)', paddingTop: 16 }}>Chưa có tài liệu nào cần in.</p>
         )}
         {[...byMon.entries()].map(([mon, list]) => (
           <div key={mon} className="print-group">
-            <h2 className="gu-title" style={{ fontSize: 16, margin: 0, paddingTop: 12, paddingBottom: 6, paddingInlineStart: 16, color: 'var(--gu-brown)' }}>{mon}</h2>
-            {/* Mỗi tài liệu = thẻ-rời bo góc (giống sheet "Đang đọc dở"); bo góc + overflow ở div bọc
-                để nút "Bỏ" vuốt liền khối với thẻ. */}
-            <IonList style={{ background: 'transparent', paddingTop: 0, paddingBottom: 0 }}>
-              {list.map((r) => (
-                <div key={r.pdfUri} style={{ marginBottom: 10, borderRadius: 14, overflow: 'hidden' }}>
-                  {r.sent ? (
-                    <IonItem
-                      lines="none"
-                      style={{ '--background': 'var(--gu-paper-2)', '--border-radius': '0', '--padding-top': '10px', '--padding-bottom': '10px' } as CSSProperties}
-                    >
-                      <IonLabel className="gu-serif">{r.name}</IonLabel>
-                      <IonBadge slot="end" color="success" style={{ marginRight: 8 }}>Đã gửi đi in</IonBadge>
-                      <IonButton slot="end" size="small" fill="clear" disabled={busy} onClick={() => doDone(r)}>
-                        Xong
-                      </IonButton>
-                    </IonItem>
-                  ) : (
-                    <IonItemSliding>
-                      <IonItem
-                        lines="none"
-                        style={{ '--background': 'var(--gu-paper-2)', '--border-radius': '0', '--padding-top': '10px', '--padding-bottom': '10px' } as CSSProperties}
-                      >
-                        <IonLabel className="gu-serif">{r.name}</IonLabel>
-                      </IonItem>
-                      <IonItemOptions side="end">
-                        <IonItemOption color="danger" disabled={busy} onClick={() => doRemove(r)}>
-                          Bỏ
-                        </IonItemOption>
-                      </IonItemOptions>
-                    </IonItemSliding>
-                  )}
-                </div>
-              ))}
-            </IonList>
+            {/* Header nhóm môn: swatch màu môn + tên serif → nhận ra môn bằng MÀU như ở kệ Home */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 12, paddingBottom: 6, paddingInlineStart: 16 }}>
+              <MonSwatch name={mon} color={monColors.get(mon)} size={18} />
+              <h2 className="gu-title" style={{ fontSize: 16, margin: 0, color: 'var(--gu-brown)' }}>{mon}</h2>
+            </div>
+            {list.map((r) => (
+              r.sent ? (
+                <KhoRow
+                  key={r.pdfUri}
+                  title={r.name}
+                  trailing={
+                    <>
+                      <StatusPill text="Đã gửi đi in" />
+                      <IonButton size="small" fill="clear" disabled={busy} onClick={() => doDone(r)}>Xong</IonButton>
+                    </>
+                  }
+                />
+              ) : (
+                <KhoRow
+                  key={r.pdfUri}
+                  title={r.name}
+                  actions={[{
+                    key: 'remove', icon: trash, tone: 'danger',
+                    label: 'Bỏ cần in', disabled: busy, onClick: () => doRemove(r),
+                  }]}
+                />
+              )
+            ))}
           </div>
         ))}
       </IonContent>

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent,
-  IonList, IonItem, IonLabel, IonBadge, IonFooter, useIonRouter,
-  IonItemSliding, IonItemOptions, IonItemOption,
+  IonList, IonFooter, useIonRouter,
 } from '@ionic/react';
 import {
-  folderOutline, chevronForward, hourglassOutline, add,
+  folderOutline, chevronForward, add, createOutline, trash,
   printOutline, trashOutline, swapHorizontalOutline, close,
 } from 'ionicons/icons';
 import { useParams, useHistory } from 'react-router-dom';
@@ -24,6 +24,7 @@ import DeleteFolderConfirm, { type DeleteTarget } from '../components/DeleteFold
 import { renameFolder } from '../storage/folderRepo';
 import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
+import KhoRow, { PendingPill } from '../components/KhoRow';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ChooseMonSheet from '../import/ChooseMonSheet';
 import SadPandaState from '../components/SadPandaState';
@@ -265,7 +266,9 @@ export default function FolderPage() {
           )}
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      {/* `ion-padding` VÔ HIỆU trên IonContent (bài học v1.10.0) → padding qua biến --padding-*;
+          thẻ-rời inset 16px khớp Home / Đi in. */}
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
         {!listing && !error && <p>Đang tải…</p>}
         {/* Thư mục bị xóa từ máy khác (Syncthing rải về) trong lúc đang đứng bên trong → listFolder
             ném FileNotFound. Thay dòng lỗi trần bằng empty-state panda thân thiện + nút về Home. */}
@@ -276,21 +279,22 @@ export default function FolderPage() {
           <p style={{ color: 'var(--gu-grey)' }}>Thư mục trống.</p>
         )}
         {listing && (
-          <IonList>
+          <IonList style={{ background: 'transparent', paddingTop: 0, paddingBottom: 0 }}>
             {/* Folder con: không tick/long-press (v1.6.0); VUỐT TRÁI → "Đổi tên" (v1.22.0). */}
             {listing.folders.map((f) => (
-              <IonItemSliding key={f.uri} disabled={selectMode}>
-                <IonItem button detail={false} onClick={() => history.push(`/folder/${encodeUriParam(f.uri)}`)}>
-                  <IonIcon icon={folderOutline} slot="start" />
-                  <IonLabel className="gu-serif">{f.name}</IonLabel>
-                  <IonIcon icon={chevronForward} slot="end" />
-                </IonItem>
-                <IonItemOptions side="end">
-                  {/* Đóng slide TRƯỚC khi mở dialog → Hủy xong không treo menu ở vị trí mở (v1.6.0). */}
-                  <IonItemOption onClick={(e) => { (e.currentTarget.closest('ion-item-sliding') as HTMLIonItemSlidingElement | null)?.close(); setRenameSub({ uri: f.uri, name: f.name }); }} aria-label="Đổi tên">Đổi tên</IonItemOption>
-                  <IonItemOption color="danger" onClick={(e) => { (e.currentTarget.closest('ion-item-sliding') as HTMLIonItemSlidingElement | null)?.close(); setDeleteSub({ uri: f.uri, name: f.name, noun: 'thư mục' }); }} aria-label="Xóa">Xóa</IonItemOption>
-                </IonItemOptions>
-              </IonItemSliding>
+              <KhoRow
+                key={f.uri}
+                leading={<IonIcon icon={folderOutline} style={{ color: 'var(--gu-brown)' }} />}
+                title={f.name}
+                trailing={<IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)' }} />}
+                onClick={() => history.push(`/folder/${encodeUriParam(f.uri)}`)}
+                swipeDisabled={selectMode}
+                // KhoRow tự đóng slide trước khi chạy → khỏi lặp `closest('ion-item-sliding')` (v1.6.0).
+                actions={[
+                  { key: 'rename', icon: createOutline, tone: 'brown', label: 'Đổi tên', onClick: () => setRenameSub({ uri: f.uri, name: f.name }) },
+                  { key: 'delete', icon: trash, tone: 'danger', label: 'Xóa', onClick: () => setDeleteSub({ uri: f.uri, name: f.name, noun: 'thư mục' }) },
+                ]}
+              />
             ))}
             {/* Tài liệu */}
             {listing.documents.map((d) => (
@@ -309,13 +313,7 @@ export default function FolderPage() {
             ))}
             {/* Chờ xử lý (⏳ lẻ): không action, không lọt lô */}
             {listing.pending.map((p) => (
-              <IonItem key={p.sourceUri} disabled>
-                <IonLabel color="medium">{p.name}</IonLabel>
-                <IonBadge slot="end" style={{ background: 'var(--gu-pending)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <IonIcon icon={hourglassOutline} style={{ fontSize: 13 }} />
-                  chờ xử lý
-                </IonBadge>
-              </IonItem>
+              <KhoRow key={p.sourceUri} title={p.name} muted trailing={<PendingPill />} />
             ))}
           </IonList>
         )}

@@ -1,11 +1,9 @@
 import { useRef } from 'react';
-import type { CSSProperties } from 'react';
-import {
-  IonItem, IonItemSliding, IonItemOptions, IonItemOption, IonLabel, IonIcon, IonCheckbox,
-} from '@ionic/react';
+import { IonIcon, IonCheckbox } from '@ionic/react';
 import { documentTextOutline, print, printOutline, trash, ellipsisHorizontal } from 'ionicons/icons';
 import type { Document } from '../storage/types';
 import { perfStart } from '../perf/perf';
+import KhoRow, { PrintMark, type RowAction } from './KhoRow';
 
 interface Props {
   doc: Document;
@@ -19,9 +17,8 @@ interface Props {
   onActions: () => void;
 }
 
-const olive: CSSProperties = { '--background': '#4A5D3A', '--color': '#fff' } as CSSProperties;
-
 // Hàng tài liệu: ngoài mode = vuốt (In/Xóa/⋯) + nhấn-giữ vào mode; trong mode = checkbox, tap toggle.
+// Beat B1: HÌNH giao cho `KhoRow` (lớp chung), file này chỉ còn giữ CỬ CHỈ + ánh xạ hành động.
 export default function FolderDocRow({
   doc, selectMode, selected, onOpen, onToggleSelect, onLongPress,
   onTogglePrint, onDelete, onActions,
@@ -29,10 +26,7 @@ export default function FolderDocRow({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const fired = useRef(false);
-  const slideRef = useRef<HTMLIonItemSlidingElement>(null);
   const clear = () => { if (timer.current) { clearTimeout(timer.current); timer.current = undefined; } };
-  // Sau khi bấm nút vuốt → đóng slide (không để menu treo ở vị trí mở).
-  const opt = (fn: () => void) => { slideRef.current?.close(); fn(); };
 
   // Long-press CHỈ ngoài mode. Huỷ khi ngón di >10px (vuốt/cuộn) hoặc nhấc sớm (tap).
   const onTouchStart = (e: React.TouchEvent) => {
@@ -56,26 +50,31 @@ export default function FolderDocRow({
 
   if (selectMode) {
     return (
-      <IonItem button detail={false} onClick={handleClick}>
-        <IonCheckbox slot="start" checked={selected} onIonChange={onToggleSelect} aria-label="Chọn" />
-        <IonLabel className="gu-serif">{doc.name}</IonLabel>
-        {doc.printFlagged && <IonIcon slot="end" icon={print} style={{ color: 'var(--gu-brown)', fontSize: 18 }} />}
-      </IonItem>
+      <KhoRow
+        leading={<IonCheckbox checked={selected} onIonChange={onToggleSelect} aria-label="Chọn" />}
+        title={doc.name}
+        trailing={doc.printFlagged ? <PrintMark /> : undefined}
+        onClick={handleClick}
+      />
     );
   }
+
+  const actions: RowAction[] = [
+    { key: 'print', icon: doc.printFlagged ? print : printOutline, tone: 'brown', label: 'Cần in', onClick: onTogglePrint },
+    { key: 'delete', icon: trash, tone: 'danger', label: 'Xóa', onClick: onDelete },
+    { key: 'more', icon: ellipsisHorizontal, tone: 'olive', label: 'Thêm', onClick: onActions },
+  ];
+
   return (
-    <IonItemSliding ref={slideRef}>
-      <IonItem button detail={false} onClick={handleClick}
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={clear}>
-        <IonIcon icon={documentTextOutline} slot="start" />
-        <IonLabel className="gu-serif">{doc.name}</IonLabel>
-        {doc.printFlagged && <IonIcon slot="end" icon={print} style={{ color: 'var(--gu-brown)', fontSize: 18 }} aria-label="Đã chọn đi in" />}
-      </IonItem>
-      <IonItemOptions side="end">
-        <IonItemOption onClick={() => opt(onTogglePrint)} aria-label="Cần in"><IonIcon slot="icon-only" icon={doc.printFlagged ? print : printOutline} /></IonItemOption>
-        <IonItemOption color="danger" onClick={() => opt(onDelete)} aria-label="Xóa"><IonIcon slot="icon-only" icon={trash} /></IonItemOption>
-        <IonItemOption onClick={() => opt(onActions)} aria-label="Thêm" style={olive}><IonIcon slot="icon-only" icon={ellipsisHorizontal} /></IonItemOption>
-      </IonItemOptions>
-    </IonItemSliding>
+    <KhoRow
+      leading={<IonIcon icon={documentTextOutline} style={{ color: 'var(--gu-brown)' }} />}
+      title={doc.name}
+      trailing={doc.printFlagged ? <PrintMark /> : undefined}
+      onClick={handleClick}
+      actions={actions}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={clear}
+    />
   );
 }
