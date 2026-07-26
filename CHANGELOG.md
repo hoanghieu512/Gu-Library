@@ -2,6 +2,13 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.28.1] — 2026-07-26 — Bảng màu môn: thay trọn 6 màu cũ bằng 8 màu "sách luật"
+### Changed
+- **`MON_PALETTE` thay HẲN (không cộng dồn)**: 6 màu cũ (nâu/be na ná nhau, khó phân biệt khi nhiều môn) → **8 màu đa dạng hue** vẫn trầm + bão hòa thấp hợp tông thư viện: đỏ rượu `#5C1F28`, xanh rêu `#2F4A33`, navy `#2E4864`, nâu đỏ `#6A3A2A`, xám than `#353335`, tím `#5E365A`, teal `#34585A`, nâu đậm `#4D2E1E`. Chỉ đụng **một mảng** — picker tạo môn (`CreateFolderModal`) + đổi màu (`ColorPickerSheet`) tự đọc; cả hai `flexWrap` sẵn nên 8 ô tự xuống 2 hàng, không tràn.
+- KHÔNG đụng **hash-fallback** (bảng nâu trong `MonSwatch`) → môn CHƯA gán màu giữ nguyên; môn ĐÃ gán màu cũng giữ nguyên (`meta.color` explicit thắng) — đổi bảng không repaint dữ liệu sẵn có.
+### Notes
+- Đo trên máy: lo "màu tối bị chìm sau lớp sheen da" là **không đúng** — sheen có dải sáng ở giữa gáy nên NÂNG màu lên (xám than base `#353335` → tâm gáy render `rgb(56,54,56)`, sáng hơn hex gốc). Cả 8 màu lên gáy đọc rõ, chữ nhũ vàng tương phản tốt → không cần chỉnh hex. Verify Flip4.
+
 ## [1.28.0] — 2026-07-26 — Redesign Trang chủ: Tủ sách luật
 ### Changed
 - **Danh sách môn → "Tủ sách luật"** (Beat 1 — khung + layout): khung tủ gỗ bao 4 cạnh, mỗi tầng là HỘC có chiều sâu (bóng đổ trong + ván đáy), gáy môn xếp đứng. Layout động thuần (`shelf.ts`, TDD): bề rộng gáy giãn theo số tài liệu (clamp min/max + cap), tự xuống dòng khi hết chỗ (greedy pack). Không đụng dữ liệu/điều hướng — chạm gáy vẫn mở môn như cũ.
