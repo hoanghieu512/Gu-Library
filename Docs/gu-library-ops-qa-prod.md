@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-18, trạng thái: app v1.25.1 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-26, trạng thái: app v1.28.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -181,15 +181,26 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.25.1** trên main, sạch, chỉ còn nhánh `main` (tag `v1.25.1` đã push). Từ v1.19.0
-  đến nay là **polish UI/UX thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc lập, không
-  chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng nhất mọi
-  WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ quy, chặn
-  pending) + v1.23.1 empty-state panda khi thư mục bị máy khác xóa + v1.25.1 fix đổi-tên case-only
-  ra `(1)` · v1.24 định vị cây sâu (phụ đề "Đang đọc dở" rút gọn `…` + avatar ô-màu-thuần) ·
-  v1.25.0 toast phản hồi cho MỌI thao tác đơn (giọng Gú). **Nav chữ-bên-icon = won't-do (đóng sổ).**
-  **v1.19.0 image-coupling ĐÃ GIẢI:** worker Prod v0.13.0 xử ảnh→PDF từ v0.12.0 → app nhận-ảnh lên
-  Prod được. *Bản APK thực trên tablet Gú (Prod): huynh xác nhận đang ở version nào — doc không tự suy.*
+- App **v1.28.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.28.0` đã push). Từ v1.19.0
+  đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
+  lập, không chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng
+  nhất mọi WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ
+  quy, chặn pending) + v1.23.1 empty-state panda khi thư mục bị máy khác xóa + v1.25.1 fix đổi-tên
+  case-only ra `(1)` · v1.24 định vị cây sâu (phụ đề "Đang đọc dở" rút gọn `…` + avatar ô-màu-thuần) ·
+  v1.25.0 toast phản hồi cho MỌI thao tác đơn (giọng Gú) · **v1.26.0 đổi read-path PDF** (base64→fetch
+  qua WebViewLocalServer, stream content-URI trong renderer → mở được file nặng ~64MB, trả nợ OOM
+  v1.4.1; guard `probeReadable` + body-rỗng → panda thay vì crash khi file move/xóa) · **v1.27.0
+  split-screen Viewer MVP** (chia 50/50 trên/dưới, pane trên giữ trang + ghi reading-state, pane dưới
+  tra cứu không ghi) · **v1.28.0 redesign Trang chủ "Tủ sách luật"** (kệ gỗ 3D + gáy da tint màu môn +
+  nhấn-giữ-rút-sách menu + Book Press "Chưa phân loại" + card đọc-dở bìa-da mirror màu môn + "Đi in"
+  xấp-giấy — reskin lớp trình bày, KHÔNG đụng reading-state/print/sync). **Nav chữ-bên-icon = won't-do
+  (đóng sổ).** **v1.19.0 image-coupling ĐÃ GIẢI:** worker Prod v0.13.0 xử ảnh→PDF từ v0.12.0 → app
+  nhận-ảnh lên Prod được. *Bản APK thực trên tablet Gú (Prod): huynh xác nhận đang ở version nào —
+  doc không tự suy.*
+  - **Gate CHƯA đóng (mang từ v1.27.0):** verify split-screen trên **S20 FE-class (res cao + 6GB)** —
+    redesign v1.28.0 đã cuộn kệ nhiều tầng OK trên máy 6GB, nhưng 2-pane render đồng thời của
+    split-screen vẫn chưa đo trên đúng lớp máy đó (Flip4 8GB + T616 6GB đã PASS; S20 FE chưa ai đo).
+    Đây là gate trước khi yên tâm cho Gú xài split trên máy tương đương, KHÔNG phải gate merge.
 - Worker **v0.13.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
   **Không còn nợ hạ tầng.** Beat gần đây: ảnh→PDF 1 trang (v0.12.0), archive gốc
   `.doc`/`.ppt` thay vì xóa (v0.13.0). Nợ Phase 2 đã đặt cọc: re-extract cấu trúc từ
