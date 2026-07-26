@@ -3,12 +3,14 @@
 //   0 → không giấy · 1–4 → ít giấy (xấp mỏng) · ≥5 → nhiều giấy (xấp dày).
 // Chạm → mở "Chưa phân loại". SVG thuần → nhẹ. Đế SÁT đáy kệ (không hở), gỗ có mặt-trên bắt sáng.
 
-// Nội dung vẽ trong hệ toạ độ 92×150; hiển thị THU 10% (W_OUT/H_OUT) → bớt lấn tầng 2 trên máy dọc
+// Nội dung vẽ trong hệ toạ độ 92×150; hiển thị THU 10% (PRESS_W/H_OUT) → bớt lấn tầng 2 trên máy dọc
 // (Beat 3b tinh chỉnh). viewBox giữ nguyên nên SVG tự co đều mọi chi tiết.
 const W = 92;
 const H = 150;
-const W_OUT = 83;  // ~92 × 0.9
-const H_OUT = 135; // ~150 × 0.9
+// Bề rộng THẬT khi render — export để MonShelf nhồi kệ (packShelves) đúng bằng chỗ press chiếm.
+// Trước đây kệ nhồi press theo `spineWidth(số tài liệu)` (~31px) trong khi render 83px → TRÀN kệ.
+export const PRESS_W = 83;  // ~92 × 0.9
+const H_OUT = 135;          // ~150 × 0.9
 const FLOOR = 148; // đáy đế sát sàn kệ → không hở khoảng trống
 
 export default function BookPress({ count, onOpen, uri }: { count: number; onOpen: (uri: string) => void; uri: string }) {
@@ -22,9 +24,9 @@ export default function BookPress({ count, onOpen, uri }: { count: number; onOpe
       onClick={() => onOpen(uri)}
       role="button"
       aria-label={`Mở Chưa phân loại (${count} tài liệu)`}
-      style={{ width: W_OUT, height: H_OUT, flex: '0 0 auto', cursor: 'pointer', alignSelf: 'flex-end' }}
+      style={{ width: PRESS_W, height: H_OUT, flex: '0 0 auto', cursor: 'pointer', alignSelf: 'flex-end' }}
     >
-      <svg viewBox={`0 0 ${W} ${H}`} width={W_OUT} height={H_OUT} aria-hidden>
+      <svg viewBox={`0 0 ${W} ${H}`} width={PRESS_W} height={H_OUT} aria-hidden>
         <defs>
           <linearGradient id="bp-wood" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0" stopColor="#2b1d11" /><stop offset=".2" stopColor="#5a3d22" />

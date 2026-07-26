@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Mon } from '../storage/types';
 import MonActionsSheet from './MonActionsSheet';
-import BookPress from './BookPress';
+import BookPress, { PRESS_W } from './BookPress';
 import { getKhoSnapshot, foldSummary } from '../storage/khoSnapshot';
 import { listInboxByMon } from '../import/inboxRepo';
 import { monColor } from './MonSwatch';
@@ -179,8 +179,18 @@ export default function MonShelf({ mons, onOpen, onRename, onDelete, onColor, re
   }, []);
 
   const docsOf = (uri: string) => counts.get(uri)?.docs ?? 0;
-  const widths = mons.map((m) => spineWidth(docsOf(m.uri)));
+  // Bề rộng nhồi kệ phải bằng bề rộng RENDER THẬT: "Chưa phân loại" render bằng BookPress khổ cố
+  // định PRESS_W, KHÔNG theo spineWidth(số tài liệu) — trước đây nhồi bằng spineWidth (~31px) rồi
+  // render 83px → press TRÀN ra ngoài khung tủ thay vì tụt xuống tầng dưới.
+  const widths = mons.map((m) => (m.name === UNFILED ? PRESS_W : spineWidth(docsOf(m.uri))));
   const rows = width > 0 ? packShelves(widths, width, GAP) : [mons.map((_, i) => i)];
+  // Chặn sách (bookend) cũng chiếm chỗ THẬT mà packShelves không biết → chỉ dựng khi tầng cuối
+  // còn dư chỗ, nếu không nó tràn nốt (cùng loại lỗi với press, nhẹ hơn: ≤16px).
+  const lastRow = rows[rows.length - 1] ?? [];
+  const lastRowW = lastRow.reduce((s, i) => s + widths[i], 0) + GAP * Math.max(0, lastRow.length - 1);
+  const showBookend = lastRow.length > 0
+    && mons[lastRow[lastRow.length - 1]].name !== UNFILED
+    && width > 0 && lastRowW + GAP + BOOKEND_W <= width;
 
   return (
     // Khung tủ gỗ bao 4 cạnh (viền dày) — bọc mọi hộc → cảm giác "tủ sách" thật.
@@ -212,8 +222,9 @@ export default function MonShelf({ mons, onOpen, onRename, onDelete, onColor, re
                       onLongPress={() => setMenuMon(m)}
                     />;
               })}
-              {/* Bookend chỉ khi phần tử cuối KHÔNG phải book press (press tự chặn cuối kệ). */}
-              {ri === rows.length - 1 && mons[row[row.length - 1]].name !== UNFILED && <Bookend />}
+              {/* Bookend chỉ ở tầng cuối, khi phần tử cuối KHÔNG phải book press (press tự chặn
+                  cuối kệ) VÀ tầng đó còn dư chỗ cho nó (xem showBookend). */}
+              {ri === rows.length - 1 && showBookend && <Bookend />}
             </div>
             {/* Ván đáy hộc (mặt gỗ trên có ánh sáng, dưới có bóng) */}
             <div style={{ height: BOARD_H, background: 'linear-gradient(180deg, #8a5f2e, #5b3d1c)', boxShadow: '0 3px 4px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.18)' }} />
