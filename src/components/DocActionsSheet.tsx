@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import {
-  IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
-  IonList, IonItem, IonLabel, IonInput, IonIcon,
-} from '@ionic/react';
+import { IonButton, IonInput, IonLabel } from '@ionic/react';
 import { swapHorizontalOutline, printOutline, print, trashOutline } from 'ionicons/icons';
+import GuSheet, { SheetActionList } from './GuSheet';
 
 export interface DocTarget { name: string; printFlagged: boolean; }
 
@@ -18,55 +16,42 @@ interface Props {
   onClose: () => void;
 }
 
-const card: CSSProperties = {
-  '--background': 'var(--gu-paper-2)', '--border-radius': '14px',
-  '--padding-top': '10px', '--padding-bottom': '10px',
-} as CSSProperties;
-
+// Sheet thao tác TÀI LIỆU (⋯). B2a: vỏ + danh sách nút dùng chung `GuSheet`/`SheetActionList`;
+// ô "Tên hiển thị" đổi sang tông giấy (trước dùng viền `--ion-color-medium` xám-xanh lệch tông).
 export default function DocActionsSheet({ isOpen, doc, onRename, onMove, onTogglePrint, onDelete, onClose }: Props) {
   const [name, setName] = useState('');
   useEffect(() => { if (isOpen && doc) setName(doc.name); }, [isOpen, doc]);
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onClose} breakpoints={[0, 0.6]} initialBreakpoint={0.6} expandToScroll={false}>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle className="gu-title" style={{ fontSize: 17 }}>Tài liệu</IonTitle>
-          <IonButtons slot="end"><IonButton fill="clear" onClick={onClose}>Đóng</IonButton></IonButtons>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '14px' } as CSSProperties}>
-        {/* Đổi tên hiển thị (để trống = về tên mặc định) */}
-        <IonLabel style={{ fontWeight: 600, fontSize: 13, color: 'var(--gu-brown-deep)' }}>Tên hiển thị</IonLabel>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0 16px' }}>
-          <IonInput value={name} placeholder="Để trống = tên mặc định"
-            onIonInput={(e) => setName(String(e.detail.value ?? ''))}
-            style={{ flex: 1, border: '1px solid var(--ion-color-medium)', borderRadius: 8,
-              '--padding-start': '10px', '--padding-end': '10px', '--padding-top': '6px', '--padding-bottom': '6px' } as CSSProperties} />
-          <IonButton size="small" shape="round" onClick={() => onRename(name)}>Lưu</IonButton>
-        </div>
+    <GuSheet isOpen={isOpen} title="Tài liệu" onClose={onClose} breakpoint={0.6}>
+      {/* Đổi tên hiển thị (để trống = về tên mặc định) */}
+      <IonLabel style={{ fontWeight: 600, fontSize: 13, color: 'var(--gu-brown-deep)' }}>Tên hiển thị</IonLabel>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0 16px' }}>
+        <IonInput
+          value={name} placeholder="Để trống = tên mặc định"
+          onIonInput={(e) => setName(String(e.detail.value ?? ''))}
+          clearInput
+          style={{
+            flex: 1, border: '1.5px solid var(--gu-grey)', borderRadius: 10,
+            background: 'var(--gu-cream)', '--background': 'transparent',
+            '--color': 'var(--gu-brown-deep)',
+            '--padding-start': '12px', '--padding-end': '8px',
+            '--padding-top': '8px', '--padding-bottom': '8px',
+            // Tắt gạch chân/highlight mặc định — viền đã do style trên vẽ (cùng cách NameField).
+            '--border-width': '0', '--highlight-height': '0',
+          } as CSSProperties}
+        />
+        <IonButton size="small" shape="round" onClick={() => onRename(name)}>Lưu</IonButton>
+      </div>
 
-        <IonList style={{ background: 'transparent' }}>
-          <div style={{ marginBottom: 10 }}>
-            <IonItem button detail={false} lines="none" onClick={onMove} style={card}>
-              <IonIcon icon={swapHorizontalOutline} style={{ color: 'var(--gu-brown)', marginRight: 12 }} />
-              <IonLabel className="gu-serif">Chuyển tới…</IonLabel>
-            </IonItem>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <IonItem button detail={false} lines="none" onClick={onTogglePrint} style={card}>
-              <IonIcon icon={doc?.printFlagged ? print : printOutline} style={{ color: 'var(--gu-brown)', marginRight: 12 }} />
-              <IonLabel className="gu-serif">{doc?.printFlagged ? 'Bỏ cần in' : 'Đánh dấu cần in'}</IonLabel>
-            </IonItem>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <IonItem button detail={false} lines="none" onClick={onDelete} style={card}>
-              <IonIcon icon={trashOutline} style={{ color: 'var(--ion-color-danger)', marginRight: 12 }} />
-              <IonLabel style={{ color: 'var(--ion-color-danger)' }}>Xóa</IonLabel>
-            </IonItem>
-          </div>
-        </IonList>
-      </IonContent>
-    </IonModal>
+      <SheetActionList actions={[
+        { key: 'move', icon: swapHorizontalOutline, label: 'Chuyển tới…', onClick: onMove },
+        {
+          key: 'print', icon: doc?.printFlagged ? print : printOutline,
+          label: doc?.printFlagged ? 'Bỏ cần in' : 'Đánh dấu cần in', onClick: onTogglePrint,
+        },
+        { key: 'delete', icon: trashOutline, label: 'Xóa', tone: 'danger', onClick: onDelete },
+      ]} />
+    </GuSheet>
   );
 }

@@ -2,6 +2,18 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.30.0] — 2026-07-27 — Tuyến B / Beat B2a: vỏ modal + sheet dùng chung
+### Changed
+- **Vỏ dùng chung `GuSheet`** (mới): mọi sheet/modal đi qua một khung — header (tên + nút đóng + chỗ cắm nút trái cho ca drill) và vùng nội dung **đúng lề** (vỏ tự set `--padding-*`, các màn khỏi nhớ). `variant='sheet'` (trượt đáy theo breakpoint) hoặc `'full'` (modal đầy màn). Kèm **`SheetActionList` + `SheetAction[]`** — song song `RowAction[]` của `KhoRow` (B1): danh sách nút do MÀN truyền vào, vỏ không biết nghiệp vụ → B3 cắm thêm hành động mà không phải sửa vỏ.
+- **Vỏ dùng chung `GuDialog`** (mới): huy hiệu icon tròn (tone `danger` đỏ-đất trên nền đỏ nhạt / `brown`) + tiêu đề serif + mô tả + hàng nút Hủy-viền / xác-nhận-đặc. `ConfirmDialog` nay chỉ là lớp mỏng trên `GuDialog` — **giữ nguyên interface** nên mọi chỗ gọi (xóa tài liệu lẻ · xóa lô · xóa thư mục · thông báo chặn) không phải sửa.
+- **`DocActionsSheet` · `MonActionsSheet` · `ColorPickerSheet` · `RenameModal`** chuyển sang vỏ chung. Gỡ được **hai bản chép nhau** của khuôn nút thẻ-rời (DocActionsSheet + MonActionsSheet cùng tự vẽ `card`). `RenameModal` GIỮ dạng modal (`variant='full'`) — KHÔNG dựng màn riêng dù prototype vẽ vậy (Reconcile Map xếp 9e vào nhóm reuse-chỉ-reskin).
+- **Ô "Tên hiển thị" trong sheet ⋯ về tông giấy**: trước dùng viền `--ion-color-medium` (xám-xanh lệch tông) → nay viền xám nhạt + nền kem + tắt gạch-chân mặc định, cùng cách `NameField`; thêm nút X xoá nhanh.
+### Fixed
+- **`ColorPickerSheet` không có lề**: lại đúng ca `className="ion-padding"` VÔ HIỆU trên `IonContent` (bài học v1.10.0, đã tái xuất ở v1.29.0) — nay đi qua `GuSheet` nên hết.
+### Notes
+- **KHÔNG đổi hành vi**: đếm đệ quy khi xóa thư mục · chặn đổi tên khi còn file chờ dưới cây · đổi tên case-only đi 2 bước qua tên tạm · câu KHÔNG dọa "không hoàn tác" · hệ toast — giữ nguyên tuyệt đối. Ô nhập vẫn là `NameField` floating-label **TỰ VẼ** (v1.21.0), KHÔNG quay lại native Ionic (lệch ~14px giữa hai máy theo WebView).
+- Verify Flip4: sheet ⋯ đủ 5 mục đúng thứ tự · dialog xóa tài liệu lẻ + xóa thư mục (đếm đệ quy đúng "10 tài liệu") · Hủy không mất gì trên đĩa · nút X xoá sạch field · Huỷ ở header đóng không lưu (tên thư mục còn nguyên trên đĩa) · "Chuyển tới…" mở không vỡ. 155 test.
+
 ## [1.29.0] — 2026-07-27 — Tuyến B / Beat B1: lớp hàng dùng chung + màn Đi in
 ### Changed
 - **Lớp chung `KhoRow`** (mới) — MỘT hàng dùng cho **Đi in · Trong Môn · sheet chọn đích**: nền thẻ-rời giấy, tên serif, chỗ cắm `leading` (swatch màu môn / icon tài liệu / icon thư mục / checkbox) và `trailing` (`PrintMark` icon máy in nâu khi có cờ cần in · `PendingPill` ⏳ chờ mini PC xử lý · `StatusPill` · chevron · nút). Component CHỈ lo hình + khung vuốt; mọi hành vi (nhấn-giữ, chọn-nhiều, dialog, toast, thao tác file) vẫn ở màn gọi.
