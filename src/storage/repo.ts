@@ -1,8 +1,9 @@
 import { Preferences } from '@capacitor/preferences';
 import { Saf } from '../plugins/saf';
 import { classifyEntries } from './classify';
-import type { FolderListing, Mon } from './types';
+import type { FolderListing, Mon, MonMeta } from './types';
 import { parseDisplayName } from './displayName';
+import { parseMonMeta } from './monjson';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { getKhoSnapshot } from './khoSnapshot';
 
@@ -47,6 +48,19 @@ export async function createMon(name: string, color: string): Promise<void> {
   if (!root) throw new Error('Chưa chọn folder kho');
   const { uri } = await Saf.createDir({ parentUri: root, name }); // reject 'exists' nếu trùng
   await Saf.writeFile({ dirUri: uri, name: '_mon.json', content: JSON.stringify({ color }) });
+  emitKhoChanged();
+}
+
+// Đổi màu môn (Home tủ-sách Beat 3a): ghi lại `_mon.json` với color mới, GIỮ meta khác (order/icon).
+// emitKhoChanged → Home reload + snapshot invalidate → gáy (da + band) đổi màu ngay.
+export async function setMonColor(monUri: string, color: string): Promise<void> {
+  let meta: MonMeta = {};
+  try {
+    const { entries } = await Saf.listFolder({ uri: monUri });
+    const f = entries.find((e) => !e.isDirectory && e.name === '_mon.json');
+    if (f) meta = parseMonMeta((await Saf.readFile({ uri: f.uri })).data);
+  } catch { /* chưa có _mon.json → tạo mới */ }
+  await Saf.writeFile({ dirUri: monUri, name: '_mon.json', content: JSON.stringify({ ...meta, color }) });
   emitKhoChanged();
 }
 

@@ -10,21 +10,22 @@ import { App } from '@capacitor/app';
 import SyncPill from '../components/SyncPill';
 import SearchShortcut from '../components/SearchShortcut';
 import ContinueReadingCard from '../components/ContinueReadingCard';
-import MonCard from '../components/MonCard';
+import MonShelf from '../components/MonShelf';
 import ReadingListSheet from '../reading/ReadingListSheet';
 import CreateFolderModal from '../components/CreateFolderModal';
 import RenameModal from '../components/RenameModal';
 import DeleteFolderConfirm, { type DeleteTarget } from '../components/DeleteFolderConfirm';
+import ColorPickerSheet from '../components/ColorPickerSheet';
 import { useSyncStatus } from '../sync/useSyncStatus';
-import { listMon, createMon } from '../storage/repo';
-import { renameFolder } from '../storage/folderRepo';
+import { listMon, createMon, setMonColor } from '../storage/repo';
+import { monColor } from '../components/MonSwatch';
 import { UNFILED } from '../import/prefix';
+import { renameFolder } from '../storage/folderRepo';
 import { getRootUri } from '../storage/repo';
 import type { ReadingItem } from '../reading/store';
 import { listReading, removeReading } from '../reading/store';
 import { migrateOnce } from '../reading/migrate';
 import type { Mon } from '../storage/types';
-import { listInboxByMon } from '../import/inboxRepo';
 import { onKhoChanged } from '../lib/khoEvents';
 import { useGuToast } from '../lib/useGuToast';
 import { countPrintFlagged } from '../print/printRepo';
@@ -38,11 +39,11 @@ export default function HomePage() {
   const [mons, setMons] = useState<Mon[]>([]);
   const [hasRoot, setHasRoot] = useState<boolean | null>(null);
   const [reading, setReading] = useState<ReadingItem[]>([]);
-  const [inboxMap, setInboxMap] = useState<Map<string, number>>(new Map());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [createMonOpen, setCreateMonOpen] = useState(false);
   const [renameMon, setRenameMon] = useState<Mon | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [colorMon, setColorMon] = useState<Mon | null>(null);
   const { toastResult, node: toastNode } = useGuToast();
   const [printCount, setPrintCount] = useState(0);
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
@@ -59,7 +60,6 @@ export default function HomePage() {
     } else {
       setMons([]);
     }
-    try { setInboxMap(await listInboxByMon()); } catch { setInboxMap(new Map()); }
     try { setPrintCount(await countPrintFlagged()); } catch { setPrintCount(0); }
     setRefreshTick((t) => t + 1);
     // Cold start: Trang chủ vẽ xong danh sách lần đầu (perfColdReady chỉ tính 1 lần/phiên).
@@ -82,6 +82,16 @@ export default function HomePage() {
   }, []);
 
   const cont: ReadingItem | null = reading[0] ?? null;
+
+  // Màu bìa card "đọc dở" = MIRROR màu gáy môn của tài liệu (cùng monColor với kệ). "Chưa phân loại"
+  // (hoặc môn không còn trong danh sách) → undefined → card tự dùng màu trung tính.
+  const monByName = new Map(mons.map((m) => [m.name, m] as const));
+  const readingColor = (monName: string): string | undefined => {
+    if (monName === UNFILED) return undefined;
+    const m = monByName.get(monName);
+    if (!m) return undefined;
+    return monColor(monName, m.meta.color);
+  };
 
   return (
     <IonPage>
@@ -121,25 +131,55 @@ export default function HomePage() {
                 </IonButton>
               )}
             </div>
-            <ContinueReadingCard item={cont} />
+            <ContinueReadingCard
+              item={cont}
+              color={readingColor(cont.monName)}
+              peekColors={reading.slice(1, 3).map((r) => readingColor(r.monName))}
+            />
           </>
         )}
 
         {printCount > 0 && (
+          // "Đi in" — card XẤP GIẤY CHỜ (Beat 3b): motif xấp tài liệu (3 tờ lệch, tờ trên có dòng chữ
+          // giả) + pill đếm nâu. Giữ nguyên logic (chỉ hiện khi >0, đếm đúng).
           <div
             onClick={() => history.push('/print')}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gu-paper-2)',
-              borderRadius: 12, padding: 14, margin: '16px 0 0', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 14, background: 'var(--gu-paper-2)',
+              borderRadius: 12, padding: '14px 16px', margin: '16px 0 0', cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,.12)',
             }}
           >
-            <span style={{ fontSize: 20 }}>🖨</span>
-            <span style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)', flex: 1 }}>
-              Đi in
-            </span>
+            {/* Xấp giấy: 3 tờ giấy kem lệch nhau, tờ trên cùng có 3 dòng "chữ" mảnh */}
+            <div aria-hidden style={{ position: 'relative', width: 42, height: 46, flex: '0 0 auto' }}>
+              {[2, 1, 0].map((i) => (
+                <div key={i} style={{
+                  position: 'absolute', left: i * 3, top: i * 2, width: 34, height: 44,
+                  background: 'var(--gu-paper-2)', borderRadius: 3,
+                  border: '1px solid rgba(85,59,8,.25)', boxShadow: '0 1px 2px rgba(0,0,0,.15)',
+                }}>
+                  {i === 0 && (
+                    <div style={{ padding: '8px 5px' }}>
+                      {[0, 1, 2].map((k) => (
+                        <div key={k} style={{
+                          height: 2, borderRadius: 2, margin: '4px 0',
+                          background: 'rgba(85,59,8,.3)', width: k === 2 ? '60%' : '100%',
+                        }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)', fontSize: 16 }}>
+                Đi in
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--gu-grey)' }}>Tài liệu chờ in</div>
+            </div>
             <span style={{
               background: 'var(--gu-brown)', color: '#fff', borderRadius: 999,
-              padding: '2px 10px', fontSize: 13, whiteSpace: 'nowrap',
+              padding: '3px 12px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
             }}>
               {printCount}
             </span>
@@ -163,13 +203,13 @@ export default function HomePage() {
             </div>
             {mons.length === 0
               ? <p style={{ color: 'var(--gu-grey)' }}>Chưa có môn nào trong kho.</p>
-              : mons.map((m) => (
-                <MonCard
-                  key={m.uri} mon={m} inboxPending={inboxMap.get(m.name) ?? 0} refreshKey={refreshTick}
-                  onRename={m.name === UNFILED ? undefined : () => setRenameMon(m)}
-                  onDelete={m.name === UNFILED ? undefined : () => setDeleteTarget({ uri: m.uri, name: m.name, noun: 'môn' })}
-                />
-              ))}
+              : <MonShelf
+                  mons={mons} refreshKey={refreshTick}
+                  onOpen={(uri) => history.push(`/folder/${encodeUriParam(uri)}`)}
+                  onRename={(m) => setRenameMon(m)}
+                  onDelete={(m) => setDeleteTarget({ uri: m.uri, name: m.name, noun: 'môn' })}
+                  onColor={(m) => setColorMon(m)}
+                />}
 
           </>
         )}
@@ -211,6 +251,17 @@ export default function HomePage() {
         target={deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onDeleted={() => { reload(); toastResult('Đã xóa môn gòi nha!', true); }}
+      />
+
+      <ColorPickerSheet
+        isOpen={!!colorMon}
+        monName={colorMon?.name ?? ''}
+        current={colorMon?.meta.color}
+        onPick={async (color) => {
+          const m = colorMon; setColorMon(null);
+          if (m) { await setMonColor(m.uri, color); reload(); toastResult('Đã đổi màu gòi nha!', true); }
+        }}
+        onClose={() => setColorMon(null)}
       />
       {toastNode}
     </IonPage>
