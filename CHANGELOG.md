@@ -2,6 +2,18 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.31.0] — 2026-07-27 — Tuyến B / Beat B2b: Trong Môn (header/breadcrumb + chế độ chọn-nhiều)
+### Changed
+- **Breadcrumb áp da** (hành vi bấm-nhảy-tầng GIỮ NGUYÊN): tầng CHA nâu nhạt (là lối đi) vs tầng ĐANG ĐỨNG nâu đậm đậm (là chỗ mình ở); `…` từ dấu ba chấm trần thành **chip nền kem** cho thấy bấm được; popover tầng-cha-bị-nuốt lên tông giấy + icon thư mục + chữ serif. Luật rút gọn `…` và vùng chạm 44px KHÔNG đổi — vẫn dùng chung ngôn ngữ định vị với phụ đề đọc-dở.
+- **Header chế độ chọn**: "Đã chọn N" với **N trong pill nâu** (đọc lướt ra ngay đang cầm bao nhiêu món); ✕ thoát chế độ như cũ.
+- **Thanh hành động lô** theo tông nâu-giấy: nền giấy, **icon trên chữ** (đủ chỗ thở trên máy hẹp), In lô · Chuyển nâu, **Xóa đỏ-đất** như mọi bề mặt khác.
+- **`KhoRow` thêm trạng thái `selected`** (mở rộng hợp lệ, KHÔNG đụng `RowAction[]`): hàng đang tick có nền nâu rất nhạt để tách khỏi hàng chưa chọn; `muted` nay cũng hạ độ mờ.
+### Fixed
+- **Chạm thư mục lúc đang chọn-nhiều vẫn điều hướng đi** → mất sạch lựa chọn đang dở. Nay trong chế độ chọn, thư mục **mờ + không bấm được + ẩn chevron** (lô chỉ áp cho tài liệu), đúng như thiết kế chế độ chọn.
+### Notes
+- **KHÔNG đổi hành vi lô**: một toast cho một lô · phản ánh từng tài liệu ngay khi nó xong ở tầng file · lô lỗi giữa chừng báo ok/lỗi như cũ. **KHÔNG có "Chọn hết/Bỏ chọn hết"** ở beat này (tách sang B2c — hồ sơ rủi ro khác).
+- Verify Flip4: breadcrumb 4 tầng → `…` + popover liệt kê đúng 2 tầng cha, chạm nhảy đúng tầng; chạm tên tầng cha nhảy đúng, stack thu gọn; nhấn-giữ → chọn, đếm 1→2 đúng; thư mục mờ + chạm không đi đâu; dialog xóa lô đếm đúng, Hủy không mất gì; In lô → cờ in hiện. 155 test.
+
 ## [1.30.0] — 2026-07-27 — Tuyến B / Beat B2a: vỏ modal + sheet dùng chung
 ### Changed
 - **Vỏ dùng chung `GuSheet`** (mới): mọi sheet/modal đi qua một khung — header (tên + nút đóng + chỗ cắm nút trái cho ca drill) và vùng nội dung **đúng lề** (vỏ tự set `--padding-*`, các màn khỏi nhớ). `variant='sheet'` (trượt đáy theo breakpoint) hoặc `'full'` (modal đầy màn). Kèm **`SheetActionList` + `SheetAction[]`** — song song `RowAction[]` của `KhoRow` (B1): danh sách nút do MÀN truyền vào, vỏ không biết nghiệp vụ → B3 cắm thêm hành động mà không phải sửa vỏ.

@@ -71,7 +71,8 @@ export interface KhoRowProps {
   actions?: RowAction[];        // có → vuốt trái được (icon-only)
   swipeDisabled?: boolean;
   disabled?: boolean;
-  muted?: boolean;              // hàng chờ xử lý: chữ xám, không phải lối bấm
+  muted?: boolean;              // hàng chờ xử lý / thư mục lúc đang chọn-nhiều: chữ xám, mờ
+  selected?: boolean;           // đang được tick trong chế độ chọn-nhiều (B2b) → nền nhấn nâu nhạt
   // Cho long-press ở màn gọi (FolderDocRow) — component KHÔNG tự xử cử chỉ.
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
@@ -80,7 +81,7 @@ export interface KhoRowProps {
 
 export default function KhoRow({
   leading, title, subtitle, trailing, onClick, actions, swipeDisabled,
-  disabled, muted, onTouchStart, onTouchMove, onTouchEnd,
+  disabled, muted, selected, onTouchStart, onTouchMove, onTouchEnd,
 }: KhoRowProps) {
   const slideRef = useRef<HTMLIonItemSlidingElement>(null);
   // Đóng slide TRƯỚC khi chạy hành động → Hủy dialog xong không treo menu ở vị trí mở (v1.6.0).
@@ -92,8 +93,11 @@ export default function KhoRow({
       onClick={onClick} disabled={disabled}
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       style={{
-        '--background': 'var(--gu-paper-2)', '--border-radius': '0',
+        // Hàng đang tick: nền nâu rất nhạt để tách khỏi hàng chưa chọn mà vẫn trong tông giấy.
+        '--background': selected ? 'rgba(117,66,14,0.10)' : 'var(--gu-paper-2)',
+        '--border-radius': '0',
         '--padding-top': '10px', '--padding-bottom': '10px',
+        opacity: muted ? 0.55 : 1,
       } as CSSProperties}
     >
       {leading && <div slot="start" style={{ display: 'flex', alignItems: 'center' }}>{leading}</div>}
