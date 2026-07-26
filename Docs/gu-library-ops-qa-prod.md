@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-26, trạng thái: app v1.29.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-26, trạng thái: app v1.30.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -181,7 +181,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.29.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.29.0`). Từ v1.19.0
+- App **v1.30.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.30.0`). Từ v1.19.0
   đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
   lập, không chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng
   nhất mọi WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ
@@ -200,8 +200,13 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   **TUYẾN B mở (áp tông nâu-giấy lên các màn còn lại, reskin thuần — KHÔNG đổi hành vi):**
   **v1.29.0 = B1** lớp hàng dùng chung `KhoRow` (Đi in · Trong Môn · sheet chọn đích cùng ăn) +
   vuốt trái bỏ chữ còn icon+màu (in nâu · xóa đỏ-đất · ⋯ xanh rêu) + màn Đi in có swatch màu môn
-  ở header nhóm. Còn B2 (Trong Môn: header/breadcrumb, thanh chọn-nhiều, sheet ⋯) rồi Thêm-Import,
-  Sync, Viewer. **Nav chữ-bên-icon = won't-do
+  ở header nhóm. **v1.30.0 = B2a** vỏ modal/sheet dùng chung (`GuSheet` + `SheetAction[]`, `GuDialog`)
+  — dialog xóa · đổi tên · sheet ⋯ · đổi màu cùng một vỏ. Còn **B2b** (Trong Môn: header/breadcrumb +
+  chế độ chọn nhiều), rồi Thêm-Import, Sync, Viewer.
+  - **Nợ kỹ thuật đã biết — ca `className="ion-padding"` VÔ HIỆU trên `IonContent`** (bài học
+    v1.10.0): còn 3 file CHƯA sửa vì thuộc beat sau — `src/sync/SyncSettings.tsx` (B3),
+    `src/pages/SettingsPage.tsx`, `src/perf/PerfDebugModal.tsx` (chưa có beat). Ba màn này hiện
+    KHÔNG có lề; beat nào chạm tới thì sửa luôn (đổi sang biến `--padding-*`). **Nav chữ-bên-icon = won't-do
   (đóng sổ).** **v1.19.0 image-coupling ĐÃ GIẢI:** worker Prod v0.13.0 xử ảnh→PDF từ v0.12.0 → app
   nhận-ảnh lên Prod được. *Bản APK thực trên tablet Gú (Prod): huynh xác nhận đang ở version nào —
   doc không tự suy.*
