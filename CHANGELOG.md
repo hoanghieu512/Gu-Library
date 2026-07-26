@@ -2,6 +2,11 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.28.2] — 2026-07-26 — Fix Book Press tràn ra ngoài khung tủ
+### Fixed
+- **"Chưa phân loại" (Book Press) tràn ra NGOÀI khung tủ** thay vì tụt xuống tầng kệ dưới, khi tầng đang xét đã gần đầy. Gốc: `MonShelf` tính mảng bề rộng nhồi kệ bằng `spineWidth(số tài liệu)` cho MỌI môn — nhưng "Chưa phân loại" render bằng `BookPress` khổ **cố định 83px**, không theo số tài liệu. Press 4 tài liệu → nhồi tưởng 31px (vừa chỗ trống 76px) rồi vẽ 83px → **lòi ra 52px**. `shelf.ts` (`packShelves`) KHÔNG sai — nó nhồi đúng theo bề rộng được đưa vào. Sửa: export `PRESS_W` từ `BookPress`, dùng đúng nó cho ô "Chưa phân loại" khi nhồi kệ.
+- **Chặn sách (bookend) cùng loại lỗi** (chiếm 16px thật mà bộ nhồi không biết → tràn nốt ở ca tầng cuối vừa khít): nay chỉ dựng bookend khi tầng cuối còn đủ chỗ.
+
 ## [1.28.1] — 2026-07-26 — Bảng màu môn: thay trọn 6 màu cũ bằng 8 màu "sách luật"
 ### Changed
 - **`MON_PALETTE` thay HẲN (không cộng dồn)**: 6 màu cũ (nâu/be na ná nhau, khó phân biệt khi nhiều môn) → **8 màu đa dạng hue** vẫn trầm + bão hòa thấp hợp tông thư viện: đỏ rượu `#5C1F28`, xanh rêu `#2F4A33`, navy `#2E4864`, nâu đỏ `#6A3A2A`, xám than `#353335`, tím `#5E365A`, teal `#34585A`, nâu đậm `#4D2E1E`. Chỉ đụng **một mảng** — picker tạo môn (`CreateFolderModal`) + đổi màu (`ColorPickerSheet`) tự đọc; cả hai `flexWrap` sẵn nên 8 ô tự xuống 2 hàng, không tràn.
