@@ -18,6 +18,8 @@ import DeleteFolderConfirm, { type DeleteTarget } from '../components/DeleteFold
 import ColorPickerSheet from '../components/ColorPickerSheet';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { listMon, createMon, setMonColor } from '../storage/repo';
+import { monColor } from '../components/MonSwatch';
+import { UNFILED } from '../import/prefix';
 import { renameFolder } from '../storage/folderRepo';
 import { getRootUri } from '../storage/repo';
 import type { ReadingItem } from '../reading/store';
@@ -81,6 +83,16 @@ export default function HomePage() {
 
   const cont: ReadingItem | null = reading[0] ?? null;
 
+  // Màu bìa card "đọc dở" = MIRROR màu gáy môn của tài liệu (cùng monColor với kệ). "Chưa phân loại"
+  // (hoặc môn không còn trong danh sách) → undefined → card tự dùng màu trung tính.
+  const monByName = new Map(mons.map((m) => [m.name, m] as const));
+  const readingColor = (monName: string): string | undefined => {
+    if (monName === UNFILED) return undefined;
+    const m = monByName.get(monName);
+    if (!m) return undefined;
+    return monColor(monName, m.meta.color);
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -119,25 +131,55 @@ export default function HomePage() {
                 </IonButton>
               )}
             </div>
-            <ContinueReadingCard item={cont} />
+            <ContinueReadingCard
+              item={cont}
+              color={readingColor(cont.monName)}
+              peekColors={reading.slice(1, 3).map((r) => readingColor(r.monName))}
+            />
           </>
         )}
 
         {printCount > 0 && (
+          // "Đi in" — card XẤP GIẤY CHỜ (Beat 3b): motif xấp tài liệu (3 tờ lệch, tờ trên có dòng chữ
+          // giả) + pill đếm nâu. Giữ nguyên logic (chỉ hiện khi >0, đếm đúng).
           <div
             onClick={() => history.push('/print')}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gu-paper-2)',
-              borderRadius: 12, padding: 14, margin: '16px 0 0', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 14, background: 'var(--gu-paper-2)',
+              borderRadius: 12, padding: '14px 16px', margin: '16px 0 0', cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,.12)',
             }}
           >
-            <span style={{ fontSize: 20 }}>🖨</span>
-            <span style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)', flex: 1 }}>
-              Đi in
-            </span>
+            {/* Xấp giấy: 3 tờ giấy kem lệch nhau, tờ trên cùng có 3 dòng "chữ" mảnh */}
+            <div aria-hidden style={{ position: 'relative', width: 42, height: 46, flex: '0 0 auto' }}>
+              {[2, 1, 0].map((i) => (
+                <div key={i} style={{
+                  position: 'absolute', left: i * 3, top: i * 2, width: 34, height: 44,
+                  background: 'var(--gu-paper-2)', borderRadius: 3,
+                  border: '1px solid rgba(85,59,8,.25)', boxShadow: '0 1px 2px rgba(0,0,0,.15)',
+                }}>
+                  {i === 0 && (
+                    <div style={{ padding: '8px 5px' }}>
+                      {[0, 1, 2].map((k) => (
+                        <div key={k} style={{
+                          height: 2, borderRadius: 2, margin: '4px 0',
+                          background: 'rgba(85,59,8,.3)', width: k === 2 ? '60%' : '100%',
+                        }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)', fontSize: 16 }}>
+                Đi in
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--gu-grey)' }}>Tài liệu chờ in</div>
+            </div>
             <span style={{
               background: 'var(--gu-brown)', color: '#fff', borderRadius: 999,
-              padding: '2px 10px', fontSize: 13, whiteSpace: 'nowrap',
+              padding: '3px 12px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
             }}>
               {printCount}
             </span>

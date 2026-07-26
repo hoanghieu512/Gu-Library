@@ -3,9 +3,13 @@
 //   0 → không giấy · 1–4 → ít giấy (xấp mỏng) · ≥5 → nhiều giấy (xấp dày).
 // Chạm → mở "Chưa phân loại". SVG thuần → nhẹ. Đế SÁT đáy kệ (không hở), gỗ có mặt-trên bắt sáng.
 
+// Nội dung vẽ trong hệ toạ độ 92×150; hiển thị THU 10% (W_OUT/H_OUT) → bớt lấn tầng 2 trên máy dọc
+// (Beat 3b tinh chỉnh). viewBox giữ nguyên nên SVG tự co đều mọi chi tiết.
 const W = 92;
 const H = 150;
-const FLOOR = 148; // đáy đế sát sàn kệ (div cao 150) → không hở khoảng trống
+const W_OUT = 83;  // ~92 × 0.9
+const H_OUT = 135; // ~150 × 0.9
+const FLOOR = 148; // đáy đế sát sàn kệ → không hở khoảng trống
 
 export default function BookPress({ count, onOpen, uri }: { count: number; onOpen: (uri: string) => void; uri: string }) {
   const paperH = count === 0 ? 0 : count < 5 ? 12 : 26; // ít / nhiều
@@ -17,10 +21,10 @@ export default function BookPress({ count, onOpen, uri }: { count: number; onOpe
     <div
       onClick={() => onOpen(uri)}
       role="button"
-      aria-label={`Mở Chưa phân loại (${count} tài liệu chưa đóng gáy)`}
-      style={{ width: W, height: H, flex: '0 0 auto', cursor: 'pointer', alignSelf: 'flex-end' }}
+      aria-label={`Mở Chưa phân loại (${count} tài liệu)`}
+      style={{ width: W_OUT, height: H_OUT, flex: '0 0 auto', cursor: 'pointer', alignSelf: 'flex-end' }}
     >
-      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-hidden>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W_OUT} height={H_OUT} aria-hidden>
         <defs>
           <linearGradient id="bp-wood" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0" stopColor="#2b1d11" /><stop offset=".2" stopColor="#5a3d22" />
@@ -73,9 +77,9 @@ export default function BookPress({ count, onOpen, uri }: { count: number; onOpe
         <rect x="2" y={baseTop} width="88" height="3.5" fill="#8a5f36" />
         <rect x="2" y={baseTop + 3.5} width="88" height={FLOOR - baseTop - 3.5} rx="3" fill="url(#bp-wood)" stroke="#1c1109" strokeWidth=".6" />
 
-        {/* Bảng đồng CHƯA ĐÓNG GÁY + số (trên thân đế) */}
+        {/* Bảng đồng "Chưa phân loại" + số (trên thân đế) — khớp tên dùng ở Import / "Chuyển tới…" */}
         <rect x="16" y={baseTop + 8} width="60" height="14" rx="2" fill="url(#bp-brass)" stroke="#5f4913" strokeWidth=".5" />
-        <text x="46" y={baseTop + 14} textAnchor="middle" fontSize="4.7" fontWeight="700" fill="#33270a" letterSpacing=".2">CHƯA ĐÓNG GÁY</text>
+        <text x="46" y={baseTop + 14} textAnchor="middle" fontSize="5" fontWeight="700" fill="#33270a" letterSpacing=".2">Chưa phân loại</text>
         <text x="46" y={baseTop + 19.5} textAnchor="middle" fontSize="5.4" fontWeight="700" fill="#33270a">{count} tài liệu</text>
       </svg>
     </div>
