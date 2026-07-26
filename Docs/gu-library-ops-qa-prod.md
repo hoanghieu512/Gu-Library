@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-26, trạng thái: app v1.28.1 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-26, trạng thái: app v1.28.2 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -181,7 +181,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.28.1** trên main, sạch, chỉ còn nhánh `main` (tag `v1.28.1`). Từ v1.19.0
+- App **v1.28.2** trên main, sạch, chỉ còn nhánh `main` (tag `v1.28.2`). Từ v1.19.0
   đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
   lập, không chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng
   nhất mọi WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ
@@ -195,7 +195,8 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   nhấn-giữ-rút-sách menu + Book Press "Chưa phân loại" + card đọc-dở bìa-da mirror màu môn + "Đi in"
   xấp-giấy — reskin lớp trình bày, KHÔNG đụng reading-state/print/sync) · **v1.28.1 bảng màu
   môn thay trọn 6 màu cũ → 8 màu "sách luật"** (đa dạng hue, chỉ đụng `MON_PALETTE`; môn đã gán
-  màu giữ nguyên vì `meta.color` explicit thắng). **Nav chữ-bên-icon = won't-do
+  màu giữ nguyên vì `meta.color` explicit thắng) · **v1.28.2 fix Book Press tràn khung tủ**
+  (nhồi kệ phải dùng bề rộng RENDER thật của press, không phải `spineWidth`). **Nav chữ-bên-icon = won't-do
   (đóng sổ).** **v1.19.0 image-coupling ĐÃ GIẢI:** worker Prod v0.13.0 xử ảnh→PDF từ v0.12.0 → app
   nhận-ảnh lên Prod được. *Bản APK thực trên tablet Gú (Prod): huynh xác nhận đang ở version nào —
   doc không tự suy.*
