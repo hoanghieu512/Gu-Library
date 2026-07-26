@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
-  IonList, IonItem, IonLabel, IonNote, IonInput, IonIcon, IonSpinner,
+  IonList, IonNote, IonInput, IonIcon, IonSpinner,
 } from '@ionic/react';
 import { arrowBack, folderOutline, addCircleOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { listMon, listFolder, createSubfolder } from '../storage/repo';
@@ -10,6 +10,7 @@ import { getLastMon } from './inboxRepo';
 import { UNFILED } from './prefix';
 import { validateFolderName } from '../storage/folderName';
 import MonSwatch from '../components/MonSwatch';
+import KhoRow from '../components/KhoRow';
 import UnfiledSwatch from '../components/UnfiledSwatch';
 import type { Mon, SubFolder } from '../storage/types';
 
@@ -20,11 +21,6 @@ interface Props {
   onPick: (path: string[], destUri: string) => void;
   onCancel: () => void;
 }
-
-const card: CSSProperties = {
-  '--background': 'var(--gu-paper-2)', '--border-radius': '14px',
-  '--padding-top': '10px', '--padding-bottom': '10px',
-} as CSSProperties;
 
 type Level = { name: string; uri: string; folders: SubFolder[] };
 
@@ -109,7 +105,8 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
           </IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      {/* `ion-padding` VÔ HIỆU trên IonContent (bài học v1.10.0) → biến --padding-* cho thẻ inset đều */}
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
         {note && <IonNote>{note}</IonNote>}
         {busy && <div style={{ textAlign: 'center', padding: 12 }}><IonSpinner /></div>}
 
@@ -117,41 +114,35 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
           {atRoot ? (
             <>
               {ordered.map((m) => (
-                <div key={m.uri} style={{ marginBottom: 10 }}>
-                  <IonItem button detail={false} lines="none" disabled={busy} onClick={() => tapMon(m)} style={card}>
-                    <MonSwatch name={m.name} color={m.meta.color} />
-                    <IonLabel className="gu-serif" style={{ marginLeft: 12 }}>
-                      {m.name}{m.name === last ? '  · vừa dùng' : ''}
-                    </IonLabel>
-                  </IonItem>
-                </div>
+                <KhoRow
+                  key={m.uri} disabled={busy} onClick={() => tapMon(m)}
+                  leading={<MonSwatch name={m.name} color={m.meta.color} size={32} />}
+                  title={`${m.name}${m.name === last ? '  · vừa dùng' : ''}`}
+                />
               ))}
               {/* "Chưa phân loại": luôn phẳng, không drill / không tạo con */}
-              <div style={{ marginBottom: 10 }}>
-                <IonItem button detail={false} lines="none" disabled={busy}
-                  onClick={() => onPick([UNFILED], mons.find((m) => m.name === UNFILED)?.uri ?? '')} style={card}>
-                  <UnfiledSwatch />
-                  <IonLabel color="medium" style={{ marginLeft: 12, fontStyle: 'italic' }}>Chưa phân loại</IonLabel>
-                </IonItem>
-              </div>
+              <KhoRow
+                disabled={busy} muted
+                onClick={() => onPick([UNFILED], mons.find((m) => m.name === UNFILED)?.uri ?? '')}
+                leading={<UnfiledSwatch />}
+                title={<span style={{ fontStyle: 'italic' }}>Chưa phân loại</span>}
+              />
             </>
           ) : (
             <>
               {/* Lưu vào cấp hiện tại (Gốc môn / thư mục đang đứng) */}
-              <div style={{ marginBottom: 10 }}>
-                <IonItem button detail={false} lines="none" disabled={busy} onClick={() => onPick(path, cur?.uri ?? '')} style={card}>
-                  <IonIcon icon={checkmarkCircleOutline} style={{ color: 'var(--gu-brown)', marginRight: 12 }} />
-                  <IonLabel className="gu-serif">Lưu vào “{cur?.name}”</IonLabel>
-                </IonItem>
-              </div>
+              <KhoRow
+                disabled={busy} onClick={() => onPick(path, cur?.uri ?? '')}
+                leading={<IonIcon icon={checkmarkCircleOutline} style={{ color: 'var(--gu-brown)' }} />}
+                title={`Lưu vào “${cur?.name}”`}
+              />
               {/* Thư mục con → drill tiếp */}
               {cur?.folders.map((f) => (
-                <div key={f.uri} style={{ marginBottom: 10 }}>
-                  <IonItem button detail={false} lines="none" disabled={busy} onClick={() => tapFolder(f)} style={card}>
-                    <IonIcon icon={folderOutline} style={{ color: 'var(--gu-brown)', marginRight: 12 }} />
-                    <IonLabel className="gu-serif">{f.name}</IonLabel>
-                  </IonItem>
-                </div>
+                <KhoRow
+                  key={f.uri} disabled={busy} onClick={() => tapFolder(f)}
+                  leading={<IonIcon icon={folderOutline} style={{ color: 'var(--gu-brown)' }} />}
+                  title={f.name}
+                />
               ))}
               {/* + Thư mục mới (inline — không sheet chồng sheet) */}
               {newMode ? (
@@ -166,13 +157,12 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
                   </div>
                 </div>
               ) : (
-                <div style={{ marginBottom: 10 }}>
-                  <IonItem button detail={false} lines="none" disabled={busy}
-                    onClick={() => { setNewMode(true); setNewName(''); setNewErr(''); }} style={card}>
-                    <IonIcon icon={addCircleOutline} style={{ color: 'var(--gu-brown)', marginRight: 12 }} />
-                    <IonLabel className="gu-serif">Thư mục mới</IonLabel>
-                  </IonItem>
-                </div>
+                <KhoRow
+                  disabled={busy}
+                  onClick={() => { setNewMode(true); setNewName(''); setNewErr(''); }}
+                  leading={<IonIcon icon={addCircleOutline} style={{ color: 'var(--gu-brown)' }} />}
+                  title="Thư mục mới"
+                />
               )}
             </>
           )}

@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.29.0] — 2026-07-27 — Tuyến B / Beat B1: lớp hàng dùng chung + màn Đi in
+### Changed
+- **Lớp chung `KhoRow`** (mới) — MỘT hàng dùng cho **Đi in · Trong Môn · sheet chọn đích**: nền thẻ-rời giấy, tên serif, chỗ cắm `leading` (swatch màu môn / icon tài liệu / icon thư mục / checkbox) và `trailing` (`PrintMark` icon máy in nâu khi có cờ cần in · `PendingPill` ⏳ chờ mini PC xử lý · `StatusPill` · chevron · nút). Component CHỈ lo hình + khung vuốt; mọi hành vi (nhấn-giữ, chọn-nhiều, dialog, toast, thao tác file) vẫn ở màn gọi.
+- **Vuốt trái: bỏ chữ, còn ICON + MÀU** (đánh đổi đã chốt) — in nâu · xóa đỏ-đất · ⋯ xanh rêu · đổi tên nâu. Danh sách hành động do màn truyền vào (`RowAction[]`), KHÔNG hard-code theo màn: Đi in 1 icon · tài liệu 3 · thư mục 2. `KhoRow` tự đóng slide trước khi chạy hành động → bỏ được đoạn `closest('ion-item-sliding')` lặp ở FolderPage (giữ đúng hành vi v1.6.0).
+- **Màn Đi in**: nhóm theo môn nay có **swatch màu môn** ở header (đọc `_mon.json` — CÙNG nguồn màu gáy kệ Home, không suy từ tên); hàng "đã gom" mang pill xanh "Đã gửi đi in" + "Xong"; hàng chưa gom vuốt ra **đúng một icon thùng rác đỏ**. Nút chính giữ "Gom để in (N)".
+- **Trong Môn + sheet chọn đích ăn theo lớp chung** (có chủ đích): hàng tài liệu/thư mục/chờ-xử-lý và các hàng môn/thư mục trong "Chuyển tới…" cùng một khuôn thẻ-rời.
+### Fixed
+- **Thẻ sát mép màn ở Trong Môn và sheet chọn đích**: cả hai dùng `className="ion-padding"` trên `IonContent` — **class này VÔ HIỆU trên IonContent** (bài học v1.10.0), nên hai màn đó xưa nay không hề có lề; chỉ đến khi có thẻ-rời mới lộ. Chuyển sang biến `--padding-*` (inset 16px khớp Home/Đi in). Kèm: nền `IonList` trắng lòi ra sau các thẻ → cho trong suốt; thẻ cuối màn Đi in bị footer che → chừa `--padding-bottom`.
+### Notes
+- **KHÔNG đổi hành vi một dòng nào**: luồng gom `_print/`, cờ cần in, dialog xác nhận, hệ toast giữ nguyên tuyệt đối. Vuốt-xóa ở Đi in vẫn chỉ **gỡ cờ cần in**, KHÔNG xóa file thật (theo code, không theo prototype). Verify Flip4 end-to-end: gom → 5 file vào `_print/` đúng tiền tố môn, bản gốc còn nguyên; "Xong" → file rời `_print/` + gỡ cờ. 155 test.
+
 ## [1.28.2] — 2026-07-26 — Fix Book Press tràn ra ngoài khung tủ
 ### Fixed
 - **"Chưa phân loại" (Book Press) tràn ra NGOÀI khung tủ** thay vì tụt xuống tầng kệ dưới, khi tầng đang xét đã gần đầy. Gốc: `MonShelf` tính mảng bề rộng nhồi kệ bằng `spineWidth(số tài liệu)` cho MỌI môn — nhưng "Chưa phân loại" render bằng `BookPress` khổ **cố định 83px**, không theo số tài liệu. Press 4 tài liệu → nhồi tưởng 31px (vừa chỗ trống 76px) rồi vẽ 83px → **lòi ra 52px**. `shelf.ts` (`packShelves`) KHÔNG sai — nó nhồi đúng theo bề rộng được đưa vào. Sửa: export `PRESS_W` từ `BookPress`, dùng đúng nó cho ô "Chưa phân loại" khi nhồi kệ.
