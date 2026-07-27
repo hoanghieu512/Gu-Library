@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonIcon,
   useIonToast,
@@ -47,7 +48,9 @@ export default function PerfDebugModal({ isOpen, onClose }: { isOpen: boolean; o
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      {/* `ion-padding` VÔ HIỆU trên IonContent (bài học v1.10.0) → lề qua biến --padding-*.
+          B3 trả nợ: THUẦN LỀ, không đổi gì khác ở màn này. */}
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
         <p style={{ fontSize: 12, color: 'var(--gu-grey)', marginTop: 0 }}>
           Số đo phiên (ms). <b>Chỉ có nghĩa trên máy thật / release</b> — số ở web/dev không so được.
           Neo “xong” = nội dung vẽ xong trên màn; các mốc “mở” không gồm hoạt ảnh chuyển trang,

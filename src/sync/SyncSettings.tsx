@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
-  IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
-  IonItem, IonLabel, IonInput, IonList, IonRadioGroup, IonRadio, IonText, IonNote,
+  IonButton, IonItem, IonLabel, IonInput, IonList, IonRadioGroup, IonRadio, IonNote,
 } from '@ionic/react';
+import GuSheet from '../components/GuSheet';
+import { StatusPill } from '../components/KhoRow';
 import {
   getSyncConfig, setApiKey, setMinipcId, listOtherDevices, checkConnection,
   type DeviceInfo,
 } from './config';
 
+// B3 (10a/10b) — CHỈ áp da: vỏ chung `GuSheet` (kèm SỬA lề: file này còn dính
+// `className="ion-padding"` VÔ HIỆU trên IonContent — bài học v1.10.0) + pill trạng thái dùng
+// chung + thẻ giấy. TOÀN BỘ LOGIC đồng bộ GIỮ NGUYÊN: đọc/ghi API key, checkConnection,
+// listOtherDevices, chọn mini PC, ngưỡng và thông báo — không đổi một dòng.
 export default function SyncSettings({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [key, setKey] = useState('');
   const [minipc, setMinipc] = useState<string | null>(null);
@@ -43,39 +49,48 @@ export default function SyncSettings({ isOpen, onClose }: { isOpen: boolean; onC
   };
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Đồng bộ (Syncthing)</IonTitle>
-          <IonButtons slot="end"><IonButton onClick={onClose}>Đóng</IonButton></IonButtons>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding">
-        <IonItem>
-          <IonLabel position="stacked">API key (của Syncthing trên máy này)</IonLabel>
-          <IonInput value={key} onIonInput={(e) => setKey(e.detail.value ?? '')} placeholder="dán API key" />
-        </IonItem>
-        <IonButton expand="block" onClick={saveKeyAndLoad}>Lưu key + kiểm tra kết nối</IonButton>
+    <GuSheet isOpen={isOpen} onClose={onClose} title="Đồng bộ (Syncthing)" variant="full">
+        <div style={{ background: 'var(--gu-paper-2)', borderRadius: 14, padding: '4px 4px 12px' }}>
+          <IonItem lines="none" style={{ '--background': 'transparent' } as CSSProperties}>
+            <IonLabel position="stacked" style={{ color: 'var(--gu-brown-deep)', fontWeight: 600 }}>
+              API key (của Syncthing trên máy này)
+            </IonLabel>
+            <IonInput value={key} onIonInput={(e) => setKey(e.detail.value ?? '')} placeholder="dán API key" />
+          </IonItem>
+        </div>
+        <IonButton expand="block" onClick={saveKeyAndLoad} style={{ marginTop: 16, height: 48 } as CSSProperties}>
+          Lưu key + kiểm tra kết nối
+        </IonButton>
 
-        {version && <IonText color="success"><p>Đã kết nối — Syncthing {version}</p></IonText>}
-        {error && <IonText color="danger"><p>Lỗi: {error}</p></IonText>}
+        {/* Trạng thái: dùng lại pill sẵn có (KhoRow.StatusPill) — không đẻ kiểu báo trạng thái mới */}
+        {version && (
+          <div style={{ marginTop: 14 }}>
+            <StatusPill text={`Đã kết nối — Syncthing ${version}`} />
+          </div>
+        )}
+        {error && (
+          <div style={{ marginTop: 14 }}>
+            <StatusPill text={`Lỗi: ${error}`} color="var(--ion-color-danger)" />
+          </div>
+        )}
 
         {devices.length > 0 && (
-          <>
-            <IonNote>Chọn thiết bị nào là mini PC:</IonNote>
+          <div style={{ marginTop: 18 }}>
+            <IonNote style={{ color: 'var(--gu-grey)', fontSize: 13 }}>Chọn thiết bị nào là mini PC:</IonNote>
             <IonRadioGroup value={minipc} onIonChange={(e) => pick(e.detail.value)}>
-              <IonList>
+              <IonList style={{ background: 'transparent', marginTop: 8 }}>
                 {devices.map((d) => (
-                  <IonItem key={d.deviceID}>
-                    <IonLabel>{d.name}</IonLabel>
-                    <IonRadio slot="end" value={d.deviceID} />
-                  </IonItem>
+                  <div key={d.deviceID} style={{ marginBottom: 10, borderRadius: 14, overflow: 'hidden' }}>
+                    <IonItem lines="none" style={{ '--background': 'var(--gu-paper-2)', '--border-radius': '0' } as CSSProperties}>
+                      <IonLabel className="gu-serif">{d.name}</IonLabel>
+                      <IonRadio slot="end" value={d.deviceID} />
+                    </IonItem>
+                  </div>
                 ))}
               </IonList>
             </IonRadioGroup>
-          </>
+          </div>
         )}
-      </IonContent>
-    </IonModal>
+    </GuSheet>
   );
 }

@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
 import {
-  IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
-  IonList, IonNote, IonInput, IonIcon, IonSpinner,
+  IonButton, IonList, IonNote, IonInput, IonIcon, IonSpinner,
 } from '@ionic/react';
 import { arrowBack, folderOutline, addCircleOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { listMon, listFolder, createSubfolder } from '../storage/repo';
@@ -11,6 +9,7 @@ import { UNFILED } from './prefix';
 import { validateFolderName } from '../storage/folderName';
 import MonSwatch from '../components/MonSwatch';
 import KhoRow from '../components/KhoRow';
+import GuSheet from '../components/GuSheet';
 import UnfiledSwatch from '../components/UnfiledSwatch';
 import type { Mon, SubFolder } from '../storage/types';
 
@@ -91,23 +90,19 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
   };
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onCancel}
-      breakpoints={[0, 0.92]} initialBreakpoint={0.92} expandToScroll={false}>
-      <IonHeader>
-        <IonToolbar>
-          {!atRoot && (
-            <IonButtons slot="start">
-              <IonButton onClick={back} aria-label="Quay lại"><IonIcon slot="icon-only" icon={arrowBack} /></IonButton>
-            </IonButtons>
-          )}
-          <IonTitle className="gu-title" style={{ fontSize: 17 }}>
-            {atRoot ? 'Lưu vào môn nào?' : `Lưu vào đâu trong ${cur?.name}?`}
-          </IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      {/* `ion-padding` VÔ HIỆU trên IonContent (bài học v1.10.0) → biến --padding-* cho thẻ inset đều */}
-      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
-        {note && <IonNote>{note}</IonNote>}
+    // B3: cưỡi lên vỏ chung `GuSheet` — nút lùi tầng cắm vào `startSlot` (đúng ca vỏ B2a dựng sẵn).
+    // Đây là MỘT component dùng cho CẢ HAI đường vào (màn Thêm · "Chuyển tới…" ở Trong Môn) nên
+    // hai đường không thể lệch hình nhau.
+    <GuSheet
+      isOpen={isOpen} onClose={onCancel} closeLabel="Huỷ" closeDisabled={busy} breakpoint={0.92}
+      title={atRoot ? 'Lưu vào môn nào?' : `Lưu vào đâu trong ${cur?.name}?`}
+      startSlot={!atRoot ? (
+        <IonButton onClick={back} aria-label="Quay lại" disabled={busy}>
+          <IonIcon slot="icon-only" icon={arrowBack} />
+        </IonButton>
+      ) : undefined}
+    >
+      {note && <IonNote>{note}</IonNote>}
         {busy && <div style={{ textAlign: 'center', padding: 12 }}><IonSpinner /></div>}
 
         <IonList style={{ background: 'transparent' }}>
@@ -167,7 +162,6 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
             </>
           )}
         </IonList>
-      </IonContent>
-    </IonModal>
+    </GuSheet>
   );
 }

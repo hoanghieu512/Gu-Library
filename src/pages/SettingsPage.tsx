@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel,
   IonNote, IonSegment, IonSegmentButton,
@@ -32,7 +33,9 @@ export default function SettingsPage() {
   return (
     <IonPage>
       <IonHeader><IonToolbar><IonTitle>Cài đặt</IonTitle></IonToolbar></IonHeader>
-      <IonContent className="ion-padding">
+      {/* `ion-padding` VÔ HIỆU trên IonContent (bài học v1.10.0) → lề qua biến --padding-*.
+          B3 trả nợ: THUẦN LỀ, không đổi gì khác ở màn này. */}
+      <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
         <IonList>
           <IonItem button onClick={pick}>
             <IonLabel>
