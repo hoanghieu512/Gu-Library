@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-26, trạng thái: app v1.33.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-26, trạng thái: app v1.34.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -181,7 +181,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.33.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.33.0`). Từ v1.19.0
+- App **v1.34.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.34.0`). Từ v1.19.0
   đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
   lập, không chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng
   nhất mọi WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ
@@ -207,7 +207,14 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   tiếp. **v1.32.0 = B2c** "Chọn hết / Bỏ chọn hết" (MỘT nút đổi nhãn; phạm vi = ĐÚNG tập đang hiển
   thị ở tầng đang đứng, **KHÔNG đệ quy**, không gồm thư mục). **v1.33.0 = B3(+B3.1)** màn Thêm ·
   sheet chọn môn–thư mục (cưỡi `GuSheet`, nút lùi vào `startSlot`) · màn Tìm · modal Sync · màn Cài
-  đặt lên thẻ-rời. **Tuyến B chỉ còn VIEWER** — đang chờ ba điểm quan sát từ Gú, chưa mở beat.
+  đặt lên thẻ-rời. **v1.34.0 = B4a** Viewer RESKIN (header · thanh điều khiển + vạch tiến độ · vỏ
+  split · icon chia-đôi đổi theo chế độ) — KHÔNG đụng read-path, KHÔNG đụng logic split.
+  **Tuyến B còn 2 beat, cả hai là TÍNH NĂNG chứ không phải reskin:** **B4b** đổi tài liệu ngay trong
+  split (Gú xác nhận có nhu cầu — hiện phải thoát split rồi vào lại; đây là ca BỘ NHỚ, phải đo);
+  **B4c** thanh chia kéo được (Gú xác nhận 50/50 chưa đủ) — lúc làm B4c mới được vẽ tay-nắm lên vạch
+  chia, B4a CỐ Ý không vẽ để khỏi hứa cử chỉ chưa có.
+  - **Feedback Gú đã chốt (khỏi hỏi lại):** pane trên ĐỌC / pane dưới TRA — giữ nguyên như app,
+    giả định ban đầu đúng.
   - **CHỜ XÁC NHẬN CÓ DÙNG — "Chọn hết / Bỏ chọn hết" (v1.32.0):** đây là mục **DUY NHẤT** của cả
     Tuyến B **không truy được về friction quan sát từ Gú** — nó đến từ prototype, không từ việc Gú
     kêu. Cần theo dõi vài tuần: nếu Gú không đụng thì **GỠ**, đừng để tồn như tính năng chết.
