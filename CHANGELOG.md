@@ -8,6 +8,10 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 - **Màn Thêm (8b)**: header serif + thẻ giấy giải thích (icon trong ô nền) + nút nâu cao 48 + dòng nhắc đường vào còn lại (chia sẻ từ app khác — chỉ là chữ nhắc, không đẻ luồng mới). **Đường đi của file, quy tắc đặt tên và `_inbox/` GIỮ NGUYÊN TUYỆT ĐỐI.**
 - **Modal Sync (10a/10b)**: vỏ `GuSheet` + thẻ giấy cho ô API key + danh sách thiết bị dạng thẻ-rời + **dùng lại `StatusPill` sẵn có** cho trạng thái kết nối/lỗi (không đẻ kiểu báo trạng thái mới). **Toàn bộ logic đồng bộ giữ nguyên**: đọc/ghi API key, `checkConnection`, `listOtherDevices`, chọn mini PC, ngưỡng, thông báo.
 - **Màn Tìm (8e)**: áp da bề mặt rỗng (huy hiệu tròn + tiêu đề serif + câu giọng Gú).
+### Changed (B3.1 — theo feedback Gú)
+- **Màn Cài đặt lên thẻ-rời**: mỗi mục là một thẻ giấy — icon trong ô nền (Folder nâu · Đồng bộ xanh) + tiêu đề serif + giá trị + dòng gợi ý + chevron cho mục bấm được. Mục Đồng bộ hiện thêm **chấm trạng thái + nhãn**, dùng LẠI hook `useSyncStatus` và bộ nhãn của `SyncPill` (export `SYNC_MAP`) — **không đẻ nguồn chữ trạng thái thứ hai**. Trạng thái đặt DƯỚI tiêu đề chứ không nhét bên phải: nhãn của app ("Đã đồng bộ" / "Chưa thấy mini PC") dài hơn chữ "OK" ở bản vẽ nên tranh chỗ làm tiêu đề gãy hai dòng. Hành vi (chọn folder · mở modal Sync/Perf · đổi cỡ chữ) giữ nguyên.
+- **Màn Tìm** đổi câu theo giọng Gú: "Đang phát triển tính năng này. Bấy giờ dợ mở theo Môn ở trang chủ nha!"
+
 ### Fixed
 - **Trả nợ lề — ĐÓNG SỔ.** `className="ion-padding"` VÔ HIỆU trên `IonContent` (bài học v1.10.0) còn ở **`SyncSettings` · `SettingsPage` · `PerfDebugModal`** → vá cả ba sang biến `--padding-*`. Grep toàn `src/` nay **sạch, không còn ca nào**. Hai màn ngoài phạm vi reskin (`SettingsPage`, `PerfDebugModal`) chỉ được thêm lề — **không nhân tiện đổi hình, không sắp xếp lại**.
 ### Notes

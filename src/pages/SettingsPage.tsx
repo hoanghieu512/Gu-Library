@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel,
-  IonNote, IonSegment, IonSegmentButton,
+  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon,
+  IonSegment, IonSegmentButton, IonLabel,
 } from '@ionic/react';
+import {
+  folderOutline, syncOutline, textOutline, phonePortraitOutline, speedometerOutline, chevronForward,
+} from 'ionicons/icons';
 import { App } from '@capacitor/app';
 import { getRootUri, pickAndSaveRoot } from '../storage/repo';
 import { readableTreePath } from '../storage/safPath';
@@ -11,6 +14,53 @@ import { getDeviceId } from '../reading/store';
 import { getBaseScale, setBaseScale, SCALE_OPTIONS } from '../viewer/fontScale';
 import SyncSettings from '../sync/SyncSettings';
 import PerfDebugModal from '../perf/PerfDebugModal';
+import { useSyncStatus } from '../sync/useSyncStatus';
+import { SYNC_MAP } from '../components/SyncPill';
+
+// Màn Cài đặt — mỗi mục là một THẺ GIẤY: icon trong ô nền + tiêu đề serif + giá trị + dòng gợi ý,
+// bên phải là chevron (mục bấm được) hoặc trạng thái. Chỉ đổi HÌNH: mọi hành vi (chọn folder,
+// mở modal Sync/Perf, đổi cỡ chữ Viewer) giữ nguyên.
+const CARD: CSSProperties = {
+  background: 'var(--gu-paper-2)', borderRadius: 14, padding: 14, marginBottom: 12,
+};
+
+function IconBox({ icon, tint = 'rgba(117,66,14,0.10)', color = 'var(--gu-brown)' }: {
+  icon: string; tint?: string; color?: string;
+}) {
+  return (
+    <div style={{
+      width: 42, height: 42, borderRadius: 11, background: tint, flex: '0 0 auto',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <IonIcon icon={icon} style={{ fontSize: 21, color }} />
+    </div>
+  );
+}
+
+function Row({ icon, tint, iconColor, title, value, hint, trailing, onClick, children }: {
+  icon: string; tint?: string; iconColor?: string;
+  title: string; value?: ReactNode; hint?: string; trailing?: ReactNode;
+  onClick?: () => void; children?: ReactNode;
+}) {
+  return (
+    <div style={{ ...CARD, cursor: onClick ? 'pointer' : undefined }} onClick={onClick} role={onClick ? 'button' : undefined}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <IconBox icon={icon} tint={tint} color={iconColor} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: 15.5, color: 'var(--gu-brown-deep)' }}>
+            {title}
+          </div>
+          {value !== undefined && (
+            <div style={{ fontSize: 13.5, color: 'var(--gu-brown)', marginTop: 2, wordBreak: 'break-all' }}>{value}</div>
+          )}
+          {hint && <div style={{ fontSize: 12, color: 'var(--gu-grey)', marginTop: 2 }}>{hint}</div>}
+        </div>
+        {trailing && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>{trailing}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const [root, setRoot] = useState<string | null>(null);
@@ -19,6 +69,9 @@ export default function SettingsPage() {
   const [version, setVersion] = useState<string>(__APP_VERSION__);
   const [deviceId, setDeviceId] = useState<string>('');
   const [scale, setScale] = useState<string>('1');
+  // Trạng thái đồng bộ: dùng LẠI hook + bộ nhãn của SyncPill (cùng nguồn với đèn ở Home).
+  const { light } = useSyncStatus();
+  const sync = SYNC_MAP[light];
 
   useEffect(() => { getRootUri().then(setRoot); }, []);
   useEffect(() => {
@@ -30,54 +83,61 @@ export default function SettingsPage() {
   const pick = async () => { await pickAndSaveRoot(); setRoot(await getRootUri()); };
   const changeScale = (v: string) => { setScale(v); setBaseScale(parseFloat(v)); };
 
+  const chevron = <IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)', fontSize: 18 }} />;
+
   return (
     <IonPage>
-      <IonHeader><IonToolbar><IonTitle>Cài đặt</IonTitle></IonToolbar></IonHeader>
-      {/* `ion-padding` VÔ HIỆU trên IonContent (bài học v1.10.0) → lề qua biến --padding-*.
-          B3 trả nợ: THUẦN LỀ, không đổi gì khác ở màn này. */}
+      <IonHeader><IonToolbar><IonTitle className="gu-title">Cài đặt</IonTitle></IonToolbar></IonHeader>
+      {/* `ion-padding` VÔ HIỆU trên IonContent (bài học v1.10.0) → lề qua biến --padding-*. */}
       <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-top': '16px', '--padding-bottom': '16px' } as CSSProperties}>
-        <IonList>
-          <IonItem button onClick={pick}>
-            <IonLabel>
-              <h2>Folder kho</h2>
-              <IonNote>{root ? readableTreePath(root) : 'Chưa chọn — bấm để chọn folder Syncthing'}</IonNote>
-              <p style={{ fontSize: 12, color: 'var(--gu-grey)', marginTop: 2 }}>Bấm để chọn / cấp lại quyền folder kho</p>
-            </IonLabel>
-          </IonItem>
+        <Row
+          icon={folderOutline} title="Folder kho"
+          value={root ? readableTreePath(root) : 'Chưa chọn'}
+          hint="Bấm để chọn / cấp lại quyền folder kho"
+          trailing={chevron} onClick={pick}
+        />
 
-          <IonItem button onClick={() => setSyncOpen(true)}>
-            <IonLabel><h2>Đồng bộ (Syncthing)</h2><IonNote>API key + chọn mini PC</IonNote></IonLabel>
-          </IonItem>
+        <Row
+          icon={syncOutline} tint="rgba(45,211,111,0.14)" iconColor="var(--ion-color-success)"
+          title="Đồng bộ (Syncthing)" hint="API key + chọn mini PC"
+          onClick={() => setSyncOpen(true)} trailing={chevron}
+          value={
+            /* Trạng thái để DƯỚI tiêu đề chứ không nhét bên phải: nhãn của app ("Đã đồng bộ",
+               "Chưa thấy mini PC") dài hơn chữ "OK" ở bản vẽ nên tranh chỗ, làm tiêu đề gãy 2 dòng. */
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                width: 9, height: 9, borderRadius: '50%', flex: '0 0 auto',
+                background: `var(--ion-color-${sync.color})`,
+              }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gu-brown-deep)' }}>{sync.label}</span>
+            </span>
+          }
+        />
 
-          <IonItem lines="none">
-            <IonLabel>
-              <h2>Cỡ chữ Viewer</h2>
-              <IonNote>Cỡ mặc định khi mở tài liệu (vẫn pinch-zoom được)</IonNote>
-              <IonSegment value={scale} onIonChange={(e) => changeScale(String(e.detail.value ?? '1'))} style={{ marginTop: 8 }}>
-                {SCALE_OPTIONS.map((o) => (
-                  <IonSegmentButton key={o.value} value={String(o.value)}>
-                    <IonLabel>{o.label}</IonLabel>
-                  </IonSegmentButton>
-                ))}
-              </IonSegment>
-            </IonLabel>
-          </IonItem>
+        <Row icon={textOutline} title="Cỡ chữ Viewer" hint="Cỡ mặc định khi mở tài liệu (vẫn pinch-zoom được)">
+          <IonSegment
+            value={scale} onIonChange={(e) => changeScale(String(e.detail.value ?? '1'))}
+            style={{ marginTop: 12, '--background': 'var(--gu-cream)' } as CSSProperties}
+          >
+            {SCALE_OPTIONS.map((o) => (
+              <IonSegmentButton key={o.value} value={String(o.value)}>
+                <IonLabel style={{ textTransform: 'none', fontSize: 13.5 }}>{o.label}</IonLabel>
+              </IonSegmentButton>
+            ))}
+          </IonSegment>
+        </Row>
 
-          <IonItem lines="none">
-            <IonLabel>
-              <h2>Thông tin máy này</h2>
-              <IonNote style={{ wordBreak: 'break-all' }}>{deviceId || '—'}</IonNote>
-              <p style={{ fontSize: 12, color: 'var(--gu-grey)', marginTop: 2 }}>Khớp tên file _reading-&lt;id&gt;.json</p>
-            </IonLabel>
-          </IonItem>
+        <Row
+          icon={phonePortraitOutline} title="Thông tin máy này"
+          value={<span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>{deviceId || '—'}</span>}
+          hint="Khớp tên file _reading-<id>.json"
+        />
 
-          <IonItem button lines="none" onClick={() => setPerfOpen(true)}>
-            <IonLabel>
-              <h2>Đo hiệu năng (debug)</h2>
-              <IonNote>Bảng số đo phiên để lập baseline · không đo gì tự động</IonNote>
-            </IonLabel>
-          </IonItem>
-        </IonList>
+        <Row
+          icon={speedometerOutline} title="Đo hiệu năng (debug)"
+          hint="Bảng số đo phiên để lập baseline · không đo gì tự động"
+          trailing={chevron} onClick={() => setPerfOpen(true)}
+        />
 
         <SyncSettings isOpen={syncOpen} onClose={() => setSyncOpen(false)} />
         <PerfDebugModal isOpen={perfOpen} onClose={() => setPerfOpen(false)} />

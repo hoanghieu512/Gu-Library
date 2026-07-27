@@ -28,7 +28,7 @@ export default function SearchStubPage() {
             Chưa tìm được trong tài liệu
           </div>
           <p style={{ color: 'var(--gu-grey)', fontSize: 13.5, lineHeight: 1.6, margin: '8px 0 0' }}>
-            Tìm theo nội dung bên trong tài liệu đang được dựng. Bây giờ huynh mở theo môn ở Trang chủ nha.
+            Đang phát triển tính năng này. Bấy giờ dợ mở theo Môn ở trang chủ nha!
           </p>
         </div>
       </IonContent>
