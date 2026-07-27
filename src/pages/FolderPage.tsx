@@ -26,6 +26,7 @@ import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
 import KhoRow, { PendingPill } from '../components/KhoRow';
 import { folderSubtitle } from '../storage/folderSubtitle';
+import { isAllSelected, toggleSelectAll, selectAllLabel } from '../storage/selectAll';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ChooseMonSheet from '../import/ChooseMonSheet';
 import SadPandaState from '../components/SadPandaState';
@@ -124,6 +125,11 @@ export default function FolderPage() {
     const n = new Set(s); if (n.has(d.pdfUri)) n.delete(d.pdfUri); else n.add(d.pdfUri); return n;
   });
   const selectedDocs = () => (listing?.documents ?? []).filter((d) => selected.has(d.pdfUri));
+  // "Chọn hết" (B2c) — phạm vi = ĐÚNG tập tài liệu đang bày ra ở tầng này (không đệ quy, không
+  // gồm thư mục). Không có tài liệu nào → không dựng nút.
+  const visibleDocUris = (listing?.documents ?? []).map((d) => d.pdfUri);
+  const allSelected = isAllSelected(visibleDocUris, selected);
+  const onToggleAll = () => setSelected((s) => toggleSelectAll(visibleDocUris, s));
 
   // Phản ánh NGAY một tài liệu vào danh sách đang hiển thị (ảnh RAM của thư mục) khi op của nó
   // xong ở tầng file — không đợi hết lô. Filesystem vẫn là nguồn sự thật (khoChanged cuối lô
@@ -273,6 +279,18 @@ export default function FolderPage() {
                   }}>{selected.size}</span>
                 </span>
               </IonTitle>
+              {/* MỘT nút đổi nhãn (không phải hai nút cạnh nhau). CHỈ sống trong chế độ chọn —
+                  KHÔNG phải lối vào chế độ (vẫn chỉ vào bằng nhấn giữ). */}
+              {visibleDocUris.length > 0 && (
+                <IonButtons slot="end">
+                  <IonButton
+                    fill="clear" onClick={onToggleAll} disabled={busy}
+                    style={{ '--color': 'var(--gu-brown)', fontSize: 13.5, fontWeight: 600 } as CSSProperties}
+                  >
+                    {selectAllLabel(allSelected)}
+                  </IonButton>
+                </IonButtons>
+              )}
             </>
           ) : (
             <>

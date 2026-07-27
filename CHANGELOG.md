@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.32.0] — 2026-07-27 — Tuyến B / Beat B2c: "Chọn hết / Bỏ chọn hết"
+### Added
+- **MỘT nút "Chọn hết / Bỏ chọn hết"** ở header chế độ chọn, cạnh "Đã chọn N" — một nút đổi nhãn theo trạng thái, KHÔNG phải hai nút cạnh nhau. Chỉ sống trong chế độ chọn; **KHÔNG phải lối vào** chế độ (vẫn chỉ vào bằng nhấn giữ). Tầng không có tài liệu nào thì không dựng nút (mà tầng đó cũng không vào được chế độ chọn, vì chỉ nhấn-giữ TÀI LIỆU mới vào).
+- Hàm thuần + TDD `selectAll.ts` (`isAllSelected` · `toggleSelectAll` · `selectAllLabel`, +7 test → 165), theo đúng lối `folderSubtitle` ở B2b.
+### Notes
+- **Phạm vi "hết" = ĐÚNG tập tài liệu đang hiển thị ở tầng đang đứng.** KHÔNG đệ quy xuống cây con, KHÔNG gồm thư mục. Lý do đã cân và bác đệ quy: nó sẽ chọn cả tài liệu user không nhìn thấy, rồi "Xóa lô" báo N trong khi trên màn chỉ có vài cái — kho của Gú có cây rất sâu nên ca sai đó **mất dữ liệu thật**. (Nếu sau này tầng có lọc/sắp xếp thì "hết" vẫn tính theo tập SAU lọc, vì tập truyền vào chính là thứ đang bày ra.)
+- **Không nới luật thư mục**: thư mục vẫn mờ và không nằm trong tập chọn, kể cả khi "Chọn hết". **Không đụng ba lớp nền** (`RowAction[]`, `SheetAction[]`, vỏ `GuSheet`/`GuDialog`) — vẫn chưa lần nào phải sửa.
+- **Tập chọn không rò sang tầng khác**: trong chế độ chọn, thư mục không bấm được (B2b) và header không hiện breadcrumb → không có đường đổi tầng; back cứng thì thoát chế độ (back-60 v1.6.0).
+- Verify Flip4: tầng 13 tài liệu + 1 thư mục → "Chọn hết" ra **đúng 13** (KHÔNG nuốt 6 tài liệu của thư mục con "Báo giấy"), dialog xóa lô báo "Xóa 13 tài liệu?", Hủy → **13 file còn nguyên trên đĩa**; nhãn lật đúng hai chiều; "Bỏ chọn hết" → 0 mà **vẫn ở trong chế độ**; header màn hẹp chứa đủ ✕ · "Đã chọn N" · nút, không tràn.
+- **CHỜ XÁC NHẬN CÓ DÙNG**: đây là mục DUY NHẤT của cả Tuyến B không truy được về friction quan sát từ Gú (nó đến từ prototype). Ghi ở Ops doc §8; nếu vài tuần Gú không đụng thì gỡ — đường gỡ sạch: xoá `selectAll.ts`(+test) và khối nút trong header `FolderPage`, không có gì khác phụ thuộc.
+
 ## [1.31.0] — 2026-07-27 — Tuyến B / Beat B2b: Trong Môn (header/breadcrumb + chế độ chọn-nhiều)
 ### Changed
 - **Breadcrumb áp da** (hành vi bấm-nhảy-tầng GIỮ NGUYÊN): tầng CHA nâu nhạt (là lối đi) vs tầng ĐANG ĐỨNG nâu đậm đậm (là chỗ mình ở); `…` từ dấu ba chấm trần thành **chip nền kem** cho thấy bấm được; popover tầng-cha-bị-nuốt lên tông giấy + icon thư mục + chữ serif. Luật rút gọn `…` và vùng chạm 44px KHÔNG đổi — vẫn dùng chung ngôn ngữ định vị với phụ đề đọc-dở.
