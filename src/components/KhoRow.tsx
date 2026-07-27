@@ -73,6 +73,7 @@ export interface KhoRowProps {
   disabled?: boolean;
   muted?: boolean;              // hàng chờ xử lý / thư mục lúc đang chọn-nhiều: chữ xám, mờ
   selected?: boolean;           // đang được tick trong chế độ chọn-nhiều (B2b) → nền nhấn nâu nhạt
+  accent?: string;              // vạch màu mép trái (B2b.1: tách THƯ MỤC khỏi tài liệu khi lướt mắt)
   // Cho long-press ở màn gọi (FolderDocRow) — component KHÔNG tự xử cử chỉ.
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
@@ -81,7 +82,7 @@ export interface KhoRowProps {
 
 export default function KhoRow({
   leading, title, subtitle, trailing, onClick, actions, swipeDisabled,
-  disabled, muted, selected, onTouchStart, onTouchMove, onTouchEnd,
+  disabled, muted, selected, accent, onTouchStart, onTouchMove, onTouchEnd,
 }: KhoRowProps) {
   const slideRef = useRef<HTMLIonItemSlidingElement>(null);
   // Đóng slide TRƯỚC khi chạy hành động → Hủy dialog xong không treo menu ở vị trí mở (v1.6.0).
@@ -103,7 +104,7 @@ export default function KhoRow({
       {leading && <div slot="start" style={{ display: 'flex', alignItems: 'center' }}>{leading}</div>}
       <IonLabel className={muted ? undefined : 'gu-serif'} color={muted ? 'medium' : undefined}>
         {title}
-        {subtitle && <p style={{ fontSize: 12.5, color: 'var(--gu-grey)' }}>{subtitle}</p>}
+        {subtitle && <p style={{ fontSize: 12.5, color: 'var(--gu-grey)', marginTop: 2 }}>{subtitle}</p>}
       </IonLabel>
       {trailing && <div slot="end" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{trailing}</div>}
     </IonItem>
@@ -112,7 +113,10 @@ export default function KhoRow({
   // Thẻ-rời: bo góc + overflow ở div BỌC NGOÀI → thẻ và nút vuốt liền khối, không hở góc
   // (bài học v1.22.0: bo trên IonItem thì nút vuốt lòi ra ngoài đường bo).
   const card = (inner: ReactNode) => (
-    <div style={{ marginBottom: 10, borderRadius: 14, overflow: 'hidden' }}>{inner}</div>
+    <div style={{
+      marginBottom: 10, borderRadius: 14, overflow: 'hidden',
+      borderLeft: accent ? `4px solid ${accent}` : undefined,
+    }}>{inner}</div>
   );
 
   if (!actions || actions.length === 0) return card(item);

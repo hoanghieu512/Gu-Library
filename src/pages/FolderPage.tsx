@@ -25,6 +25,7 @@ import { renameFolder } from '../storage/folderRepo';
 import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
 import KhoRow, { PendingPill } from '../components/KhoRow';
+import { folderSubtitle } from '../storage/folderSubtitle';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ChooseMonSheet from '../import/ChooseMonSheet';
 import SadPandaState from '../components/SadPandaState';
@@ -43,6 +44,10 @@ export default function FolderPage() {
   // rút gọn folderHeaderTitle v1.15.0 (render trong HeaderBreadcrumb). URI tầng cha resolve qua
   // khoSnapshot (folderByPath); tầng cuối = decoded (chắc chắn đúng).
   const [crumbs, setCrumbs] = useState<Crumb[]>([]);
+  // Đếm TRỰC TIẾP con ngay dưới mỗi thư mục con (dòng phụ "bên trong có gì") — lấy từ CÂY
+  // `khoSnapshot` sẵn trong RAM, KHÔNG đọc thêm thư mục nào (một listFolder/thư-mục-con là đủ
+  // giết màn có nhiều thư mục — đúng thứ chuỗi perf v1.8.0 đã dọn). Key = uri thư mục con.
+  const [subCounts, setSubCounts] = useState<Map<string, { folders: number; docs: number }>>(new Map());
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -57,6 +62,13 @@ export default function FolderPage() {
           ? { name, uri: decoded }
           : { name, uri: (snap && folderByPath(snap, segs.slice(0, i + 1))?.uri) || '' });
       if (alive) setCrumbs(built);
+      // Cùng một snapshot → lấy luôn số con trực tiếp của từng thư mục con ở tầng đang đứng.
+      const node = snap ? folderByPath(snap, segs) : null;
+      if (alive && node) {
+        setSubCounts(new Map(node.children.map((c) => [
+          c.uri, { folders: c.children.length, docs: c.listing.documents.length },
+        ] as const)));
+      }
     })();
     return () => { alive = false; };
   }, [decoded]);
@@ -265,7 +277,11 @@ export default function FolderPage() {
           ) : (
             <>
               <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
-              <IonTitle className="gu-title"><HeaderBreadcrumb crumbs={crumbs} onJump={jumpTo} /></IonTitle>
+              {/* Bỏ padding mặc định của IonTitle → trả lại ~40px cho tên thư mục (ưu tiên chỗ,
+                  KHÔNG hạ cỡ chữ). */}
+              <IonTitle className="gu-title" style={{ paddingInlineStart: 0, paddingInlineEnd: 0 }}>
+                <HeaderBreadcrumb crumbs={crumbs} onJump={jumpTo} />
+              </IonTitle>
               <IonButtons slot="end">
                 <IonButton fill="clear" onClick={() => setCreateOpen(true)} aria-label="Tạo thư mục mới">
                   <IonIcon icon={add} />
@@ -293,8 +309,22 @@ export default function FolderPage() {
             {listing.folders.map((f) => (
               <KhoRow
                 key={f.uri}
-                leading={<IonIcon icon={folderOutline} style={{ color: 'var(--gu-brown)' }} />}
+                // Thư mục: vạch nâu mép trái + icon trong ô nền nâu-nhạt + dòng phụ đếm con →
+                // lướt mắt tách ngay khỏi hàng tài liệu (vốn chỉ khác mỗi cái icon).
+                accent={selectMode ? undefined : 'var(--gu-brown)'}
+                leading={
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 9, background: 'rgba(117,66,14,0.10)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <IonIcon icon={folderOutline} style={{ color: 'var(--gu-brown)', fontSize: 19 }} />
+                  </div>
+                }
                 title={f.name}
+                subtitle={(() => {
+                  const c = subCounts.get(f.uri);
+                  return c ? folderSubtitle(c.folders, c.docs) : undefined;
+                })()}
                 trailing={selectMode ? undefined : <IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)' }} />}
                 // Đang chọn-nhiều: thư mục MỜ + KHÔNG bấm được (lô chỉ áp cho tài liệu). Trước đây
                 // chạm thư mục lúc đang chọn vẫn điều hướng đi → mất sạch lựa chọn đang dở.
