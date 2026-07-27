@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-26, trạng thái: app v1.30.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-26, trạng thái: app v1.31.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -181,7 +181,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.30.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.30.0`). Từ v1.19.0
+- App **v1.31.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.31.0`). Từ v1.19.0
   đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
   lập, không chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng
   nhất mọi WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ
@@ -201,8 +201,11 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   **v1.29.0 = B1** lớp hàng dùng chung `KhoRow` (Đi in · Trong Môn · sheet chọn đích cùng ăn) +
   vuốt trái bỏ chữ còn icon+màu (in nâu · xóa đỏ-đất · ⋯ xanh rêu) + màn Đi in có swatch màu môn
   ở header nhóm. **v1.30.0 = B2a** vỏ modal/sheet dùng chung (`GuSheet` + `SheetAction[]`, `GuDialog`)
-  — dialog xóa · đổi tên · sheet ⋯ · đổi màu cùng một vỏ. Còn **B2b** (Trong Môn: header/breadcrumb +
-  chế độ chọn nhiều), rồi Thêm-Import, Sync, Viewer.
+  — dialog xóa · đổi tên · sheet ⋯ · đổi màu cùng một vỏ. **v1.31.0 = B2b(+B2b.1)** Trong Môn:
+  breadcrumb ƯU TIÊN tầng đang đứng (cha co trước, chật thì dồn vào `…`; KHÔNG hạ cỡ chữ) + chế độ
+  chọn-nhiều (thư mục mờ, không bấm) + hàng thư mục có vạch màu/icon-ô-nền/dòng phụ đếm con trực
+  tiếp. Còn **B2c** ("Chọn hết/Bỏ chọn hết" — tính năng MỚI, tách riêng vì rủi ro khác reskin),
+  rồi Thêm-Import, Sync, Viewer.
   - **Nợ kỹ thuật đã biết — ca `className="ion-padding"` VÔ HIỆU trên `IonContent`** (bài học
     v1.10.0): còn 3 file CHƯA sửa vì thuộc beat sau — `src/sync/SyncSettings.tsx` (B3),
     `src/pages/SettingsPage.tsx`, `src/perf/PerfDebugModal.tsx` (chưa có beat). Ba màn này hiện
