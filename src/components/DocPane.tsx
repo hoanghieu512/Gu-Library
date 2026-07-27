@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { IonSpinner } from '@ionic/react';
 import PdfView from './PdfView';
 import SadPandaState from './SadPandaState';
 import { readPdfBytes } from '../storage/safFile';
@@ -45,7 +47,15 @@ export default function DocPane({ docUri, initialPage, baseScale, onPageChange, 
       />
     );
   }
-  if (!bytes) return <p className="ion-padding">Đang tải PDF…</p>;
+  // Trạng thái đang đọc file — CHỈ đổi hình, read-path (probe + stream v1.26.0) không đụng.
+  if (!bytes) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, height: '100%' }}>
+        <IonSpinner style={{ '--color': 'var(--gu-brown)' } as CSSProperties} />
+        <span style={{ color: 'var(--gu-grey)' }}>Đang tải PDF…</span>
+      </div>
+    );
+  }
   return (
     <PdfView
       bytes={bytes}
