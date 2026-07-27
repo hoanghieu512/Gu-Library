@@ -2,6 +2,23 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.33.0] — 2026-07-27 — Tuyến B / Beat B3: Thêm-Import · Tìm · Sync · trả nợ lề
+### Changed
+- **Sheet chọn môn → thư mục (8c/8d)** cưỡi lên vỏ chung `GuSheet`, nút lùi tầng cắm vào **`startSlot`** — đúng ca vỏ B2a dựng sẵn. Vì đây là **MỘT component** dùng cho cả hai đường vào (màn Thêm · "Chuyển tới…" ở Trong Môn) nên hai đường **không thể lệch hình nhau** — bảo đảm bằng cấu trúc, không bằng canh tay.
+- **Màn Thêm (8b)**: header serif + thẻ giấy giải thích (icon trong ô nền) + nút nâu cao 48 + dòng nhắc đường vào còn lại (chia sẻ từ app khác — chỉ là chữ nhắc, không đẻ luồng mới). **Đường đi của file, quy tắc đặt tên và `_inbox/` GIỮ NGUYÊN TUYỆT ĐỐI.**
+- **Modal Sync (10a/10b)**: vỏ `GuSheet` + thẻ giấy cho ô API key + danh sách thiết bị dạng thẻ-rời + **dùng lại `StatusPill` sẵn có** cho trạng thái kết nối/lỗi (không đẻ kiểu báo trạng thái mới). **Toàn bộ logic đồng bộ giữ nguyên**: đọc/ghi API key, `checkConnection`, `listOtherDevices`, chọn mini PC, ngưỡng, thông báo.
+- **Màn Tìm (8e)**: áp da bề mặt rỗng (huy hiệu tròn + tiêu đề serif + câu giọng Gú).
+### Changed (B3.1 — theo feedback Gú)
+- **Màn Cài đặt lên thẻ-rời**: mỗi mục là một thẻ giấy — icon trong ô nền (Folder nâu · Đồng bộ xanh) + tiêu đề serif + giá trị + dòng gợi ý + chevron cho mục bấm được. Mục Đồng bộ hiện thêm **chấm trạng thái + nhãn**, dùng LẠI hook `useSyncStatus` và bộ nhãn của `SyncPill` (export `SYNC_MAP`) — **không đẻ nguồn chữ trạng thái thứ hai**. Trạng thái đặt DƯỚI tiêu đề chứ không nhét bên phải: nhãn của app ("Đã đồng bộ" / "Chưa thấy mini PC") dài hơn chữ "OK" ở bản vẽ nên tranh chỗ làm tiêu đề gãy hai dòng. Hành vi (chọn folder · mở modal Sync/Perf · đổi cỡ chữ) giữ nguyên.
+- **Màn Tìm** đổi câu theo giọng Gú: "Đang phát triển tính năng này. Bấy giờ dợ mở theo Môn ở trang chủ nha!"
+
+### Fixed
+- **Trả nợ lề — ĐÓNG SỔ.** `className="ion-padding"` VÔ HIỆU trên `IonContent` (bài học v1.10.0) còn ở **`SyncSettings` · `SettingsPage` · `PerfDebugModal`** → vá cả ba sang biến `--padding-*`. Grep toàn `src/` nay **sạch, không còn ca nào**. Hai màn ngoài phạm vi reskin (`SettingsPage`, `PerfDebugModal`) chỉ được thêm lề — **không nhân tiện đổi hình, không sắp xếp lại**.
+### Notes
+- **Ba lớp nền KHÔNG phải sửa một dòng** (`git diff` trên `KhoRow`/`GuSheet`/`GuDialog` rỗng) — beat thứ **năm** liên tiếp. `startSlot` dựng ở B2a nay mới có người dùng đầu tiên và vừa khít.
+- **Màn Tìm — nói rõ:** tìm-toàn-văn là **Phase 2, CHƯA có**. Nên màn này chưa hề có trạng thái "có kết quả" để mà giữ, cũng chưa có ô nhập; bề mặt vừa áp da là bề mặt rỗng DUY NHẤT của màn lúc này. Khi Phase 2 dựng tìm thật thì đây thành ca "không tìm thấy gì" và chữ phải đổi theo.
+- Verify Flip4: màn Thêm · màn Tìm · modal Sync (bấm kiểm tra kết nối → pill xanh "Đã kết nối — Syncthing v2.0.11" + liệt kê đúng mini PC, tức logic thật vẫn chạy) · SettingsPage + PerfDebugModal có lề, layout không vỡ · sheet chọn đích qua "Chuyển tới…" (drill xuống → nút lùi hiện ở startSlot → lùi về đúng gốc). 165 test.
+
 ## [1.32.0] — 2026-07-27 — Tuyến B / Beat B2c: "Chọn hết / Bỏ chọn hết"
 ### Added
 - **MỘT nút "Chọn hết / Bỏ chọn hết"** ở header chế độ chọn, cạnh "Đã chọn N" — một nút đổi nhãn theo trạng thái, KHÔNG phải hai nút cạnh nhau. Chỉ sống trong chế độ chọn; **KHÔNG phải lối vào** chế độ (vẫn chỉ vào bằng nhấn giữ). Tầng không có tài liệu nào thì không dựng nút (mà tầng đó cũng không vào được chế độ chọn, vì chỉ nhấn-giữ TÀI LIỆU mới vào).
