@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.34.0] — 2026-07-27 — Tuyến B / Beat B4a: Viewer (reskin)
+### Changed
+- **Header Viewer**: bỏ `paddingInline` mặc định của `IonTitle` → trả lại ~40px cho tên tài liệu dài (cùng cách đã dùng cho breadcrumb ở B2b.1). **KHÔNG hạ cỡ chữ theo độ dài tên**; rút gọn vẫn là đuôi `…` — dùng chung ngôn ngữ rút gọn với breadcrumb và phụ đề đọc-dở, không đẻ pattern thứ hai.
+- **Thanh điều khiển đáy**: nền giấy + **vạch tiến độ đọc mảnh** (cùng ngôn ngữ với thanh tiến độ trên thẻ "Đang đọc dở" ở Home) + "Trang X / Y" serif + ô nhảy-trang tông kem + nút "Nhảy" bo tròn.
+- **Trạng thái đang tải** (Viewer + `DocPane`): spinner nâu + chữ, canh giữa — thay dòng chữ trần.
+- **Vạch chia hai pane** trong split: gradient nâu + đổ bóng. **CỐ Ý không vẽ tay-nắm** — kéo đổi tỉ lệ là B4c, vẽ grip bây giờ là hứa một cử chỉ chưa tồn tại. **Tỉ lệ vẫn cố định 50/50.**
+### Notes
+- **KHÔNG đụng read-path** (`safFile.ts` stream/ArrayBuffer v1.26.0, probe file move/xóa) và **KHÔNG đụng logic split** — `git diff` trên `safFile.ts`/`PdfView.tsx` rỗng. **Ba lớp nền cũng không phải sửa một dòng** (diff `KhoRow`/`GuSheet`/`GuDialog` rỗng) — beat thứ **sáu** liên tiếp.
+- **Không thêm cỡ chữ "Nhỏ"**: bản vẽ có 4 mức, app có 3 — thêm mức là tính năng mới, không phải áp da.
+- Verify Flip4: tên tài liệu vừa đủ trong header (back + chia-đôi + cần-in vẫn còn chỗ) · footer mới + vạch tiến độ · split vào ra được, vạch chia sạch, pane dưới ra `DocPicker` · **đọc tới trang 36 → thoát → mở lại đúng trang 36**. 165 test.
+
 ## [1.33.0] — 2026-07-27 — Tuyến B / Beat B3: Thêm-Import · Tìm · Sync · trả nợ lề
 ### Changed
 - **Sheet chọn môn → thư mục (8c/8d)** cưỡi lên vỏ chung `GuSheet`, nút lùi tầng cắm vào **`startSlot`** — đúng ca vỏ B2a dựng sẵn. Vì đây là **MỘT component** dùng cho cả hai đường vào (màn Thêm · "Chuyển tới…" ở Trong Môn) nên hai đường **không thể lệch hình nhau** — bảo đảm bằng cấu trúc, không bằng canh tay.
