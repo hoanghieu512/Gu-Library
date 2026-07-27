@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-27, trạng thái: app v1.35.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-28, trạng thái: app v1.35.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -240,10 +240,37 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   (đóng sổ).** **v1.19.0 image-coupling ĐÃ GIẢI:** worker Prod v0.13.0 xử ảnh→PDF từ v0.12.0 → app
   nhận-ảnh lên Prod được. *Bản APK thực trên tablet Gú (Prod): huynh xác nhận đang ở version nào —
   doc không tự suy.*
-  - **Gate CHƯA đóng (mang từ v1.27.0):** verify split-screen trên **S20 FE-class (res cao + 6GB)** —
-    redesign v1.28.0 đã cuộn kệ nhiều tầng OK trên máy 6GB, nhưng 2-pane render đồng thời của
-    split-screen vẫn chưa đo trên đúng lớp máy đó (Flip4 8GB + T616 6GB đã PASS; S20 FE chưa ai đo).
-    Đây là gate trước khi yên tâm cho Gú xài split trên máy tương đương, KHÔNG phải gate merge.
+  - **Gate S20 FE — ĐÃ ĐO 2026-07-28 (buổi đo trên máy Prod của Gú, app v1.35.0): PASS.**
+    *Máy:* `RF8RA06HA9Z` **SM-G780G**, **RAM 7.44 GB**, **1080×2400 @480dpi**, kho Prod thật (107 PDF).
+    *Cách đo:* CC chỉ-đọc, huynh thao tác máy; PSS = **tiến trình chính + renderer**, lấy mẫu 3s/lần.
+    - **Mốc nền S20 FE-class** (trung vị): Home mới mở **185** · đọc đơn 61MB **401** ·
+      split 61+20MB **456** · sau 1 lần đổi **456** · sau 10 lần đổi **436 MB**.
+    - **Ca nặng nhất kho** (pane trên **214.5 MB** + pane dưới **61 MB**): **đỉnh 868.3 MB**;
+      đổi sang 35MB còn 839. **Không crash, PID không đổi suốt 640s**, máy `status normal`
+      (Free RAM 3.6 GB). Nhả-trước-nạp-sau vẫn đúng ở ca nặng: bấm "Đổi" nhả **68.9 MB**.
+    - **10 lượt đổi: CHỮNG, không leo thang.** Plateau đầu 455.9 → cuối 435.6 = **−20.3 MB**
+      (chỉ 3/7 lượt tăng). *Cạm bẫy đã vấp:* hồi quy thô trên cả pha ra +7.33 MB/phút trông như
+      "leo đều" — do MỘT đỉnh nhọn kéo lên, **phải cắt theo từng lượt** mới đọc đúng.
+    - *Đỉnh nhọn chưa giải thích được (ghi nguyên trạng):* một lượt vọt 709 MB trong ~15s rồi tự
+      nhả 225 MB; tài liệu tra cứu lượt đó chỉ **0.3 MB** nên KHÔNG do nó. Nghi pane trên (giáo
+      trình 398 trang) dồn raster khi cuộn nhanh — chưa đủ dữ kiện khẳng định.
+  - **CHỖ VÊNH ĐÃ GỠ — gate cũ ghi "S20 FE-class (res cao + **6GB**)" là SAI tiền đề:** S20 FE của
+    Gú là **bản 8GB** (đo được 7.44 GB). Vậy buổi này đóng được ô **"res cao + 8GB"**, KHÔNG phải ô
+    "res cao + 6GB". Ô còn trống trên giấy: **1080×2400 + 6GB** — nhưng **rủi ro đã bị chặn bằng số**:
+    gấp **2.25× số điểm ảnh** (720×1600 → 1080×2400) mà đỉnh chỉ tăng **829 → 868 MB (+4.7%)**, tức
+    ~870 MB trên máy 6GB vẫn là ~14% RAM. **Và quan trọng hơn: mục đích của gate là bảo vệ Gú —
+    máy Gú đang dùng CHÍNH LÀ máy vừa đo và nó PASS.** Đề xuất: đóng gate; nếu sau này có máy
+    1080×2400 + 6GB thì đo bổ sung cho đủ ô, không phải để chặn ship.
+  - **"Giữ lại sau phiên nặng" — ĐÃ GIẢI, KHÔNG PHẢI RÒ.** Hiện tượng: rời Viewer về Home vẫn cao
+    hơn lúc mới mở (máy 6GB 200→336 = +135 MB; S20 FE **185→506 = +321 MB**). **Cách chứng minh
+    (chỉ-đọc, bằng `dumpsys meminfo <pid renderer>` mục App Summary):**
+    (1) **Java Heap 0.7 MB · Native Heap 0.8 MB · Graphics 0** → app KHÔNG ôm đối tượng;
+    (2) **`TOTAL SWAP PSS` nhảy 3.1 MB (lúc split) → 231.3 MB (lúc về Home)** → OS đã nén/đẩy
+    ~228 MB sang **zram** ngay khi rời Viewer, tức đang được thu hồi;
+    (3) **RSS 238.6 MB < PSS 376.8 MB** → phần lớn PSS đang kế toán cả trang đã swap, KHÔNG nằm
+    trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
+    → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
+    đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
 - Worker **v0.13.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
   **Không còn nợ hạ tầng.** Beat gần đây: ảnh→PDF 1 trang (v0.12.0), archive gốc
   `.doc`/`.ppt` thay vì xóa (v0.13.0). Nợ Phase 2 đã đặt cọc: re-extract cấu trúc từ
