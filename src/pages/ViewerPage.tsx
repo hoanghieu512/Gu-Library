@@ -3,7 +3,7 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonInput, IonButton, IonFooter, IonIcon, IonSpinner,
 } from '@ionic/react';
-import { browsersOutline } from 'ionicons/icons';
+import { browsersOutline, documentTextOutline } from 'ionicons/icons';
 import { useParams } from 'react-router-dom';
 import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
@@ -54,6 +54,7 @@ export default function ViewerPage() {
   // cứu (KHÔNG ghi reading-state). `bottomUri` null = đang chọn file cho pane dưới (DocPicker).
   const [split, setSplit] = useState(false);
   const [bottomUri, setBottomUri] = useState<string | null>(null);
+  const [bottomTitle, setBottomTitle] = useState('');
   const lastSaved = useRef(0);
   const { toastResult, node: toastNode } = useGuToast();
 
@@ -74,6 +75,21 @@ export default function ViewerPage() {
     })();
     return () => { alive = false; };
   }, [docUri]);
+
+  // Tên tài liệu đang ở pane tra cứu (cho thanh "Đổi" — để biết mình đang tra cái gì).
+  useEffect(() => {
+    if (!bottomUri) { setBottomTitle(''); return; }
+    let alive = true;
+    setBottomTitle(baseName(bottomUri));
+    resolveDocDisplayName(bottomUri).then((dn) => { if (alive && dn) setBottomTitle(dn); }).catch(() => { /* giữ tên file */ });
+    return () => { alive = false; };
+  }, [bottomUri]);
+
+  // ĐỔI tài liệu pane tra cứu (B4b) — TUẦN TỰ, KHÔNG chồng lấn: đưa `bottomUri` về null trước để
+  // `DocPane` cũ UNMOUNT HẲN (nhả `bytes`) rồi mới hiện DocPicker cho chọn cái mới. Hai tài liệu
+  // pane dưới KHÔNG BAO GIỜ cùng tồn tại → đỉnh bộ nhớ vẫn là 2 tài liệu như luồng cũ, không phải 3.
+  // Đánh đổi đã chốt: có một nhịp trắng ngắn (màn chọn tài liệu) — KHÔNG nạp trước cho mượt.
+  const swapBottom = () => setBottomUri(null);
 
   // Chỉ pane TRÊN ghi reading-state ("Đang đọc dở" / nhớ trang). Pane dưới là tra cứu → không ghi.
   const onTopPage = (page: number, totalPages: number) => {
@@ -163,12 +179,34 @@ export default function ViewerPage() {
             {split && (
               <>
                 {/* Vạch chia hai pane. CỐ Ý không vẽ tay-nắm: kéo đổi tỉ lệ là B4c, vẽ grip bây
-                    giờ là hứa một cử chỉ chưa tồn tại. Tỉ lệ vẫn cố định 50/50. */}
-                <div style={{
-                  height: 5, flexShrink: 0,
-                  background: 'linear-gradient(180deg, var(--gu-brown), var(--gu-brown-deep))',
-                  boxShadow: '0 1px 3px rgba(0,0,0,.35)',
-                }} />
+                    giờ là hứa một cử chỉ chưa tồn tại. Tỉ lệ vẫn cố định 50/50.
+                    Khi pane dưới ĐANG có tài liệu thì vạch mang luôn tên tài liệu + nút "Đổi". */}
+                {bottomUri ? (
+                  <div style={{
+                    flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '0 4px 0 12px', minHeight: 38,
+                    background: 'linear-gradient(180deg, var(--gu-brown), var(--gu-brown-deep))',
+                    boxShadow: '0 1px 3px rgba(0,0,0,.35)',
+                  }}>
+                    <IonIcon icon={documentTextOutline} style={{ color: 'var(--gu-cream)', fontSize: 16, flex: '0 0 auto' }} />
+                    <span style={{
+                      flex: 1, minWidth: 0, color: 'var(--gu-cream)', fontSize: 13,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{bottomTitle}</span>
+                    <IonButton
+                      size="small" fill="clear" onClick={swapBottom} aria-label="Đổi tài liệu tra cứu"
+                      style={{ '--color': 'var(--gu-cream)', textTransform: 'none', fontSize: 13 } as React.CSSProperties}
+                    >
+                      Đổi
+                    </IonButton>
+                  </div>
+                ) : (
+                  <div style={{
+                    height: 5, flexShrink: 0,
+                    background: 'linear-gradient(180deg, var(--gu-brown), var(--gu-brown-deep))',
+                    boxShadow: '0 1px 3px rgba(0,0,0,.35)',
+                  }} />
+                )}
                 {/* Pane DƯỚI — tra cứu: chọn file (DocPicker) rồi render; KHÔNG ghi reading-state. */}
                 <div style={{ flex: 1, minHeight: 0 }}>
                   {bottomUri ? (

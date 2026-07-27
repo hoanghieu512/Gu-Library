@@ -2,6 +2,28 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.35.0] — 2026-07-27 — Tuyến B / Beat B4b: đổi tài liệu ngay trong split
+### Added
+- **Đổi tài liệu ở pane tra cứu mà KHÔNG thoát split.** Vạch chia hai pane khi pane dưới đang có tài liệu nay mang **tên tài liệu đó + nút "Đổi"**; bấm → về đúng màn chọn tài liệu SẴN CÓ (`DocPicker`) → chọn cái mới. Trước đây phải thoát split rồi vào lại; mỗi lần tra một điều luật là một vòng thoát-vào.
+- Pane ĐỌC (trên) không bị đụng: giữ nguyên tài liệu, đúng trang, đúng trạng thái đọc.
+### Notes — TUẦN TỰ, KHÔNG CHỒNG LẤN (ràng buộc chính của beat)
+- Nút "Đổi" đưa `bottomUri` về `null` → `DocPane` cũ **UNMOUNT HẲN (nhả `bytes`)** rồi mới hiện màn chọn. **Hai tài liệu pane dưới KHÔNG BAO GIỜ cùng tồn tại** → đỉnh vẫn là 2 tài liệu như luồng cũ, KHÔNG phải 3. Đo xác nhận: bấm "Đổi" ở ca nặng nhả ngay **70 MB** (786.6 → 716.6 MB) TRƯỚC khi nạp cái mới. Đánh đổi đã chốt: có một nhịp trắng ngắn (màn chọn) — KHÔNG nạp trước cho mượt.
+### Đo trên máy 6GB (Universal_Phone_1, RAM 5.75 GB) — PSS = tiến trình chính + tiến trình RENDERER
+> **Cảnh báo phép đo:** WebView chạy renderer ở **tiến trình riêng** (`sandboxed_process0`); `dumpsys meminfo com.gulibrary.app` CHỈ đếm tiến trình chính nên **thiếu chỗ chứa bytes PDF** (lệch tới 5–6 lần). Mọi số dưới đây cộng cả hai tiến trình.
+
+| Mốc | Chính | Renderer | Tổng |
+|---|---|---|---|
+| Vừa mở app | 113.0 | 87.1 | **200.1 MB** |
+| Đọc đơn (61 MB) | 149.9 | 272.4 | **422.3 MB** |
+| Vào split (61 + 20 MB) | 166.7 | 337.0 | **503.7 MB** |
+| Ngay sau 1 lần đổi | 142.2 | 307.4 | **449.5 MB** |
+| Sau 10 lần đổi | 124.8 | 306.7 | **431.5 MB** |
+
+- **Ca nặng nhất** (pane trên PDF **214.5 MB** = lớn nhất kho, pane dưới **67 MB** = lớn nhì, rồi đổi sang 61 MB): đỉnh **828.9 MB**, không crash, PID không đổi, máy `status normal` (Free RAM 2.6 GB).
+- **20 lần đổi liên tiếp**: 426.3 → 439.4 MB (**+13.1 MB**, ~0.68 MB/lần), dao động trong dải 424–439. Toàn bộ nhích nằm ở **renderer**; tiến trình chính PHẲNG (125.9 → 125.3).
+- **Quy trách nhiệm — KHÔNG do beat này**: chạy lại đúng nhịp đó bằng **luồng CŨ** (thoát split → vào lại → chọn) 10 vòng ra **429.0 → 431.9 MB**, dao động 423.7–435.0 — **cùng dải, cùng mức trôi** với luồng mới (426.3 → 432.3). Chênh lệch nhỏ hơn biên độ dao động (~10 MB) nên không phân biệt được. Kết luận: trôi nhẹ là hành vi cache của Chromium/pdf.js **có sẵn**, không phải rò do đường đổi-tại-chỗ.
+- **Chưa reclaim hết khi rời màn**: sau phiên nặng, về Home còn **335.6 MB** so với **200.1 MB** lúc mới mở (giữ ~135 MB). Ghi nhận để theo dõi — chưa đủ dữ kiện kết luận là rò hay cache chờ áp lực bộ nhớ mới trả.
+
 ## [1.34.0] — 2026-07-27 — Tuyến B / Beat B4a: Viewer (reskin)
 ### Changed
 - **Header Viewer**: bỏ `paddingInline` mặc định của `IonTitle` → trả lại ~40px cho tên tài liệu dài (cùng cách đã dùng cho breadcrumb ở B2b.1). **KHÔNG hạ cỡ chữ theo độ dài tên**; rút gọn vẫn là đuôi `…` — dùng chung ngôn ngữ rút gọn với breadcrumb và phụ đề đọc-dở, không đẻ pattern thứ hai.
