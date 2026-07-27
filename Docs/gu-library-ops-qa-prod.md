@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-26, trạng thái: app v1.32.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-26, trạng thái: app v1.33.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -181,7 +181,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.32.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.32.0`). Từ v1.19.0
+- App **v1.33.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.33.0`). Từ v1.19.0
   đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
   lập, không chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng
   nhất mọi WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ
@@ -205,18 +205,19 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   breadcrumb ƯU TIÊN tầng đang đứng (cha co trước, chật thì dồn vào `…`; KHÔNG hạ cỡ chữ) + chế độ
   chọn-nhiều (thư mục mờ, không bấm) + hàng thư mục có vạch màu/icon-ô-nền/dòng phụ đếm con trực
   tiếp. **v1.32.0 = B2c** "Chọn hết / Bỏ chọn hết" (MỘT nút đổi nhãn; phạm vi = ĐÚNG tập đang hiển
-  thị ở tầng đang đứng, **KHÔNG đệ quy**, không gồm thư mục). Còn **B3** (Thêm-Import 8c/8d + Sync
-  10a/b), rồi Viewer.
+  thị ở tầng đang đứng, **KHÔNG đệ quy**, không gồm thư mục). **v1.33.0 = B3(+B3.1)** màn Thêm ·
+  sheet chọn môn–thư mục (cưỡi `GuSheet`, nút lùi vào `startSlot`) · màn Tìm · modal Sync · màn Cài
+  đặt lên thẻ-rời. **Tuyến B chỉ còn VIEWER** — đang chờ ba điểm quan sát từ Gú, chưa mở beat.
   - **CHỜ XÁC NHẬN CÓ DÙNG — "Chọn hết / Bỏ chọn hết" (v1.32.0):** đây là mục **DUY NHẤT** của cả
     Tuyến B **không truy được về friction quan sát từ Gú** — nó đến từ prototype, không từ việc Gú
     kêu. Cần theo dõi vài tuần: nếu Gú không đụng thì **GỠ**, đừng để tồn như tính năng chết.
     *Đường gỡ sạch (không gì khác phụ thuộc):* xoá `src/storage/selectAll.ts` + `selectAll.test.ts`,
     xoá khối `IonButtons slot="end"` trong nhánh `selectMode` của header `src/pages/FolderPage.tsx`,
     và 3 biến `visibleDocUris`/`allSelected`/`onToggleAll`. Chế độ chọn-nhiều (B2b) KHÔNG bị ảnh hưởng.
-  - **Nợ kỹ thuật đã biết — ca `className="ion-padding"` VÔ HIỆU trên `IonContent`** (bài học
-    v1.10.0): còn 3 file CHƯA sửa vì thuộc beat sau — `src/sync/SyncSettings.tsx` (B3),
-    `src/pages/SettingsPage.tsx`, `src/perf/PerfDebugModal.tsx` (chưa có beat). Ba màn này hiện
-    KHÔNG có lề; beat nào chạm tới thì sửa luôn (đổi sang biến `--padding-*`). **Nav chữ-bên-icon = won't-do
+  - **Nợ `className="ion-padding"` VÔ HIỆU trên `IonContent` (bài học v1.10.0) — ĐÃ ĐÓNG SỔ ở
+    v1.33.0**: ba file cuối (`SyncSettings`, `SettingsPage`, `PerfDebugModal`) đã đổi sang biến
+    `--padding-*`; grep toàn `src/` nay sạch. **Luật giữ về sau: KHÔNG dùng `className="ion-padding"`
+    trên `IonContent` — nó không có tác dụng; luôn set qua biến `--padding-*`.** **Nav chữ-bên-icon = won't-do
   (đóng sổ).** **v1.19.0 image-coupling ĐÃ GIẢI:** worker Prod v0.13.0 xử ảnh→PDF từ v0.12.0 → app
   nhận-ảnh lên Prod được. *Bản APK thực trên tablet Gú (Prod): huynh xác nhận đang ở version nào —
   doc không tự suy.*
