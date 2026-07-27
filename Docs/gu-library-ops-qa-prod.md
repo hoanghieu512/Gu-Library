@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-26, trạng thái: app v1.34.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-27, trạng thái: app v1.34.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
