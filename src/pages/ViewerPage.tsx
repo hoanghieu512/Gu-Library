@@ -17,12 +17,16 @@ import PrintFlagButton from '../components/PrintFlagButton';
 import { perfStart } from '../perf/perf';
 
 // Icon "chia đôi màn hình" — TỰ VẼ vì Ionicons không có glyph khung chia ngang đúng kiểu bản vẽ
-// (browsersOutline là hai cửa sổ chồng nhau, contractOutline là mũi tên thu gọn). Khung bo góc +
-// vạch ngang GIỮA = đúng nghĩa hai pane 50/50.
+// (browsersOutline là hai cửa sổ chồng nhau, contractOutline là mũi tên thu gọn).
+//
+// ĐÃ THỬ `IonIcon src=` với data-URI để ăn luật cỡ của Ionic → WebView KHÔNG render ra gì (icon mất
+// hẳn, đo lại thấy trống). Nên giữ <svg> trần và chỉnh cỡ THEO SỐ ĐO THẬT: bản 22px ra glyph 52×46
+// device-px trong khi browsersOutline ra 62×58 → nhỏ hơn thấy rõ. Nâng khung lên 26px và kéo chiều
+// cao hộp (h 15→16 trong viewBox) cho khớp cả bề ngang lẫn bề cao.
 function SplitIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
-      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" strokeWidth="1.8" />
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+      <rect x="3.5" y="4" width="17" height="16" rx="2.5" strokeWidth="1.8" />
       <line x1="3.5" y1="12" x2="20.5" y2="12" strokeWidth="1.8" />
     </svg>
   );
