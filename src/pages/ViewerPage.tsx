@@ -3,7 +3,7 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonInput, IonButton, IonFooter, IonIcon, IonSpinner,
 } from '@ionic/react';
-import { browsersOutline, contractOutline } from 'ionicons/icons';
+import { browsersOutline } from 'ionicons/icons';
 import { useParams } from 'react-router-dom';
 import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
@@ -15,6 +15,18 @@ import { decodeUriParam } from '../storage/uriParam';
 import { isPrintFlagged } from '../print/printRepo';
 import PrintFlagButton from '../components/PrintFlagButton';
 import { perfStart } from '../perf/perf';
+
+// Icon "chia đôi màn hình" — TỰ VẼ vì Ionicons không có glyph khung chia ngang đúng kiểu bản vẽ
+// (browsersOutline là hai cửa sổ chồng nhau, contractOutline là mũi tên thu gọn). Khung bo góc +
+// vạch ngang GIỮA = đúng nghĩa hai pane 50/50.
+function SplitIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" strokeWidth="1.8" />
+      <line x1="3.5" y1="12" x2="20.5" y2="12" strokeWidth="1.8" />
+    </svg>
+  );
+}
 
 function baseName(contentUri: string): string {
   const last = decodeURIComponent(contentUri).split('/').pop() ?? contentUri;
@@ -113,7 +125,9 @@ export default function ViewerPage() {
               onClick={() => (split ? exitSplit() : setSplit(true))}
               aria-label={split ? 'Thoát chia đôi' : 'Chia đôi màn hình'}
             >
-              <IonIcon slot="icon-only" icon={split ? contractOutline : browsersOutline} />
+              {/* Màn ĐƠN: icon khung-chia-đôi (theo bản vẽ) = "bấm để chia". Trong SPLIT: đổi sang
+                  browsersOutline (icon vốn dùng ở màn đơn) = "bấm để về một màn". */}
+              {split ? <IonIcon slot="icon-only" icon={browsersOutline} /> : <SplitIcon />}
             </IonButton>
             <PrintFlagButton docUri={docUri} flagged={flagged} onChanged={() => {
               setFlagged((v) => !v);

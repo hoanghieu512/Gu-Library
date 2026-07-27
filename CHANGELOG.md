@@ -7,6 +7,7 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 - **Header Viewer**: bỏ `paddingInline` mặc định của `IonTitle` → trả lại ~40px cho tên tài liệu dài (cùng cách đã dùng cho breadcrumb ở B2b.1). **KHÔNG hạ cỡ chữ theo độ dài tên**; rút gọn vẫn là đuôi `…` — dùng chung ngôn ngữ rút gọn với breadcrumb và phụ đề đọc-dở, không đẻ pattern thứ hai.
 - **Thanh điều khiển đáy**: nền giấy + **vạch tiến độ đọc mảnh** (cùng ngôn ngữ với thanh tiến độ trên thẻ "Đang đọc dở" ở Home) + "Trang X / Y" serif + ô nhảy-trang tông kem + nút "Nhảy" bo tròn.
 - **Trạng thái đang tải** (Viewer + `DocPane`): spinner nâu + chữ, canh giữa — thay dòng chữ trần.
+- **Icon nút chia-đôi đổi theo chế độ** (feedback Gú): màn ĐƠN dùng **icon khung-chia-ngang** như bản vẽ (tự vẽ SVG — Ionicons không có glyph này: `browsersOutline` là hai cửa sổ chồng nhau, `contractOutline` là mũi tên thu gọn); đang SPLIT thì đổi sang `browsersOutline` (icon vốn dùng ở màn đơn) = "bấm để về một màn".
 - **Vạch chia hai pane** trong split: gradient nâu + đổ bóng. **CỐ Ý không vẽ tay-nắm** — kéo đổi tỉ lệ là B4c, vẽ grip bây giờ là hứa một cử chỉ chưa tồn tại. **Tỉ lệ vẫn cố định 50/50.**
 ### Notes
 - **KHÔNG đụng read-path** (`safFile.ts` stream/ArrayBuffer v1.26.0, probe file move/xóa) và **KHÔNG đụng logic split** — `git diff` trên `safFile.ts`/`PdfView.tsx` rỗng. **Ba lớp nền cũng không phải sửa một dòng** (diff `KhoRow`/`GuSheet`/`GuDialog` rỗng) — beat thứ **sáu** liên tiếp.
