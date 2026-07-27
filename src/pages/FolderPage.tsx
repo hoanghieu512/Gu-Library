@@ -25,6 +25,7 @@ import { renameFolder } from '../storage/folderRepo';
 import DocActionsSheet from '../components/DocActionsSheet';
 import FolderDocRow from '../components/FolderDocRow';
 import KhoRow, { PendingPill } from '../components/KhoRow';
+import { folderSubtitle } from '../storage/folderSubtitle';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ChooseMonSheet from '../import/ChooseMonSheet';
 import SadPandaState from '../components/SadPandaState';
@@ -43,6 +44,10 @@ export default function FolderPage() {
   // rút gọn folderHeaderTitle v1.15.0 (render trong HeaderBreadcrumb). URI tầng cha resolve qua
   // khoSnapshot (folderByPath); tầng cuối = decoded (chắc chắn đúng).
   const [crumbs, setCrumbs] = useState<Crumb[]>([]);
+  // Đếm TRỰC TIẾP con ngay dưới mỗi thư mục con (dòng phụ "bên trong có gì") — lấy từ CÂY
+  // `khoSnapshot` sẵn trong RAM, KHÔNG đọc thêm thư mục nào (một listFolder/thư-mục-con là đủ
+  // giết màn có nhiều thư mục — đúng thứ chuỗi perf v1.8.0 đã dọn). Key = uri thư mục con.
+  const [subCounts, setSubCounts] = useState<Map<string, { folders: number; docs: number }>>(new Map());
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -57,6 +62,13 @@ export default function FolderPage() {
           ? { name, uri: decoded }
           : { name, uri: (snap && folderByPath(snap, segs.slice(0, i + 1))?.uri) || '' });
       if (alive) setCrumbs(built);
+      // Cùng một snapshot → lấy luôn số con trực tiếp của từng thư mục con ở tầng đang đứng.
+      const node = snap ? folderByPath(snap, segs) : null;
+      if (alive && node) {
+        setSubCounts(new Map(node.children.map((c) => [
+          c.uri, { folders: c.children.length, docs: c.listing.documents.length },
+        ] as const)));
+      }
     })();
     return () => { alive = false; };
   }, [decoded]);
@@ -251,12 +263,25 @@ export default function FolderPage() {
               <IonButtons slot="start">
                 <IonButton onClick={exitMode} aria-label="Thoát chọn"><IonIcon slot="icon-only" icon={close} /></IonButton>
               </IonButtons>
-              <IonTitle className="gu-title">Đã chọn {selected.size}</IonTitle>
+              {/* "Đã chọn N" — số nằm trong pill nâu để đọc lướt ra ngay đang cầm bao nhiêu món */}
+              <IonTitle className="gu-title">
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  Đã chọn
+                  <span style={{
+                    background: 'var(--gu-brown)', color: '#fff', borderRadius: 999,
+                    padding: '1px 10px', fontSize: 14, fontWeight: 700, minWidth: 28, textAlign: 'center',
+                  }}>{selected.size}</span>
+                </span>
+              </IonTitle>
             </>
           ) : (
             <>
               <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
-              <IonTitle className="gu-title"><HeaderBreadcrumb crumbs={crumbs} onJump={jumpTo} /></IonTitle>
+              {/* Bỏ padding mặc định của IonTitle → trả lại ~40px cho tên thư mục (ưu tiên chỗ,
+                  KHÔNG hạ cỡ chữ). */}
+              <IonTitle className="gu-title" style={{ paddingInlineStart: 0, paddingInlineEnd: 0 }}>
+                <HeaderBreadcrumb crumbs={crumbs} onJump={jumpTo} />
+              </IonTitle>
               <IonButtons slot="end">
                 <IonButton fill="clear" onClick={() => setCreateOpen(true)} aria-label="Tạo thư mục mới">
                   <IonIcon icon={add} />
@@ -284,10 +309,27 @@ export default function FolderPage() {
             {listing.folders.map((f) => (
               <KhoRow
                 key={f.uri}
-                leading={<IonIcon icon={folderOutline} style={{ color: 'var(--gu-brown)' }} />}
+                // Thư mục: vạch nâu mép trái + icon trong ô nền nâu-nhạt + dòng phụ đếm con →
+                // lướt mắt tách ngay khỏi hàng tài liệu (vốn chỉ khác mỗi cái icon).
+                accent={selectMode ? undefined : 'var(--gu-brown)'}
+                leading={
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 9, background: 'rgba(117,66,14,0.10)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <IonIcon icon={folderOutline} style={{ color: 'var(--gu-brown)', fontSize: 19 }} />
+                  </div>
+                }
                 title={f.name}
-                trailing={<IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)' }} />}
-                onClick={() => history.push(`/folder/${encodeUriParam(f.uri)}`)}
+                subtitle={(() => {
+                  const c = subCounts.get(f.uri);
+                  return c ? folderSubtitle(c.folders, c.docs) : undefined;
+                })()}
+                trailing={selectMode ? undefined : <IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)' }} />}
+                // Đang chọn-nhiều: thư mục MỜ + KHÔNG bấm được (lô chỉ áp cho tài liệu). Trước đây
+                // chạm thư mục lúc đang chọn vẫn điều hướng đi → mất sạch lựa chọn đang dở.
+                onClick={selectMode ? undefined : () => history.push(`/folder/${encodeUriParam(f.uri)}`)}
+                muted={selectMode}
                 swipeDisabled={selectMode}
                 // KhoRow tự đóng slide trước khi chạy → khỏi lặp `closest('ion-item-sliding')` (v1.6.0).
                 actions={[
@@ -319,20 +361,28 @@ export default function FolderPage() {
         )}
       </IonContent>
 
-      {/* Thanh action lô */}
+      {/* Thanh hành động lô — tông nâu-giấy: nền giấy, icon TRÊN chữ (đủ chỗ thở trên máy hẹp),
+          Xóa dùng đỏ-đất như mọi bề mặt khác. Hành vi lô GIỮ NGUYÊN (một toast/lô, phản ánh từng
+          tài liệu ngay khi xong ở tầng file). */}
       {selectMode && (
         <IonFooter>
-          <IonToolbar>
-            <div style={{ display: 'flex', gap: 8, padding: '4px 8px' }}>
-              <IonButton fill="clear" disabled={selected.size === 0 || busy} onClick={batchPrint} style={{ flex: 1 }}>
-                <IonIcon slot="start" icon={printOutline} /> In lô
-              </IonButton>
-              <IonButton fill="clear" disabled={selected.size === 0 || busy} onClick={() => setBatchMove(true)} style={{ flex: 1 }}>
-                <IonIcon slot="start" icon={swapHorizontalOutline} /> Chuyển
-              </IonButton>
-              <IonButton fill="clear" color="danger" disabled={selected.size === 0 || busy} onClick={batchDelete} style={{ flex: 1 }}>
-                <IonIcon slot="start" icon={trashOutline} /> Xóa
-              </IonButton>
+          <IonToolbar style={{ '--background': 'var(--gu-paper-2)', '--border-width': '0' } as CSSProperties}>
+            <div style={{ display: 'flex', gap: 4, padding: '6px 8px' }}>
+              {([
+                { key: 'print', icon: printOutline, label: 'In lô', onClick: batchPrint, color: 'var(--gu-brown)' },
+                { key: 'move', icon: swapHorizontalOutline, label: 'Chuyển', onClick: () => setBatchMove(true), color: 'var(--gu-brown)' },
+                { key: 'delete', icon: trashOutline, label: 'Xóa', onClick: batchDelete, color: 'var(--ion-color-danger)' },
+              ] as const).map((a) => (
+                <IonButton
+                  key={a.key} fill="clear" disabled={selected.size === 0 || busy} onClick={a.onClick}
+                  style={{ flex: 1, height: 56, '--color': a.color, '--border-radius': '12px' } as CSSProperties}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                    <IonIcon icon={a.icon} style={{ fontSize: 21 }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 600 }}>{a.label}</span>
+                  </div>
+                </IonButton>
+              ))}
             </div>
           </IonToolbar>
         </IonFooter>

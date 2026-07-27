@@ -55,6 +55,7 @@ export default function FolderDocRow({
         title={doc.name}
         trailing={doc.printFlagged ? <PrintMark /> : undefined}
         onClick={handleClick}
+        selected={selected}
       />
     );
   }
