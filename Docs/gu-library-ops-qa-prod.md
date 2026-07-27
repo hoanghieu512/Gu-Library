@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-27, trạng thái: app v1.34.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-27, trạng thái: app v1.35.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -181,7 +181,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.34.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.34.0`). Từ v1.19.0
+- App **v1.35.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.35.0`). Từ v1.19.0
   đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
   lập, không chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng
   nhất mọi WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ
@@ -209,12 +209,24 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   sheet chọn môn–thư mục (cưỡi `GuSheet`, nút lùi vào `startSlot`) · màn Tìm · modal Sync · màn Cài
   đặt lên thẻ-rời. **v1.34.0 = B4a** Viewer RESKIN (header · thanh điều khiển + vạch tiến độ · vỏ
   split · icon chia-đôi đổi theo chế độ) — KHÔNG đụng read-path, KHÔNG đụng logic split.
-  **Tuyến B còn 2 beat, cả hai là TÍNH NĂNG chứ không phải reskin:** **B4b** đổi tài liệu ngay trong
-  split (Gú xác nhận có nhu cầu — hiện phải thoát split rồi vào lại; đây là ca BỘ NHỚ, phải đo);
-  **B4c** thanh chia kéo được (Gú xác nhận 50/50 chưa đủ) — lúc làm B4c mới được vẽ tay-nắm lên vạch
+  **Tuyến B còn 2 beat, cả hai là TÍNH NĂNG chứ không phải reskin:** **v1.35.0 = B4b** đổi tài liệu ngay trong
+  split (nút "Đổi" trên vạch chia → `DocPicker` sẵn có; TUẦN TỰ: nhả tài liệu cũ HẲN rồi mới nạp
+  mới → đỉnh vẫn 2 tài liệu, không phải 3). Còn **B4c** thanh chia kéo được (Gú xác nhận 50/50 chưa đủ) — lúc làm B4c mới được vẽ tay-nắm lên vạch
   chia, B4a CỐ Ý không vẽ để khỏi hứa cử chỉ chưa có.
   - **Feedback Gú đã chốt (khỏi hỏi lại):** pane trên ĐỌC / pane dưới TRA — giữ nguyên như app,
     giả định ban đầu đúng.
+  - **CÁCH ĐO BỘ NHỚ CHO VIEWER (bắt buộc nhớ):** WebView chạy renderer ở **TIẾN TRÌNH RIÊNG**
+    (`…:sandboxed_process0`) — chỗ chứa bytes PDF + canvas. `dumpsys meminfo com.gulibrary.app`
+    CHỈ đếm tiến trình chính nên **thiếu 5–6 lần**. Luôn cộng cả hai: lấy pid renderer bằng
+    `ps -A | grep sandboxed_process0` rồi `dumpsys meminfo <pid>`.
+  - **Số nền máy 6GB @ v1.35.0** (chính+renderer): mở app 200 · đọc đơn 61MB 422 · split 61+20MB
+    504 · sau 10 lần đổi 431 MB. **Ca nặng nhất kho** (trên 214.5MB + dưới 67MB) đỉnh **829 MB**,
+    không crash, máy `status normal`. **Trôi ~0.68 MB/lần đổi (20 lần: +13 MB), TOÀN BỘ ở renderer;
+    đã quy trách nhiệm: luồng CŨ cũng trôi cùng dải → là cache Chromium/pdf.js CÓ SẴN, không phải
+    rò do B4b.** Còn treo theo dõi: rời Viewer về Home giữ ~135 MB so với lúc mới mở.
+  - **File mồi test CÓ CHỦ ĐÍCH (đừng "sửa"):** `Chưa phân loại/Giám định pháp y, tâm thần.pdf`
+    (scan JPEG2000/JPX) — huynh cố ý để trong kho QA để test ca pdf.js render TRẮNG. Thấy pane
+    trắng với file này là ĐÚNG, không phải bug.
   - **CHỜ XÁC NHẬN CÓ DÙNG — "Chọn hết / Bỏ chọn hết" (v1.32.0):** đây là mục **DUY NHẤT** của cả
     Tuyến B **không truy được về friction quan sát từ Gú** — nó đến từ prototype, không từ việc Gú
     kêu. Cần theo dõi vài tuần: nếu Gú không đụng thì **GỠ**, đừng để tồn như tính năng chết.
