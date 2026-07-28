@@ -116,7 +116,10 @@ export default function ViewerPage() {
   // Kéo vạch chia. Cập nhật gói trong requestAnimationFrame → tối đa MỘT lần đổi bố cục mỗi khung
   // hình (luật đã chốt: mượt thắng đuổi-theo-tay-từng-khung). Chỉ gắn trên vạch chia nên cuộn
   // trong pane sát vạch KHÔNG kích nhầm.
-  const DIVIDER_H = bottomUri ? 26 : 22;   // B4c.1: bỏ tên tài liệu → thanh mỏng lại (38→26)
+  // B4c.1: bỏ tên tài liệu khỏi vạch → 38→22px, và HAI trạng thái dày BẰNG NHAU (vạch không
+  // phình ra khi nạp tài liệu tra cứu). 22px là sàn theo VÙNG CHẠM để kéo, không phải theo chữ:
+  // chữ "Đổi" 12px nằm vừa trong 22px, nên không phải đổi sang icon để lấy 4px này.
+  const DIVIDER_H = 22;
   const MIN_PANE = 132;                       // chốt theo màn hẹp nhất (Flip gập) — cả hai pane còn đọc được
   const avail = Math.max(0, frameH - DIVIDER_H);
   const drag = useRef<{ y0: number; top0: number } | null>(null);
@@ -244,7 +247,7 @@ export default function ViewerPage() {
                       onTouchStart={(e) => e.stopPropagation()}
                       style={{
                         background: 'none', border: 'none', padding: '0 4px', height: '100%',
-                        color: 'var(--gu-cream)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                        color: 'var(--gu-cream)', fontSize: 12, fontWeight: 600, lineHeight: 1, cursor: 'pointer',
                       }}
                     >
                       Đổi
