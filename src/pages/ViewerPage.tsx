@@ -3,7 +3,7 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonInput, IonButton, IonFooter, IonIcon, IonSpinner,
 } from '@ionic/react';
-import { browsersOutline, documentTextOutline } from 'ionicons/icons';
+import { browsersOutline } from 'ionicons/icons';
 import { useParams } from 'react-router-dom';
 import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
@@ -54,7 +54,6 @@ export default function ViewerPage() {
   // cứu (KHÔNG ghi reading-state). `bottomUri` null = đang chọn file cho pane dưới (DocPicker).
   const [split, setSplit] = useState(false);
   const [bottomUri, setBottomUri] = useState<string | null>(null);
-  const [bottomTitle, setBottomTitle] = useState('');
   // B4c — tỉ lệ chia (phần của pane TRÊN, 0..1). Nhớ TRONG PHIÊN split và sống sót qua thao tác
   // đổi tài liệu B4b (state này tách khỏi `bottomUri`). CỐ Ý **không** nhớ qua lần mở app sau:
   // thoát split rồi vào lại → về 50/50, đó là hành vi đúng ở beat này.
@@ -91,15 +90,6 @@ export default function ViewerPage() {
     return () => { alive = false; };
   }, [docUri]);
 
-  // Tên tài liệu đang ở pane tra cứu (cho thanh "Đổi" — để biết mình đang tra cái gì).
-  useEffect(() => {
-    if (!bottomUri) { setBottomTitle(''); return; }
-    let alive = true;
-    setBottomTitle(baseName(bottomUri));
-    resolveDocDisplayName(bottomUri).then((dn) => { if (alive && dn) setBottomTitle(dn); }).catch(() => { /* giữ tên file */ });
-    return () => { alive = false; };
-  }, [bottomUri]);
-
   // ĐỔI tài liệu pane tra cứu (B4b) — TUẦN TỰ, KHÔNG chồng lấn: đưa `bottomUri` về null trước để
   // `DocPane` cũ UNMOUNT HẲN (nhả `bytes`) rồi mới hiện DocPicker cho chọn cái mới. Hai tài liệu
   // pane dưới KHÔNG BAO GIỜ cùng tồn tại → đỉnh bộ nhớ vẫn là 2 tài liệu như luồng cũ, không phải 3.
@@ -126,7 +116,7 @@ export default function ViewerPage() {
   // Kéo vạch chia. Cập nhật gói trong requestAnimationFrame → tối đa MỘT lần đổi bố cục mỗi khung
   // hình (luật đã chốt: mượt thắng đuổi-theo-tay-từng-khung). Chỉ gắn trên vạch chia nên cuộn
   // trong pane sát vạch KHÔNG kích nhầm.
-  const DIVIDER_H = bottomUri ? 38 : 22;
+  const DIVIDER_H = bottomUri ? 26 : 22;   // B4c.1: bỏ tên tài liệu → thanh mỏng lại (38→26)
   const MIN_PANE = 132;                       // chốt theo màn hẹp nhất (Flip gập) — cả hai pane còn đọc được
   const avail = Math.max(0, frameH - DIVIDER_H);
   const drag = useRef<{ y0: number; top0: number } | null>(null);
@@ -240,23 +230,25 @@ export default function ViewerPage() {
                   <div {...dragProps} style={{
                     ...dragProps.style,
                     position: 'relative', flex: '0 0 auto', height: DIVIDER_H,
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 0 12px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 10px',
                     background: 'linear-gradient(180deg, var(--gu-brown), var(--gu-brown-deep))',
                     boxShadow: '0 1px 3px rgba(0,0,0,.35)',
                   }}>
                     {grip}
-                    <IonIcon icon={documentTextOutline} style={{ color: 'var(--gu-cream)', fontSize: 16, flex: '0 0 auto' }} />
-                    <span style={{
-                      flex: 1, minWidth: 0, color: 'var(--gu-cream)', fontSize: 13,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{bottomTitle}</span>
-                    <IonButton
-                      size="small" fill="clear" onClick={swapBottom} aria-label="Đổi tài liệu tra cứu"
+                    {/* B4c.1: BỎ tên tài liệu khỏi thanh. Tên là thứ tự thêm ở B4b, không ai yêu cầu —
+                        mà nội dung tài liệu đang hiện ngay dưới, và Gú vừa tự chọn nó vài giây trước.
+                        Bỏ đi thì thanh mỏng lại 12px, đổi lại split có thêm chỗ đọc. Nút "Đổi" giữ,
+                        dựng bằng <button> thường để ép đúng chiều cao 26px (IonButton có cao tối thiểu). */}
+                    <button
+                      type="button" onClick={swapBottom} aria-label="Đổi tài liệu tra cứu"
                       onTouchStart={(e) => e.stopPropagation()}
-                      style={{ '--color': 'var(--gu-cream)', textTransform: 'none', fontSize: 13 } as React.CSSProperties}
+                      style={{
+                        background: 'none', border: 'none', padding: '0 4px', height: '100%',
+                        color: 'var(--gu-cream)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                      }}
                     >
                       Đổi
-                    </IonButton>
+                    </button>
                   </div>
                 ) : (
                   /* Chưa chọn tài liệu tra cứu: vạch vẫn KÉO ĐƯỢC, và dày 22px cho ngón cái bắt
