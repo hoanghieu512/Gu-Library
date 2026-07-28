@@ -2,6 +2,27 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.36.0] — 2026-07-28 — Tuyến B / Beat B4c: thanh chia kéo được (BEAT CUỐI TUYẾN B)
+### Added
+- **Kéo vạch chia để đổi tỉ lệ hai pane.** Vùng chạm rộng cho ngón cái: vạch dày **22px** ở CẢ HAI trạng thái (trước là 5px — quá mảnh); khi đang có tài liệu tra cứu thì vạch mang thêm nút "Đổi" và vẫn kéo được. **Tay-nắm** (pill nhũ-kem) nay mới vẽ — B4a cố ý chưa vẽ vì lúc đó kéo chưa tồn tại.
+- **Giới hạn: mỗi pane luôn ≥ 132px** (chốt theo màn hẹp nhất). Kéo quá tay → dừng ở giới hạn, không kẹt, không pane nào biến mất. Khung quá thấp → tự chia đôi thay vì kẹt.
+### Notes
+- **Tỉ lệ nhớ TRONG PHIÊN split và sống sót qua thao tác đổi tài liệu (B4b)** — state tách khỏi `bottomUri`. **CỐ Ý không nhớ qua lần mở app sau**: thoát split rồi vào lại → về 50/50 (hành vi đúng ở beat này, không phải lỗi).
+- **Mượt thắng đuổi-theo-tay:** cập nhật bố cục gói trong `requestAnimationFrame`, tối đa **một lần đổi bố cục mỗi khung hình**, mẫu thừa bị bỏ. Đo trên Flip 4 với **giáo trình 398 trang** ở pane trên, kéo liên tục 30 giây: **687 khung · giật 2.18% · p90 8ms · p95 10ms · p99 14ms** — dưới ngân sách 16.7ms, nên **giữ được chế độ pane-đi-theo-tay**, không phải hạ xuống xem-trước-rồi-áp.
+- Theo dõi cả **gập/mở & xoay** bằng `ResizeObserver` → giữ TỈ LỆ, tính lại pixel.
+- **KHÔNG đụng read-path, KHÔNG đụng luồng đổi tài liệu B4b, KHÔNG đụng ba lớp nền** — `git diff` trên `safFile.ts`/`PdfView.tsx`/`DocPane.tsx`/`KhoRow`/`GuSheet`/`GuDialog` **rỗng**. Beat thứ **bảy** liên tiếp không phải sửa interface.
+### Changed — sau QA huynh: thanh chia mỏng lại (38 → 22px)
+- **BỎ tên tài liệu khỏi vạch chia.** Tên là thứ tự thêm ở B4b, không nằm trong yêu cầu nào; mà nội dung tài liệu đang hiện ngay bên dưới và Gú vừa tự tay chọn nó vài giây trước — giá trị thấp, giá phải trả là **12px chiều cao mỗi lần dùng split**. Vạch còn **tay-nắm + nút "Đổi"**. Kéo theo: bỏ luôn lượt đọc sidecar để lấy tên mỗi lần đổi tài liệu.
+- Đã cân nhắc rồi bỏ: (a) chỉ thu chữ/icon → còn 28px, vẫn là dải chữ chiếm chỗ; (c) vạch thuần 14px + nút "Đổi" nổi đè lên pane dưới → mỏng nhất nhưng che nội dung và đẻ thêm một thứ trôi nổi.
+- **Sàn 22px là theo VÙNG CHẠM để kéo, không theo chữ.** Chữ "Đổi" 12px nằm gọn trong 22px (dấu mũ chữ Ổ không bị cắt) → **không phải đổi sang icon** để lấy 4px cuối. Lợi thêm: hai trạng thái vạch nay **dày bằng nhau**, vạch không còn phình ra khi nạp tài liệu tra cứu.
+- **Đã cân nhắc rồi bỏ icon thay chữ:** `swapHorizontalOutline` — icon "đổi" tự nhiên nhất — **đã có nghĩa "Chuyển" (di chuyển file sang thư mục khác)** ở `DocActionsSheet`/`FolderPage`; `refresh`/`reload` = làm mới, `syncCircle` = Syncthing. Không có icon nào rảnh mà đọc ra "đổi tài liệu tra cứu", trong khi chữ thì không mơ hồ và không tốn thêm pixel nào.
+- Đo lại trên Flip 4: vạch **66 device-px = 22.0 CSS px** (trước 114). Kéo xuống/lên/về giữa đều dịch đúng theo tay, dày không đổi; bấm "Đổi" ra đúng màn chọn và **tỉ lệ đã kéo được giữ nguyên** qua lần đổi.
+
+### Điểm quan sát (ghi, không điều tra — theo yêu cầu beat)
+- **Đỉnh nhọn 709 MB của B4b KHÔNG tái xuất** dưới tải re-layout liên tục. Kéo 30 giây với tài liệu 398 trang: **531.5 → 601.7 MB (+70)**, thả tay 10 giây sau còn **594.4 MB**. Tăng đều và có trần, không có cú vọt.
+### Đã biết — CHƯA giải, không thuộc phạm vi beat này
+- **Xoay ngang: pane trên hiện TRẮNG** (khung không vỡ — vạch chia, tay-nắm, hai pane vẫn đúng chỗ; xoay về dọc thì nội dung trở lại đầy đủ, không hỏng vĩnh viễn). **Chưa quy được trách nhiệm**: `PdfView` không bị beat này đụng (diff rỗng), và **layout ngang/xoay vốn nằm trong danh sách "CHƯA làm" từ v1.27.0**. Đệ **không đối chứng với v1.34.0** nên không khẳng định là hồi quy hay có sẵn.
+
 ## [1.35.0] — 2026-07-27 — Tuyến B / Beat B4b: đổi tài liệu ngay trong split
 ### Added
 - **Đổi tài liệu ở pane tra cứu mà KHÔNG thoát split.** Vạch chia hai pane khi pane dưới đang có tài liệu nay mang **tên tài liệu đó + nút "Đổi"**; bấm → về đúng màn chọn tài liệu SẴN CÓ (`DocPicker`) → chọn cái mới. Trước đây phải thoát split rồi vào lại; mỗi lần tra một điều luật là một vòng thoát-vào.
