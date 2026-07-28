@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-28, trạng thái: app v1.35.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-07-28, trạng thái: app v1.36.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -181,7 +181,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 8. Trạng thái mốc & việc còn treo
 
-- App **v1.35.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.35.0`). Từ v1.19.0
+- App **v1.36.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.36.0`). Từ v1.19.0
   đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
   lập, không chờ worker: v1.20 breadcrumb bấm-nhảy-tầng · v1.21 ô nhập floating-label tự-vẽ (đồng
   nhất mọi WebView) · **M10 folder-level ĐÓNG TRỌN**: v1.22 đổi tên + v1.23 xóa môn/thư mục (đệ
@@ -209,10 +209,22 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   sheet chọn môn–thư mục (cưỡi `GuSheet`, nút lùi vào `startSlot`) · màn Tìm · modal Sync · màn Cài
   đặt lên thẻ-rời. **v1.34.0 = B4a** Viewer RESKIN (header · thanh điều khiển + vạch tiến độ · vỏ
   split · icon chia-đôi đổi theo chế độ) — KHÔNG đụng read-path, KHÔNG đụng logic split.
-  **Tuyến B còn 2 beat, cả hai là TÍNH NĂNG chứ không phải reskin:** **v1.35.0 = B4b** đổi tài liệu ngay trong
+  **Hai beat cuối là TÍNH NĂNG chứ không phải reskin:** **v1.35.0 = B4b** đổi tài liệu ngay trong
   split (nút "Đổi" trên vạch chia → `DocPicker` sẵn có; TUẦN TỰ: nhả tài liệu cũ HẲN rồi mới nạp
-  mới → đỉnh vẫn 2 tài liệu, không phải 3). Còn **B4c** thanh chia kéo được (Gú xác nhận 50/50 chưa đủ) — lúc làm B4c mới được vẽ tay-nắm lên vạch
-  chia, B4a CỐ Ý không vẽ để khỏi hứa cử chỉ chưa có.
+  mới → đỉnh vẫn 2 tài liệu, không phải 3). **v1.36.0 = B4c** thanh chia KÉO ĐƯỢC (Gú xác nhận 50/50 chưa đủ)
+  + tay-nắm (B4a CỐ Ý chưa vẽ để khỏi hứa cử chỉ chưa có) — mỗi pane luôn ≥132px, tỉ lệ nhớ trong
+  phiên và sống qua thao tác "Đổi", CỐ Ý không nhớ qua lần mở app sau. Kéo mượt nhờ gói cập nhật
+  bố cục trong `requestAnimationFrame` (đo Flip 4, giáo trình 398 trang, kéo 30s: **687 khung ·
+  giật 2.18% · p95 10ms**). Sau QA huynh: vạch mỏng lại **38→22px**, bỏ tên tài liệu khỏi vạch
+  (tên là thứ đệ tự thêm ở B4b, không ai yêu cầu), **dày bằng nhau ở cả hai trạng thái**. Sàn 22px
+  là theo VÙNG CHẠM để kéo, không theo chữ — nên KHÔNG đổi chữ "Đổi" sang icon (và
+  `swapHorizontalOutline` đã có nghĩa "Chuyển file" ở chỗ khác trong app).
+  **→ TUYẾN B KHÉP TRỌN.** Bảy beat liên tiếp (B1→B4c) không phải sửa ba lớp nền
+  `KhoRow`/`GuSheet`/`GuDialog` và không đụng read-path — bằng chứng lớp nền chốt đúng ở v1.29.0.
+  - **Còn treo sau B4c, CHƯA quy trách nhiệm:** **xoay ngang → pane trên hiện TRẮNG** (khung không
+    vỡ; xoay về dọc thì nội dung trở lại). `PdfView` không bị B4c đụng (diff rỗng) và **layout
+    ngang/xoay vốn nằm trong danh sách "CHƯA làm" từ v1.27.0** — đệ KHÔNG đối chứng với v1.34.0
+    nên không khẳng định là hồi quy hay có sẵn. Muốn kết luận thì phải cài lại v1.34.0 và thử xoay.
   - **Feedback Gú đã chốt (khỏi hỏi lại):** pane trên ĐỌC / pane dưới TRA — giữ nguyên như app,
     giả định ban đầu đúng.
   - **CÁCH ĐO BỘ NHỚ CHO VIEWER (bắt buộc nhớ):** WebView chạy renderer ở **TIẾN TRÌNH RIÊNG**
