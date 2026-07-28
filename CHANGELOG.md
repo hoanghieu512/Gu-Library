@@ -2,6 +2,20 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.36.0] — 2026-07-28 — Tuyến B / Beat B4c: thanh chia kéo được (BEAT CUỐI TUYẾN B)
+### Added
+- **Kéo vạch chia để đổi tỉ lệ hai pane.** Vùng chạm rộng cho ngón cái: vạch dày **22px** khi chưa chọn tài liệu tra cứu (trước là 5px — quá mảnh), **38px** khi đang có tài liệu (thanh mang tên + nút "Đổi" cũng kéo được). **Tay-nắm** (pill nhũ-kem) nay mới vẽ — B4a cố ý chưa vẽ vì lúc đó kéo chưa tồn tại.
+- **Giới hạn: mỗi pane luôn ≥ 132px** (chốt theo màn hẹp nhất). Kéo quá tay → dừng ở giới hạn, không kẹt, không pane nào biến mất. Khung quá thấp → tự chia đôi thay vì kẹt.
+### Notes
+- **Tỉ lệ nhớ TRONG PHIÊN split và sống sót qua thao tác đổi tài liệu (B4b)** — state tách khỏi `bottomUri`. **CỐ Ý không nhớ qua lần mở app sau**: thoát split rồi vào lại → về 50/50 (hành vi đúng ở beat này, không phải lỗi).
+- **Mượt thắng đuổi-theo-tay:** cập nhật bố cục gói trong `requestAnimationFrame`, tối đa **một lần đổi bố cục mỗi khung hình**, mẫu thừa bị bỏ. Đo trên Flip 4 với **giáo trình 398 trang** ở pane trên, kéo liên tục 30 giây: **687 khung · giật 2.18% · p90 8ms · p95 10ms · p99 14ms** — dưới ngân sách 16.7ms, nên **giữ được chế độ pane-đi-theo-tay**, không phải hạ xuống xem-trước-rồi-áp.
+- Theo dõi cả **gập/mở & xoay** bằng `ResizeObserver` → giữ TỈ LỆ, tính lại pixel.
+- **KHÔNG đụng read-path, KHÔNG đụng luồng đổi tài liệu B4b, KHÔNG đụng ba lớp nền** — `git diff` trên `safFile.ts`/`PdfView.tsx`/`DocPane.tsx`/`KhoRow`/`GuSheet`/`GuDialog` **rỗng**. Beat thứ **bảy** liên tiếp không phải sửa interface.
+### Điểm quan sát (ghi, không điều tra — theo yêu cầu beat)
+- **Đỉnh nhọn 709 MB của B4b KHÔNG tái xuất** dưới tải re-layout liên tục. Kéo 30 giây với tài liệu 398 trang: **531.5 → 601.7 MB (+70)**, thả tay 10 giây sau còn **594.4 MB**. Tăng đều và có trần, không có cú vọt.
+### Đã biết — CHƯA giải, không thuộc phạm vi beat này
+- **Xoay ngang: pane trên hiện TRẮNG** (khung không vỡ — vạch chia, tay-nắm, hai pane vẫn đúng chỗ; xoay về dọc thì nội dung trở lại đầy đủ, không hỏng vĩnh viễn). **Chưa quy được trách nhiệm**: `PdfView` không bị beat này đụng (diff rỗng), và **layout ngang/xoay vốn nằm trong danh sách "CHƯA làm" từ v1.27.0**. Đệ **không đối chứng với v1.34.0** nên không khẳng định là hồi quy hay có sẵn.
+
 ## [1.35.0] — 2026-07-27 — Tuyến B / Beat B4b: đổi tài liệu ngay trong split
 ### Added
 - **Đổi tài liệu ở pane tra cứu mà KHÔNG thoát split.** Vạch chia hai pane khi pane dưới đang có tài liệu nay mang **tên tài liệu đó + nút "Đổi"**; bấm → về đúng màn chọn tài liệu SẴN CÓ (`DocPicker`) → chọn cái mới. Trước đây phải thoát split rồi vào lại; mỗi lần tra một điều luật là một vòng thoát-vào.

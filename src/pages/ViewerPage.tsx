@@ -55,6 +55,21 @@ export default function ViewerPage() {
   const [split, setSplit] = useState(false);
   const [bottomUri, setBottomUri] = useState<string | null>(null);
   const [bottomTitle, setBottomTitle] = useState('');
+  // B4c — tỉ lệ chia (phần của pane TRÊN, 0..1). Nhớ TRONG PHIÊN split và sống sót qua thao tác
+  // đổi tài liệu B4b (state này tách khỏi `bottomUri`). CỐ Ý **không** nhớ qua lần mở app sau:
+  // thoát split rồi vào lại → về 50/50, đó là hành vi đúng ở beat này.
+  const [ratio, setRatio] = useState(0.5);
+  const [frameH, setFrameH] = useState(0);
+  const roRef = useRef<ResizeObserver | null>(null);
+  // Callback-ref (không dùng useEffect) → gắn/gỡ theo dõi ngay khi khung mount, khỏi phụ thuộc
+  // thứ tự khai báo `ready`. Theo dõi cả gập/mở & xoay ngang → giữ TỈ LỆ, tính lại pixel.
+  const frameRef = (el: HTMLDivElement | null) => {
+    roRef.current?.disconnect(); roRef.current = null;
+    if (!el) return;
+    setFrameH(el.clientHeight);
+    const ro = new ResizeObserver((es) => { for (const e of es) setFrameH(Math.round(e.contentRect.height)); });
+    ro.observe(el); roRef.current = ro;
+  };
   const lastSaved = useRef(0);
   const { toastResult, node: toastNode } = useGuToast();
 
@@ -106,7 +121,44 @@ export default function ViewerPage() {
     setTarget('');
   };
 
-  const exitSplit = () => { setSplit(false); setBottomUri(null); };
+  const exitSplit = () => { setSplit(false); setBottomUri(null); setRatio(0.5); };
+
+  // Kéo vạch chia. Cập nhật gói trong requestAnimationFrame → tối đa MỘT lần đổi bố cục mỗi khung
+  // hình (luật đã chốt: mượt thắng đuổi-theo-tay-từng-khung). Chỉ gắn trên vạch chia nên cuộn
+  // trong pane sát vạch KHÔNG kích nhầm.
+  const DIVIDER_H = bottomUri ? 38 : 22;
+  const MIN_PANE = 132;                       // chốt theo màn hẹp nhất (Flip gập) — cả hai pane còn đọc được
+  const avail = Math.max(0, frameH - DIVIDER_H);
+  const drag = useRef<{ y0: number; top0: number } | null>(null);
+  const raf = useRef<number | null>(null);
+  const clampTop = (px: number) => {
+    if (avail <= MIN_PANE * 2) return avail / 2;   // khung quá thấp → chia đôi, không kẹt
+    return Math.min(avail - MIN_PANE, Math.max(MIN_PANE, px));
+  };
+  const onDragStart = (e: React.TouchEvent) => {
+    drag.current = { y0: e.touches[0].clientY, top0: ratio * avail };
+  };
+  const onDragMove = (e: React.TouchEvent) => {
+    const d = drag.current; if (!d || avail <= 0) return;
+    const next = clampTop(d.top0 + (e.touches[0].clientY - d.y0)) / avail;
+    if (raf.current != null) return;            // đã có khung đang chờ → bỏ mẫu này
+    raf.current = requestAnimationFrame(() => { raf.current = null; setRatio(next); });
+  };
+  const onDragEnd = () => { drag.current = null; };
+  useEffect(() => () => { if (raf.current != null) cancelAnimationFrame(raf.current); }, []);
+
+  // Tay-nắm: B4a CỐ Ý chưa vẽ (chưa kéo được thì vẽ là hứa suông). B4c mới vẽ.
+  const grip = (
+    <div aria-hidden style={{
+      position: 'absolute', top: 3, left: '50%', transform: 'translateX(-50%)',
+      width: 42, height: 4, borderRadius: 2, background: 'rgba(233,229,205,.55)',
+    }} />
+  );
+  const dragProps = {
+    onTouchStart: onDragStart, onTouchMove: onDragMove, onTouchEnd: onDragEnd, onTouchCancel: onDragEnd,
+    role: 'separator' as const, 'aria-label': 'Kéo để đổi tỉ lệ hai khung',
+    style: { touchAction: 'none' as const },
+  };
   const ready = initialPage != null && baseScale != null;
 
   // Back cứng Android: đang split → thoát split (nuốt), không rời Viewer; ngoài split → nhường
@@ -164,9 +216,12 @@ export default function ViewerPage() {
           </div>
         )}
         {ready && (
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Pane TRÊN — giữ mounted qua toggle split (key ổn định) → giữ đúng trang đang đọc. */}
-            <div style={{ flex: 1, minHeight: 0 }}>
+          <div ref={frameRef} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Pane TRÊN — giữ mounted qua toggle split (key ổn định) → giữ đúng trang đang đọc.
+                Trong split: chiều cao theo TỈ LỆ kéo được (B4c); ngoài split: chiếm hết. */}
+            <div style={split && avail > 0
+              ? { flex: '0 0 auto', height: Math.round(clampTop(ratio * avail)), minHeight: 0 }
+              : { flex: 1, minHeight: 0 }}>
               <DocPane
                 key="top"
                 docUri={docUri}
@@ -182,12 +237,14 @@ export default function ViewerPage() {
                     giờ là hứa một cử chỉ chưa tồn tại. Tỉ lệ vẫn cố định 50/50.
                     Khi pane dưới ĐANG có tài liệu thì vạch mang luôn tên tài liệu + nút "Đổi". */}
                 {bottomUri ? (
-                  <div style={{
-                    flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '0 4px 0 12px', minHeight: 38,
+                  <div {...dragProps} style={{
+                    ...dragProps.style,
+                    position: 'relative', flex: '0 0 auto', height: DIVIDER_H,
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 0 12px',
                     background: 'linear-gradient(180deg, var(--gu-brown), var(--gu-brown-deep))',
                     boxShadow: '0 1px 3px rgba(0,0,0,.35)',
                   }}>
+                    {grip}
                     <IonIcon icon={documentTextOutline} style={{ color: 'var(--gu-cream)', fontSize: 16, flex: '0 0 auto' }} />
                     <span style={{
                       flex: 1, minWidth: 0, color: 'var(--gu-cream)', fontSize: 13,
@@ -195,17 +252,23 @@ export default function ViewerPage() {
                     }}>{bottomTitle}</span>
                     <IonButton
                       size="small" fill="clear" onClick={swapBottom} aria-label="Đổi tài liệu tra cứu"
+                      onTouchStart={(e) => e.stopPropagation()}
                       style={{ '--color': 'var(--gu-cream)', textTransform: 'none', fontSize: 13 } as React.CSSProperties}
                     >
                       Đổi
                     </IonButton>
                   </div>
                 ) : (
-                  <div style={{
-                    height: 5, flexShrink: 0,
+                  /* Chưa chọn tài liệu tra cứu: vạch vẫn KÉO ĐƯỢC, và dày 22px cho ngón cái bắt
+                     được (trước là 5px — quá mảnh để làm vùng chạm). */
+                  <div {...dragProps} style={{
+                    ...dragProps.style,
+                    position: 'relative', flex: '0 0 auto', height: DIVIDER_H,
                     background: 'linear-gradient(180deg, var(--gu-brown), var(--gu-brown-deep))',
                     boxShadow: '0 1px 3px rgba(0,0,0,.35)',
-                  }} />
+                  }}>
+                    {grip}
+                  </div>
                 )}
                 {/* Pane DƯỚI — tra cứu: chọn file (DocPicker) rồi render; KHÔNG ghi reading-state. */}
                 <div style={{ flex: 1, minHeight: 0 }}>
