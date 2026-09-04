@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-04, trạng thái: app v1.37.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-05, trạng thái: app v1.38.0 (nhánh, chờ duyệt) · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -283,6 +283,43 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
     → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
     đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
+- **v1.38.0 — TÌM KIẾM TOÀN VĂN (mở Phase 2 lớp tri thức).** Màn Tìm từ bề mặt rỗng thành tra
+  thật: gõ tới đâu tìm tới đó, kết quả là ĐOẠN TRÍCH có tô sáng kèm môn/tài liệu/nhãn/trang, chạm
+  là mở đúng trang (`/viewer/<uri>?p=N`). **Gõ KHÔNG DẤU ra kết quả CÓ DẤU** — yêu cầu gốc của
+  spec §7. Nhánh `feat/v1.38.0-search`.
+  - **Chỉ mục nằm trong IndexedDB của máy, KHÔNG vào cây Syncthing** (spec §4.3 dữ liệu phái sinh).
+    Hỏng thì xoá dựng lại — có cần gạt **"Dựng lại chỉ mục tìm kiếm"** trong Cài đặt.
+  - **`SafPlugin.listFolder` nay trả thêm `size` + `lastModified`** trong CÙNG cursor (không tốn
+    thêm vòng SAF). Đây là dấu vân tay để chỉ đọc lại file đã đổi. **`-1` = provider không trả cột
+    đó → phải coi là ĐÃ ĐỔI, tuyệt đối không coi hai cái "không biết" là bằng nhau.**
+  - **Số đo trên UBS1 (6GB, kho QA 178 tài liệu · 147.777 đơn vị · 20,8M ký tự):**
+    | | |
+    |---|---|
+    | dựng lần đầu | **14,0 s** (đọc 63% · tách từ 35%) — có màn tiến độ |
+    | lần mở sau | vào thẳng ô nhập; lối tắt "kho không đổi" khỏi đụng IndexedDB |
+    | tra một từ | **1–3 ms** |
+    | chỉ mục | **24,6 MB** trong IndexedDB |
+    | bộ nhớ màn Tìm | **303 MB** lắng · đỉnh tạm **389 MB** (nền Home 174 MB) |
+  - **Đọc sidecar bằng `Saf.readFile`, KHÔNG phải fetch qua local-server** — ngược với suy đoán ban
+    đầu, đo được 8,7 s so với 14,2 s cho 178 file. Bài học OOM v1.4.1 là về **MỘT** file 64 MB dựng
+    String ~170 MB; sidecar trung bình 330 KB nên không chạm trần, còn fetch trả giá mỗi file
+    (probeReadable + một vòng HTTP × 178). **Luật: nhiều file nhỏ → bridge, một file lớn → fetch.**
+  - **Đã verify tay trên máy:** gõ "dat dai" ra 50+ đoạn tô đúng cả `ĐẤT ĐAI`/`Đất đai`/`đất đai` ·
+    chạm kết quả mở đúng trang 290/667 và 31/46 · lần mở sau không dựng lại · chạm `mtime` một
+    sidecar thì chỉ cập nhật chứ không dựng lại từ đầu.
+  - **CÒN TREO, chưa làm trong beat này:**
+    1. **Chỉ mục nằm lại trong RAM sau khi rời màn Tìm** (Ionic giữ trang sống) → app ôm thêm
+       ~130 MB tới hết phiên. Chưa thấy hại trên máy 6GB nhưng là món đầu tiên nên gỡ nếu Gú kêu ì.
+    2. **Xếp hạng còn thô** (nguyên cụm > khớp sớm > đơn vị ngắn), chưa có TF-IDF, và trần 50 kết
+       quả nên chưa biết tổng thật.
+    3. **Cross-link tới Điều (spec §8) chưa làm** — chỗ đắt của nó không phải nhận diện tham chiếu
+       mà là làm cho nó BẤM ĐƯỢC: Viewer render bằng pdf.js ra canvas, không có lớp text.
+    4. **Kho Prod của Gú khác kho QA** (QA 178 tài liệu, Ops doc ghi Prod ~107) → lần dựng đầu bên
+       Prod sẽ nhanh hơn, nhưng chưa đo.
+  - **Số cho câu hỏi OCR: 1/178 tài liệu trong kho QA rỗng text.** OCR mở khoá ~0,6% corpus →
+    chưa đáng làm, đúng như spec §7 đã chốt. Cần đếm lại trên kho Prod trước khi đóng sổ hẳn.
+  - Chi tiết spike dẫn tới thiết kế này: `Docs/perf/2026-09-05-spike-search-index.md`.
+
 - **v1.37.0 — Book Press raster.** Huynh duyệt và merge 04/09; tag `v1.37.0`.
   **CHƯA lên máy Gú** — Prod vẫn ở bản trước, đẩy sang khi huynh thấy đúng lúc (§7: máy Gú chỉ nhận
   bản đã nghiệm thu; beat này mới nghiệm thu trên MỘT máy QA là UBS1).
