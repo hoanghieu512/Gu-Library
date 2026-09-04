@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-04, trạng thái: app v1.36.0 (main) · v1.37.0 chờ duyệt trên nhánh · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-04, trạng thái: app v1.37.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -283,7 +283,9 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
     → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
     đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
-- **v1.37.0 — Book Press raster (NHÁNH `feat/press-raster-sprite`, CHƯA merge, chờ huynh duyệt).**
+- **v1.37.0 — Book Press raster.** Huynh duyệt và merge 04/09; tag `v1.37.0`.
+  **CHƯA lên máy Gú** — Prod vẫn ở bản trước, đẩy sang khi huynh thấy đúng lúc (§7: máy Gú chỉ nhận
+  bản đã nghiệm thu; beat này mới nghiệm thu trên MỘT máy QA là UBS1).
   Beat THÍ ĐIỂM cho hướng gáy-sách-raster bàn ngày 04/09: lấy máy ép làm miếng nhỏ nhất kiểm được
   cả chất asset lẫn perf raster trên WebView mà không đụng kệ. `BookPress.tsx` đổi từ SVG tự vẽ sang
   3 sprite cắt từ MỘT tấm ảnh Higgsfield bằng `scripts/make-press-sprites.py`.
