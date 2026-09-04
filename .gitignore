@@ -18,6 +18,10 @@ ios/
 # Generated test fixture (not committed)
 fixture-kho/
 
+# Claude Code: shared config is committed (.claude/launch.json); the personal
+# permission allowlist is not — this repo is public and that file carries local paths
+.claude/settings.local.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
