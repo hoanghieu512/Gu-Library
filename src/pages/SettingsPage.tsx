@@ -6,6 +6,7 @@ import {
 } from '@ionic/react';
 import {
   folderOutline, syncOutline, textOutline, phonePortraitOutline, speedometerOutline, chevronForward,
+  searchOutline,
 } from 'ionicons/icons';
 import { App } from '@capacitor/app';
 import { getRootUri, pickAndSaveRoot } from '../storage/repo';
@@ -15,6 +16,8 @@ import { getBaseScale, setBaseScale, SCALE_OPTIONS } from '../viewer/fontScale';
 import SyncSettings from '../sync/SyncSettings';
 import PerfDebugModal from '../perf/PerfDebugModal';
 import { useSyncStatus } from '../sync/useSyncStatus';
+import { clearIndex } from '../search/store';
+import { useGuToast } from '../lib/useGuToast';
 import { SYNC_MAP } from '../components/SyncPill';
 
 // Màn Cài đặt — mỗi mục là một THẺ GIẤY: icon trong ô nền + tiêu đề serif + giá trị + dòng gợi ý,
@@ -63,6 +66,7 @@ function Row({ icon, tint, iconColor, title, value, hint, trailing, onClick, chi
 }
 
 export default function SettingsPage() {
+  const { toastResult, node: toastNode } = useGuToast();
   const [root, setRoot] = useState<string | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   const [perfOpen, setPerfOpen] = useState(false);
@@ -139,8 +143,21 @@ export default function SettingsPage() {
           trailing={chevron} onClick={() => setPerfOpen(true)}
         />
 
+        {/* Chỉ mục tìm kiếm là DỮ LIỆU PHÁI SINH (spec §4.3): hỏng/lệch thì xoá dựng lại, không
+            có gì để mất. Đây là cần gạt đó — lần vào màn Tìm kế tiếp sẽ tự dựng lại từ đầu. */}
+        <Row
+          icon={searchOutline} title="Dựng lại chỉ mục tìm kiếm"
+          hint="Dùng khi tìm ra kết quả cũ hoặc thiếu · lần vào màn Tìm sau sẽ đọc lại cả kho"
+          trailing={chevron}
+          onClick={async () => {
+            await clearIndex();
+            toastResult('Đã xoá chỉ mục — mở màn Tìm để dựng lại', true);
+          }}
+        />
+
         <SyncSettings isOpen={syncOpen} onClose={() => setSyncOpen(false)} />
         <PerfDebugModal isOpen={perfOpen} onClose={() => setPerfOpen(false)} />
+        {toastNode}
         <p style={{ textAlign: 'center', color: 'var(--gu-grey)', fontSize: 13, marginTop: 24 }}>
           Phiên bản {version}
         </p>
