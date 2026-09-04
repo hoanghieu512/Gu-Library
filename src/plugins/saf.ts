@@ -4,6 +4,11 @@ export interface SafEntry {
   name: string;
   isDirectory: boolean;
   uri: string;
+  // Dấu vân tay để index tìm kiếm biết file nào đổi (v1.38.0). Về cùng cursor với listFolder,
+  // KHÔNG tốn thêm vòng SAF. **-1 = DocumentsProvider không trả cột đó** → phải coi như "đã đổi"
+  // và đọc lại, đừng coi là bằng nhau (hai file "cùng -1" không nói lên điều gì).
+  size?: number;
+  lastModified?: number;
 }
 
 export interface SafPlugin {

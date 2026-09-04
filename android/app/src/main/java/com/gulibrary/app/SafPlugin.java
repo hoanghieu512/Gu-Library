@@ -84,10 +84,15 @@ public class SafPlugin extends Plugin {
             parentDocId = android.provider.DocumentsContract.getTreeDocumentId(treeUri);
         }
         Uri childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentDocId);
+        // SIZE + LAST_MODIFIED đi kèm trong CÙNG cursor này -> dấu vân tay để index tìm kiếm biết
+        // file nào đổi mà chỉ đọc lại đúng file đó. KHÔNG tốn thêm vòng SAF nào: cùng một query.
+        // DocumentsProvider được phép trả null cho hai cột này -> -1 = "không biết" (xem SafEntry).
         final String[] proj = {
             android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-            android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE
+            android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE,
+            android.provider.DocumentsContract.Document.COLUMN_SIZE,
+            android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED
         };
         JSArray entries = new JSArray();
         try (android.database.Cursor c =
@@ -102,6 +107,8 @@ public class SafPlugin extends Plugin {
                 o.put("name", name);
                 o.put("isDirectory", isDir);
                 o.put("uri", childUri.toString());
+                o.put("size", c.isNull(3) ? -1L : c.getLong(3));
+                o.put("lastModified", c.isNull(4) ? -1L : c.getLong(4));
                 entries.put(o);
             }
         } catch (Exception e) {
