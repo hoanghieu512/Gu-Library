@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-07-28, trạng thái: app v1.36.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-04, trạng thái: app v1.37.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -283,6 +283,70 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
     → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
     đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
+- **v1.37.0 — Book Press raster.** Huynh duyệt và merge 04/09; tag `v1.37.0`.
+  **CHƯA lên máy Gú** — Prod vẫn ở bản trước, đẩy sang khi huynh thấy đúng lúc (§7: máy Gú chỉ nhận
+  bản đã nghiệm thu; beat này mới nghiệm thu trên MỘT máy QA là UBS1).
+  Beat THÍ ĐIỂM cho hướng gáy-sách-raster bàn ngày 04/09: lấy máy ép làm miếng nhỏ nhất kiểm được
+  cả chất asset lẫn perf raster trên WebView mà không đụng kệ. `BookPress.tsx` đổi từ SVG tự vẽ sang
+  3 sprite cắt từ MỘT tấm ảnh Higgsfield bằng `scripts/make-press-sprites.py`.
+  - **Trạng thái thành LIÊN TỤC** theo số tài liệu (bản SVG chỉ có 3 nấc 0 / 1–4 / ≥5). Phép ánh xạ
+    tách ra `src/home/press.ts` — thuần, 12 test, cùng lối `shelf.ts`. Đổi khổ = sửa đúng `PRESS_H`.
+  - **`PRESS_W` giữ ĐÚNG 83 như bản SVG.** Thử 122 rồi 88: cả hai đều bị packShelves đẩy xuống một
+    tầng gần như trống (kho QA tầng 2 chỉ còn ~90px). Ảnh máy ép vốn bè ngang hơn hình SVG cũ nên
+    muốn to hơn là phải chấp nhận kệ đẻ thêm tầng — đo được, không phải suy.
+  - **Gate máy 6GB — ĐO 04/09 trên UBS1** (Android 14, RAM 5.89 GB, 720×1600 @320dpi, kho QA).
+    A/B cùng máy, cùng kho, 3 lượt mỗi bản, PSS = chính + renderer:
+    | | v1.36.0 (SVG) | v1.37.0 (raster) |
+    |---|---|---|
+    | PSS Home (trung vị) | **173 MB** (175/171/173) | **174 MB** (176/173/174) |
+    | Janky frames khi cuộn kệ | 0.40% (0.81/0.40/0.40) | 0.41% (1.21/0.41/0.40) |
+    | p90 / p95 khung | 11 / 11 ms | 11 / 11 ms |
+    | APK | 4.97 MB | 5.08 MB (**+115 KB**) |
+    → Chênh 1 MB nằm gọn trong dải dao động của CHÍNH nó (171–176). **Raster không tốn thêm gì
+    đo được.** Chạm mở "Chưa phân loại" verify tay: đúng.
+  - **Prompt sinh ảnh gốc (giữ để dựng lại được):** *"Product photograph of an antique cast-iron and
+    dark walnut wooden book binding press (book press / nipping press), shot perfectly straight-on
+    from the front, orthographic, symmetrical and centred. Dark aged wood with warm grain, aged brass
+    fittings, a turned brass screw with a horizontal handle bar across the top, two vertical posts, a
+    heavy flat base plinth, and a small blank brass nameplate on the front of the base. The press is
+    EMPTY: absolutely no paper, no sheets, no book between the platen and the base. The brass
+    nameplate is completely BLANK: no text, no letters, no engraving. Soft even studio lighting, warm
+    museum-object look. Isolated on a plain flat white background. Sharp focus, high detail, 4K."*
+    Model nano-banana qua Higgsfield, tỉ lệ 3:4. Ảnh gốc 6MB KHÔNG commit — chạy lại script với ảnh
+    mới nếu cần đổi art.
+  - **BA CÁI BẪY ĐÃ VẤP TRONG BEAT NÀY (đọc trước khi làm miếng raster tiếp theo):**
+    1. **Tách nền bằng flood-fill từ biên thì vùng KÍN bị coi là vật thể.** Ô trống giữa xà–hai
+       trụ–đế là vùng kín → lần đầu ra một mảng TRẮNG ĐỤC chắn ngang máy ép. Phải gieo thêm mầm
+       nền ở TRONG ô đó (`WINDOW_SEED`). Cùng bẫy lần hai: xoá bàn ép RỒI mới tách nền cũng hỏng —
+       phải tách nền trên ảnh GỐC rồi mới thay hàng.
+    2. **Ngưỡng tách nền phải cắt được BÓNG ĐỔ studio, và nó nằm THẤP chứ không cao.** 228 giữ
+       nguyên bóng thành mảng trắng cạnh đế; 185 mới sạch. Cách kiểm không cần mắt: đế sau khi tách
+       phải ĐỐI XỨNG quanh cột tâm của xà (897) — ở ngưỡng 228 đế chạy tới x1791, lệch hẳn.
+    3. **Máy có HAI `sandboxed_process0`** (app khác cũng xài WebView). `ps` chỉ hiện uid cách ly
+       (`u0_i9017`) nên KHÔNG suy ra chủ; chỗ duy nhất nói ai là chủ là `dumpsys activity processes`,
+       ghi dạng `u0a<uid-app>i<n>`. Lấy `head -1` của `ps` là đo nhầm app khác — đã đo nhầm thật.
+       *(Bẫy anh em với bài học S20 FE, nhưng cách gắn UID ở đó KHÔNG áp dụng được cho máy này.)*
+  - **BẪY THỨ TƯ, quan trọng nhất, áp cho CẢ APP: WebView KẸP CỠ CHỮ TỐI THIỂU ~8px — nhưng chỉ
+    với chữ đặt bằng CSS.** Bảng đồng của máy ép cần chữ ~5px. Đặt `fontSize: 4.4px` trên `<div>`
+    thì WebView âm thầm nâng lên ~8px, chữ tràn khỏi bảng (huynh bắt được trên máy). Đặt ĐÚNG cỡ
+    đó trong `<svg viewBox>` — cỡ chữ tính bằng user unit rồi cả khung mới thu nhỏ — thì KHÔNG bị
+    nâng. *Bằng chứng, hai lần đo mà hộp bảng khớp đúng số trong code:* bản `<div>` bảng 65 CSS px,
+    chữ nominal 4.4px (đáng lẽ ~31px) **tràn khỏi 65px**; bản `<svg>` bảng 66 CSS px, chữ rộng
+    **40 px, lề 13px mỗi bên** — đúng cỡ 23 user unit × 0,243 ≈ 5,6px như đặt.
+    → **Luật giữ về sau: chữ nhỏ hơn 8px BẮT BUỘC đi đường SVG có viewBox, không dùng CSS
+    font-size.** (Đường khác là chỉnh `WebSettings.setMinimumFontSize(1)` ở tầng native — sửa được
+    cả app nhưng đụng vỏ app, không làm trong beat áp da này.) Bản SVG cũ vốn đã đúng đường này;
+    lỗi sinh ra đúng lúc đệ đổi nó sang `<div>`.
+  - **Hai lỗi tự gây nữa, đã sửa, ghi lại vì dễ tái phạm:**
+    (a) đệ đổi chữ trên bảng thành "CHƯA ĐÓNG GÁY" theo bản vẽ AI, trong khi bản gốc ghi
+    "Chưa phân loại" cho khớp tên folder dùng ở Import / "Chuyển tới…" — beat áp da KHÔNG được
+    đổi chữ; (b) `overflow:hidden` trên bảng XÉN MẤT DẤU tiếng Việt ("ĐÓNG GÁY" ra "ĐONG GAY"),
+    vì dấu nhô cao hơn thân chữ — chặn tràn phải bằng cỡ chữ chứ không bằng kéo.
+    Và (c) khối hai dòng chữ CAO HƠN bảng thì phép căn giữa ra số ÂM, nét trên chọc lên khỏi mép —
+    nay `INK_TOP`/`INK_BOTTOM` tính trong `press.ts` và có test chặn.
+  - **Còn để ngỏ:** xấp giấy vẫn là khối CSS phẳng cạnh cỗ máy chụp thật — hợp mắt ở khổ 83px nhưng
+    là chỗ chênh chất liệu rõ nhất nếu sau này phóng to.
+
 - Worker **v0.13.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
   **Không còn nợ hạ tầng.** Beat gần đây: ảnh→PDF 1 trang (v0.12.0), archive gốc
   `.doc`/`.ppt` thay vì xóa (v0.13.0). Nợ Phase 2 đã đặt cọc: re-extract cấu trúc từ
