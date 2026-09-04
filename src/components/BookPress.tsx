@@ -1,6 +1,8 @@
 import {
   pressLayout, PRESS_W, PRESS_H, BEAM_BOTTOM, ROD_LEFT, ROD_W,
   HEAD_LEFT, HEAD_W, HEAD_H, BASE_TOP,
+  PLATE_VIEW_W, PLATE_VIEW_H, PLATE_X, PLATE_Y, PLATE_RECT_W, PLATE_RECT_H,
+  PLATE_FONT_NAME, PLATE_FONT_COUNT, NAME_BASELINE, COUNT_BASELINE,
 } from '../home/press';
 import frameUrl from '../assets/press-frame.png?no-inline';
 import rodUrl from '../assets/press-rod.png?no-inline';
@@ -27,10 +29,6 @@ import headUrl from '../assets/press-head.png?no-inline';
 export { PRESS_W };
 
 const BASE_H = PRESS_H - BASE_TOP;   // bề cao thân đế — chỗ đặt bảng đồng
-const PLATE_W = PRESS_W * 0.80;
-const PLATE_H = BASE_H * 0.62;
-// KHÔNG cắt (overflow) bảng: dấu tiếng Việt nhô cao hơn thân chữ, xén là mất dấu —
-// đã thấy thật trên máy ("ĐÓNG GÁY" ra "ĐONG GAY"). Chặn tràn bằng cỡ chữ, không bằng kéo.
 const PLATE_INK = '#33270a';
 
 export default function BookPress({ count, onOpen, uri }: { count: number; onOpen: (uri: string) => void; uri: string }) {
@@ -80,18 +78,35 @@ export default function BookPress({ count, onOpen, uri }: { count: number; onOpe
         position: 'absolute', inset: 0, width: PRESS_W, height: PRESS_H,
       }} />
 
-      {/* Bảng đồng: tên + số tài liệu — y như bản SVG cũ, chỉ đổi nền vẽ */}
-      <div style={{
-        position: 'absolute', left: (PRESS_W - PLATE_W) / 2, width: PLATE_W,
-        top: BASE_TOP + BASE_H * 0.14, height: PLATE_H, borderRadius: 1.5,
-        background: 'linear-gradient(180deg, #f0d182, #c79a34 45%, #8a6a1e)',
-        border: '.5px solid #5f4913', boxShadow: '0 1px 1px rgba(0,0,0,.4)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'var(--gu-serif)', fontWeight: 700, color: PLATE_INK, whiteSpace: 'nowrap',
-      }}>
-        <span style={{ fontSize: PLATE_H * 0.34, lineHeight: 1.18 }}>Chưa phân loại</span>
-        <span style={{ fontSize: PLATE_H * 0.37, lineHeight: 1.18 }}>{count} tài liệu</span>
-      </div>
+      {/* Bảng đồng: tên + số tài liệu — y như bản SVG cũ, chỉ đổi nền vẽ.
+          PHẢI là SVG có viewBox, KHÔNG phải div: WebView kẹp cỡ chữ tối thiểu ~8px nên chữ nhỏ
+          đặt bằng CSS bị nâng lên và tràn khỏi bảng (đo được trên máy: đặt 4.4px, ra nét cao 7–8px).
+          Trong viewBox thì cỡ chữ tính bằng user unit (18/20 — trên ngưỡng kẹp) rồi cả khung mới
+          thu nhỏ theo PRESS_W, nên ra đúng cỡ mong muốn. */}
+      <svg
+        viewBox={`0 0 ${PLATE_VIEW_W} ${PLATE_VIEW_H}`} width={PRESS_W} height={BASE_H} aria-hidden
+        style={{ position: 'absolute', left: 0, top: BASE_TOP, display: 'block' }}
+      >
+        <defs>
+          <linearGradient id="gu-press-brass" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#f0d182" />
+            <stop offset=".45" stopColor="#c79a34" />
+            <stop offset="1" stopColor="#8a6a1e" />
+          </linearGradient>
+        </defs>
+        <rect
+          x={PLATE_X} y={PLATE_Y} width={PLATE_RECT_W} height={PLATE_RECT_H} rx={PLATE_RECT_H * 0.12}
+          fill="url(#gu-press-brass)" stroke="#5f4913" strokeWidth={PLATE_VIEW_H * 0.02}
+        />
+        <text
+          x={PLATE_VIEW_W / 2} y={NAME_BASELINE} textAnchor="middle" fill={PLATE_INK}
+          fontFamily="var(--gu-serif)" fontWeight="700" fontSize={PLATE_FONT_NAME}
+        >Chưa phân loại</text>
+        <text
+          x={PLATE_VIEW_W / 2} y={COUNT_BASELINE} textAnchor="middle" fill={PLATE_INK}
+          fontFamily="var(--gu-serif)" fontWeight="700" fontSize={PLATE_FONT_COUNT}
+        >{count} tài liệu</text>
+      </svg>
     </div>
   );
 }

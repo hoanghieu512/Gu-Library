@@ -324,11 +324,24 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
        (`u0_i9017`) nên KHÔNG suy ra chủ; chỗ duy nhất nói ai là chủ là `dumpsys activity processes`,
        ghi dạng `u0a<uid-app>i<n>`. Lấy `head -1` của `ps` là đo nhầm app khác — đã đo nhầm thật.
        *(Bẫy anh em với bài học S20 FE, nhưng cách gắn UID ở đó KHÔNG áp dụng được cho máy này.)*
-  - **Một lỗi tự gây, đã sửa, ghi lại vì dễ tái phạm:** đệ đổi chữ trên bảng đồng thành "CHƯA ĐÓNG
-    GÁY" theo bản vẽ AI, trong khi bản gốc ghi "Chưa phân loại" cho khớp tên folder dùng ở Import /
-    "Chuyển tới…". Beat áp da KHÔNG được đổi chữ. Kèm theo: `overflow:hidden` trên bảng đồng XÉN MẤT
-    DẤU tiếng Việt ("ĐÓNG GÁY" ra "ĐONG GAY") — dấu nhô cao hơn thân chữ, chặn tràn phải bằng cỡ
-    chữ chứ không bằng kéo.
+  - **BẪY THỨ TƯ, quan trọng nhất, áp cho CẢ APP: WebView KẸP CỠ CHỮ TỐI THIỂU ~8px — nhưng chỉ
+    với chữ đặt bằng CSS.** Bảng đồng của máy ép cần chữ ~5px. Đặt `fontSize: 4.4px` trên `<div>`
+    thì WebView âm thầm nâng lên ~8px, chữ tràn khỏi bảng (huynh bắt được trên máy). Đặt ĐÚNG cỡ
+    đó trong `<svg viewBox>` — cỡ chữ tính bằng user unit rồi cả khung mới thu nhỏ — thì KHÔNG bị
+    nâng. *Bằng chứng, hai lần đo mà hộp bảng khớp đúng số trong code:* bản `<div>` bảng 65 CSS px,
+    chữ nominal 4.4px (đáng lẽ ~31px) **tràn khỏi 65px**; bản `<svg>` bảng 66 CSS px, chữ rộng
+    **40 px, lề 13px mỗi bên** — đúng cỡ 23 user unit × 0,243 ≈ 5,6px như đặt.
+    → **Luật giữ về sau: chữ nhỏ hơn 8px BẮT BUỘC đi đường SVG có viewBox, không dùng CSS
+    font-size.** (Đường khác là chỉnh `WebSettings.setMinimumFontSize(1)` ở tầng native — sửa được
+    cả app nhưng đụng vỏ app, không làm trong beat áp da này.) Bản SVG cũ vốn đã đúng đường này;
+    lỗi sinh ra đúng lúc đệ đổi nó sang `<div>`.
+  - **Hai lỗi tự gây nữa, đã sửa, ghi lại vì dễ tái phạm:**
+    (a) đệ đổi chữ trên bảng thành "CHƯA ĐÓNG GÁY" theo bản vẽ AI, trong khi bản gốc ghi
+    "Chưa phân loại" cho khớp tên folder dùng ở Import / "Chuyển tới…" — beat áp da KHÔNG được
+    đổi chữ; (b) `overflow:hidden` trên bảng XÉN MẤT DẤU tiếng Việt ("ĐÓNG GÁY" ra "ĐONG GAY"),
+    vì dấu nhô cao hơn thân chữ — chặn tràn phải bằng cỡ chữ chứ không bằng kéo.
+    Và (c) khối hai dòng chữ CAO HƠN bảng thì phép căn giữa ra số ÂM, nét trên chọc lên khỏi mép —
+    nay `INK_TOP`/`INK_BOTTOM` tính trong `press.ts` và có test chặn.
   - **Còn để ngỏ:** xấp giấy vẫn là khối CSS phẳng cạnh cỗ máy chụp thật — hợp mắt ở khổ 83px nhưng
     là chỗ chênh chất liệu rõ nhất nếu sau này phóng to.
 

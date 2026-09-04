@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   paperHeight, pressLayout, PAPER_MAX, PAPER_CAP, BASE_TOP, HEAD_H, BEAM_BOTTOM, PRESS_W, PRESS_H,
+  PLATE_FONT_NAME, PLATE_FONT_COUNT, PLATE_RECT_W, PLATE_VIEW_W,
+  PLATE_Y, PLATE_RECT_H, INK_TOP, INK_BOTTOM,
 } from './press';
 
 describe('paperHeight', () => {
@@ -68,5 +70,30 @@ describe('khổ máy ép', () => {
     expect(BASE_TOP).toBeLessThan(PRESS_H);
     expect(BEAM_BOTTOM).toBeGreaterThan(0);
     expect(PAPER_MAX).toBeLessThan(BASE_TOP - BEAM_BOTTOM);
+  });
+});
+
+describe('bảng đồng', () => {
+  // Bẫy đã cắn thật: đặt chữ 4.4px bằng CSS, WebView nâng lên ~8px rồi chữ tràn khỏi bảng.
+  // Bảng nay vẽ bằng SVG có viewBox nên cỡ chữ tính bằng user unit, phải ở trên ngưỡng kẹp 8.
+  it('cỡ chữ (user unit) ở trên ngưỡng kẹp 8 của WebView', () => {
+    expect(PLATE_FONT_NAME).toBeGreaterThan(8);
+    expect(PLATE_FONT_COUNT).toBeGreaterThan(8);
+  });
+
+  it('chuỗi dài nhất vẫn nằm gọn trong bảng', () => {
+    // ước lượng thô: serif đậm ~0.62 em mỗi ký tự — đủ chặt để bắt lỗi tràn
+    const widest = 'Chưa phân loại'.length * PLATE_FONT_NAME * 0.62;
+    expect(widest).toBeLessThan(PLATE_RECT_W);
+  });
+
+  it('hai dòng chữ nằm GỌN trong bảng theo chiều dọc', () => {
+    // Đã sai thật: khối chữ cao hơn bảng thì phép căn giữa ra số âm, nét trên chọc lên khỏi mép.
+    expect(INK_TOP).toBeGreaterThan(PLATE_Y);
+    expect(INK_BOTTOM).toBeLessThan(PLATE_Y + PLATE_RECT_H);
+  });
+
+  it('bảng nằm trong bề ngang máy ép', () => {
+    expect(PLATE_RECT_W).toBeLessThan(PLATE_VIEW_W);
   });
 });

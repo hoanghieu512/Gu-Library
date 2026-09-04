@@ -47,6 +47,36 @@ export function paperHeight(count: number): number {
   return (PAPER_MAX * Math.min(Math.max(count, 0), PAPER_CAP)) / PAPER_CAP;
 }
 
+// ---- Bảng đồng: vẽ bằng SVG, KHÔNG bằng div ----------------------------------------------
+// WebView KẸP cỡ chữ tối thiểu ~8px: chữ CSS nhỏ hơn bị nâng lên 8px, div không hay biết →
+// đo trên máy: đặt 4.39px mà nét chữ cao 7–8px, chữ tràn khỏi bảng. Bản SVG cũ né được là nhờ
+// viewBox: cỡ chữ tính bằng USER UNIT (giữ trên 8 nên không bị kẹp) rồi cả khung mới thu nhỏ lại.
+// => Mọi chữ nhỏ hơn 8px trong app phải đi đường SVG-có-viewBox. Giữ PLATE_FONT_* trên ngưỡng này.
+export const PLATE_VIEW_W = SPRITE_W;                 // user unit = px sprite → tỉ lệ 1:1 với ảnh
+export const PLATE_VIEW_H = SPRITE_H - S.baseTop;     // phần thân đế
+export const PLATE_X = PLATE_VIEW_W * 0.16;
+export const PLATE_RECT_W = PLATE_VIEW_W * 0.68;
+export const PLATE_Y = PLATE_VIEW_H * 0.12;
+export const PLATE_RECT_H = PLATE_VIEW_H * 0.62;
+// Cỡ chữ đặt THẲNG bằng user unit, không suy từ bề cao bảng: đây là con số phải nằm trên
+// ngưỡng kẹp của WebView, nên nó cần đứng độc lập và nhìn thấy được.
+// 20 user unit × (PRESS_W / PLATE_VIEW_W ≈ 0,243) ≈ 4,9 CSS px — đúng cỡ bản SVG cũ vẫn dùng.
+// Đặt cùng cỡ đó bằng CSS thì WebView nâng lên 8px rồi chữ tràn khỏi bảng (đo được trên máy).
+export const PLATE_FONT_NAME = 20;    // "Chưa phân loại"
+export const PLATE_FONT_COUNT = 21;   // "N tài liệu"
+
+// Hai đường cơ chữ (user unit). Tính ở đây chứ không ở component để test chặn được ca chữ
+// CAO HƠN BẢNG — đã sai thật một lần: khối chữ 56 unit nhét vào bảng 50 unit, phép căn giữa ra
+// số ÂM nên nét trên chọc lên khỏi mép bảng.
+const LEADING = 1.15;
+export const NAME_BASELINE = PLATE_Y
+  + (PLATE_RECT_H - (PLATE_FONT_NAME + PLATE_FONT_COUNT) * LEADING) / 2
+  + PLATE_FONT_NAME * 0.80;
+export const COUNT_BASELINE = NAME_BASELINE + PLATE_FONT_NAME * 0.35 + PLATE_FONT_COUNT * 0.80;
+// Mép trên nét chữ dòng 1 và mép dưới nét chữ dòng 2 (kể cả dấu và đuôi chữ).
+export const INK_TOP = NAME_BASELINE - PLATE_FONT_NAME * 0.78;
+export const INK_BOTTOM = COUNT_BASELINE + PLATE_FONT_COUNT * 0.26;
+
 export interface PressLayout {
   paperH: number;   // bề dày xấp giấy
   headTop: number;  // đỉnh mâm+bàn ép — bàn ép ĐỘI trên xấp giấy
