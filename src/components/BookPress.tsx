@@ -1,89 +1,97 @@
-// "Chưa phân loại" = MÁY ÉP SÁCH (book press) ở cuối kệ (Home tủ-sách Beat 3a, theo bản thảo Gú).
-// Xấp giấy giữa hai bàn ép = tài liệu CHƯA đóng gáy. 3 trạng thái theo số file:
-//   0 → không giấy · 1–4 → ít giấy (xấp mỏng) · ≥5 → nhiều giấy (xấp dày).
-// Chạm → mở "Chưa phân loại". SVG thuần → nhẹ. Đế SÁT đáy kệ (không hở), gỗ có mặt-trên bắt sáng.
+import {
+  pressLayout, PRESS_W, PRESS_H, BEAM_BOTTOM, ROD_LEFT, ROD_W,
+  HEAD_LEFT, HEAD_W, HEAD_H, BASE_TOP,
+} from '../home/press';
+import frameUrl from '../assets/press-frame.png?no-inline';
+import rodUrl from '../assets/press-rod.png?no-inline';
+import headUrl from '../assets/press-head.png?no-inline';
 
-// Nội dung vẽ trong hệ toạ độ 92×150; hiển thị THU 10% (PRESS_W/H_OUT) → bớt lấn tầng 2 trên máy dọc
-// (Beat 3b tinh chỉnh). viewBox giữ nguyên nên SVG tự co đều mọi chi tiết.
-const W = 92;
-const H = 150;
-// Bề rộng THẬT khi render — export để MonShelf nhồi kệ (packShelves) đúng bằng chỗ press chiếm.
-// Trước đây kệ nhồi press theo `spineWidth(số tài liệu)` (~31px) trong khi render 83px → TRÀN kệ.
-export const PRESS_W = 83;  // ~92 × 0.9
-const H_OUT = 135;          // ~150 × 0.9
-const FLOOR = 148; // đáy đế sát sàn kệ → không hở khoảng trống
+// "Chưa phân loại" = MÁY ÉP SÁCH (book press) ở cuối kệ. Xấp giấy giữa hai bàn ép = tài liệu CHƯA
+// đóng gáy. Chạm → mở "Chưa phân loại".
+//
+// Beat này đổi SVG tự vẽ → 3 sprite cắt từ MỘT tấm ảnh (scripts/make-press-sprites.py):
+//   frame  xà + tay vặn + trụ + đế   (tĩnh, vẽ SAU CÙNG nên hai trụ che đúng hai đầu bàn ép)
+//   rod    một đoạn ren trơn         (LẶP dọc → bước ren không đổi dù trục dài ngắn thế nào)
+//   head   mâm đồng + bàn ép         (khổ cố định, chỉ đổi y)
+// KHÔNG gen 3 ảnh cho 3 trạng thái: model sinh ảnh không giữ được bộ — cùng prompt đổi một câu là
+// ra một cỗ máy khác. Gen MỘT rồi dựng trạng thái bằng code, nhờ vậy được trạng thái LIÊN TỤC theo
+// số tài liệu thay vì 3 nấc 0 / 1–4 / ≥5 như bản SVG cũ.
+//
+// Khổ + toạ độ + phép ánh xạ số-tài-liệu → bề dày giấy nằm ở src/home/press.ts (thuần, có test).
+// Bảng đồng TRONG ẢNH chỉ rộng ~19px lúc render → không nhét chữ vào được, nên bảng chữ vẫn do code
+// vẽ đè lên đế, GIỮ NGUYÊN chữ + bố cục bản SVG cũ: "Chưa phân loại" (khớp tên dùng ở Import /
+// "Chuyển tới…") trên, số tài liệu dưới, cả hai chữ tối trên nền đồng.
+// KHÔNG dùng chữ "CHƯA ĐÓNG GÁY" của bản vẽ AI: đây là beat áp da, đổi chữ là đổi hành vi.
+
+// MonShelf nhồi kệ bằng PRESS_W — re-export để chỗ dùng không phải biết tới press.ts.
+export { PRESS_W };
+
+const BASE_H = PRESS_H - BASE_TOP;   // bề cao thân đế — chỗ đặt bảng đồng
+const PLATE_W = PRESS_W * 0.80;
+const PLATE_H = BASE_H * 0.62;
+// KHÔNG cắt (overflow) bảng: dấu tiếng Việt nhô cao hơn thân chữ, xén là mất dấu —
+// đã thấy thật trên máy ("ĐÓNG GÁY" ra "ĐONG GAY"). Chặn tràn bằng cỡ chữ, không bằng kéo.
+const PLATE_INK = '#33270a';
 
 export default function BookPress({ count, onOpen, uri }: { count: number; onOpen: (uri: string) => void; uri: string }) {
-  const paperH = count === 0 ? 0 : count < 5 ? 12 : 26; // ít / nhiều
-  const baseTop = 122;            // mặt trên của đế (giấy đứng trên đây)
-  const platenY = baseTop - paperH - 6;
-  const pages = paperH > 0 ? Math.min(Math.round(paperH / 3), 7) : 0;
+  const { paperH, headTop, rodH, sheets } = pressLayout(count);
 
   return (
     <div
       onClick={() => onOpen(uri)}
       role="button"
       aria-label={`Mở Chưa phân loại (${count} tài liệu)`}
-      style={{ width: PRESS_W, height: H_OUT, flex: '0 0 auto', cursor: 'pointer', alignSelf: 'flex-end' }}
+      style={{
+        width: PRESS_W, height: PRESS_H, flex: '0 0 auto', cursor: 'pointer',
+        alignSelf: 'flex-end', position: 'relative',
+      }}
     >
-      <svg viewBox={`0 0 ${W} ${H}`} width={PRESS_W} height={H_OUT} aria-hidden>
-        <defs>
-          <linearGradient id="bp-wood" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#2b1d11" /><stop offset=".2" stopColor="#5a3d22" />
-            <stop offset=".5" stopColor="#6e4a28" /><stop offset=".82" stopColor="#3d2a17" /><stop offset="1" stopColor="#20150d" />
-          </linearGradient>
-          <linearGradient id="bp-beam" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#835a33" /><stop offset=".5" stopColor="#5b3d22" /><stop offset="1" stopColor="#341f11" />
-          </linearGradient>
-          <linearGradient id="bp-brass" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#f0d182" /><stop offset=".45" stopColor="#c79a34" /><stop offset="1" stopColor="#7c5f18" />
-          </linearGradient>
-          <linearGradient id="bp-paper" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#f6eed2" /><stop offset="1" stopColor="#d6c69c" />
-          </linearGradient>
-        </defs>
+      {/* Trục vít: lặp dọc nên bước ren giữ nguyên ở mọi độ dài */}
+      <div style={{
+        position: 'absolute', left: ROD_LEFT, top: BEAM_BOTTOM, width: ROD_W, height: Math.max(rodH, 0),
+        backgroundImage: `url(${rodUrl})`, backgroundRepeat: 'repeat-y',
+        backgroundSize: `${ROD_W}px auto`,
+      }} />
 
-        {/* Trụ đứng 2 bên (xuống tới mặt đế) */}
-        <rect x="10" y="40" width="10" height={baseTop - 40} fill="url(#bp-wood)" stroke="#1c1109" strokeWidth=".5" />
-        <rect x="72" y="40" width="10" height={baseTop - 40} fill="url(#bp-wood)" stroke="#1c1109" strokeWidth=".5" />
+      {/* Xấp giấy — đứng trên đế, đội bàn ép lên */}
+      {paperH > 0 && (
+        <div style={{
+          position: 'absolute', left: HEAD_LEFT + HEAD_W * 0.09, width: HEAD_W * 0.82,
+          top: BASE_TOP - paperH, height: paperH,
+          background: 'linear-gradient(180deg, #f6eed2, #d9c9a0)',
+          borderRadius: 1, boxShadow: '0 1px 2px rgba(0,0,0,.35)',
+        }}>
+          {Array.from({ length: sheets }, (_, i) => (
+            <div key={i} style={{
+              position: 'absolute', left: 0, right: 0, top: ((i + 1) * paperH) / (sheets + 1),
+              height: 1, background: 'rgba(150,132,90,.55)',
+            }} />
+          ))}
+        </div>
+      )}
 
-        {/* Xà trên */}
-        <rect x="4" y="27" width="84" height="14" rx="3" fill="url(#bp-beam)" stroke="#1c1109" strokeWidth=".6" />
-        <rect x="4" y="27" width="84" height="3" rx="2" fill="#9a6c3e" opacity=".5" />
+      {/* Mâm đồng + bàn ép */}
+      <img src={headUrl} alt="" aria-hidden style={{
+        position: 'absolute', left: HEAD_LEFT, top: headTop, width: HEAD_W, height: HEAD_H,
+      }} />
 
-        {/* Trục vít brass + ren + tay vặn chữ T */}
-        <rect x="43" y="40" width="6" height={platenY - 40} fill="url(#bp-brass)" />
-        {Array.from({ length: Math.max(0, Math.floor((platenY - 44) / 4)) }, (_, i) => (
-          <line key={i} x1="43" y1={45 + i * 4} x2="49" y2={47 + i * 4} stroke="#7c5f18" strokeWidth=".7" />
-        ))}
-        <rect x="27" y="13" width="38" height="7" rx="3.5" fill="url(#bp-brass)" />
-        <circle cx="27" cy="16.5" r="4.6" fill="url(#bp-brass)" />
-        <circle cx="65" cy="16.5" r="4.6" fill="url(#bp-brass)" />
-        <rect x="44" y="17" width="4" height="6" fill="#7c5f18" />
+      {/* Khung máy — vẽ sau cùng để hai trụ nằm TRƯỚC bàn ép */}
+      <img src={frameUrl} alt="" aria-hidden style={{
+        position: 'absolute', inset: 0, width: PRESS_W, height: PRESS_H,
+      }} />
 
-        {/* Bàn ép trên (hạ theo xấp giấy) */}
-        <rect x="17" y={platenY} width="58" height="6" rx="1.5" fill="url(#bp-beam)" stroke="#1c1109" strokeWidth=".5" />
-
-        {/* Xấp giấy */}
-        {paperH > 0 && (
-          <g>
-            <rect x="20" y={baseTop - paperH} width="52" height={paperH} rx="1" fill="url(#bp-paper)" stroke="#b3a373" strokeWidth=".4" />
-            {Array.from({ length: pages }, (_, i) => (
-              <line key={i} x1="20" y1={baseTop - paperH + (i + 1) * (paperH / (pages + 1))}
-                x2="72" y2={baseTop - paperH + (i + 1) * (paperH / (pages + 1))} stroke="#c7b788" strokeWidth=".5" />
-            ))}
-          </g>
-        )}
-
-        {/* Đế: mặt trên bắt sáng + thân trước tối, sát đáy kệ */}
-        <rect x="2" y={baseTop} width="88" height="3.5" fill="#8a5f36" />
-        <rect x="2" y={baseTop + 3.5} width="88" height={FLOOR - baseTop - 3.5} rx="3" fill="url(#bp-wood)" stroke="#1c1109" strokeWidth=".6" />
-
-        {/* Bảng đồng "Chưa phân loại" + số (trên thân đế) — khớp tên dùng ở Import / "Chuyển tới…" */}
-        <rect x="16" y={baseTop + 8} width="60" height="14" rx="2" fill="url(#bp-brass)" stroke="#5f4913" strokeWidth=".5" />
-        <text x="46" y={baseTop + 14} textAnchor="middle" fontSize="5" fontWeight="700" fill="#33270a" letterSpacing=".2">Chưa phân loại</text>
-        <text x="46" y={baseTop + 19.5} textAnchor="middle" fontSize="5.4" fontWeight="700" fill="#33270a">{count} tài liệu</text>
-      </svg>
+      {/* Bảng đồng: tên + số tài liệu — y như bản SVG cũ, chỉ đổi nền vẽ */}
+      <div style={{
+        position: 'absolute', left: (PRESS_W - PLATE_W) / 2, width: PLATE_W,
+        top: BASE_TOP + BASE_H * 0.14, height: PLATE_H, borderRadius: 1.5,
+        background: 'linear-gradient(180deg, #f0d182, #c79a34 45%, #8a6a1e)',
+        border: '.5px solid #5f4913', boxShadow: '0 1px 1px rgba(0,0,0,.4)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--gu-serif)', fontWeight: 700, color: PLATE_INK, whiteSpace: 'nowrap',
+      }}>
+        <span style={{ fontSize: PLATE_H * 0.34, lineHeight: 1.18 }}>Chưa phân loại</span>
+        <span style={{ fontSize: PLATE_H * 0.37, lineHeight: 1.18 }}>{count} tài liệu</span>
+      </div>
     </div>
   );
 }
