@@ -23,7 +23,8 @@ Split:
   press-head.png    brass collar + platen slab, cropped to strictly BETWEEN the
                     posts so it slides behind them. Fixed size; only its y moves.
 
-Source art: Higgsfield (nano-banana), prompt kept in Docs/gu-library-ops-qa-prod.md.
+Source art: Higgsfield (nano-banana). The exact prompt is in Docs/gu-library-ops-qa-prod.md
+§8 under v1.37.0 — the 6MB source image is deliberately not committed.
 """
 import sys
 import numpy as np
