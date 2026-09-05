@@ -163,8 +163,13 @@ function BuildingState({ done, total }: { done: number; total: number }) {
       <p style={{ color: 'var(--gu-grey)', fontSize: 13.5, lineHeight: 1.6, margin: '8px 0 16px' }}>
         Chỉ lâu lần này thôi, những lần sau mở là tìm được ngay. Iu lắm!
       </p>
+      {/* Chạy bằng transform: scaleX chứ KHÔNG phải width — animate width bắt trình duyệt tính lại
+          bố cục mỗi khung, mà thanh này nhích 178 lần trong lúc máy đang bận đọc kho. */}
       <div style={{ height: 6, borderRadius: 999, background: 'rgba(117,66,14,.14)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--gu-brown)', transition: 'width .2s' }} />
+        <div style={{
+          height: '100%', width: '100%', background: 'var(--gu-brown)',
+          transformOrigin: 'left center', transform: `scaleX(${pct / 100})`, transition: 'transform .2s',
+        }} />
       </div>
       <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--gu-grey)', fontVariantNumeric: 'tabular-nums' }}>
         {done} / {total || '…'} tài liệu
