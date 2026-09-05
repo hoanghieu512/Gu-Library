@@ -20,15 +20,21 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 | | QA | Prod |
 |---|---|---|
-| Folder trên mini PC | `D:\GuLibrary\kho` | `D:\GuLibrary-Prod\kho` |
+| Folder trên Atomman | `D:\GuLibrary\kho` | `D:\GuLibrary-Prod\kho` |
 | Folder-ID Syncthing | `gu-library-kho` | `gu-library-kho-prod` |
 | Máy trong cụm | Z Flip 4 · S22 Ultra · Z Fold 3 · **UBS1** · **dGen1** (máy test) | Galaxy Tab S9 (SM-X710) · S20 FE · Z Flip 6 (máy Gú) |
 | Archive nguồn (v0.10.0 + v0.13.0) | sibling ngoài cây sync | sibling ngoài cây sync |
 
 - Tách ở **cấp cha** (`GuLibrary-Prod\kho`, không phải `kho-prod` cạnh nhau) — cô lập
   `.stversions/`, `_worker.log`, archive; worker trỏ rạch ròi, khó copy nhầm.
-- Mini PC = anchor node 24/7 (Syncthing chạy dạng Windows service). Android dùng
+- **Atomman** = anchor node 24/7 (Syncthing chạy dạng Windows service). Android dùng
   Syncthing-Fork (Catfriend1).
+  **ĐỔI TÊN 05/09: trước gọi là "mini PC", nay dùng đúng tên máy — Atomman.** Đã đổi trong 5 tài
+  liệu sống (`design-spec`, `syncthing-setup`, `phase1-build-brief`, ops doc này,
+  `worker-tmp-normalization`). **CỐ Ý KHÔNG đổi:** `CHANGELOG.md` và `Docs/superpowers/plans/*`
+  (bản ghi lịch sử, giữ nguyên chữ lúc viết), và **định danh trong code** (`MINIPC`, `minipcId`,
+  `KEY_MINIPC`) — riêng `st_minipc_id` là **khoá lưu Preferences**, đổi là mọi máy mất cấu hình
+  Syncthing đã lưu. Chuỗi hiện trên màn hình app vẫn đang là "mini PC", chưa đổi.
 - **Hai máy test dùng luân phiên từ 05/09 — KHÁC LỚP NHAU, số đo KHÔNG suy sang nhau được:**
 
   | | UBS1 | dGen1 |
@@ -81,13 +87,13 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 4. Dựng máy mới vào cụm (hoặc dựng lại từ đầu) — 6 bước
 
-1. **Folder:** trên mini PC, tạo (hoặc xác nhận) folder kho đúng cấp cha riêng
+1. **Folder:** trên Atomman, tạo (hoặc xác nhận) folder kho đúng cấp cha riêng
    (`D:\GuLibrary\kho` hay `D:\GuLibrary-Prod\kho`).
-2. **Syncthing mini PC:** Add Folder với folder-ID đúng bảng trên; kiểm `.stversions`
+2. **Syncthing Atomman:** Add Folder với folder-ID đúng bảng trên; kiểm `.stversions`
    (simple versioning) bật — đây là lưới M8.
-3. **Máy Android mới:** cài Syncthing-Fork → trao đổi device-ID với mini PC → share
+3. **Máy Android mới:** cài Syncthing-Fork → trao đổi device-ID với Atomman → share
    ĐÚNG MỘT folder (QA hoặc Prod, không bao giờ cả hai) → chờ sync xong lượt đầu.
-4. **Worker:** *(mini PC mới — dựng môi trường trước:* cài Python 3.11+ và LibreOffice,
+4. **Worker:** *(máy Atomman mới — dựng môi trường trước:* cài Python 3.11+ và LibreOffice,
    `git clone` repo worker, `python -m venv .venv` rồi `.venv\Scripts\python -m pip install
    -e .`; soffice auto-detect nên không cần sửa PATH — chi tiết README worker.*)*
    Nếu là kho mới, thêm đường dẫn vào `-KhoRoot` (tách phẩy) của Scheduled
@@ -104,7 +110,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
    (gitignored). Cài lên máy: release-đè-release **cùng keystore** không mất data;
    release-**đè-debug phải gỡ trước** (khác chữ ký → `install -r` báo lỗi). Rồi Cài đặt →
    Folder kho → chọn đúng folder qua SAF; kiểm badge "Đã đồng bộ" (dựa connected của
-   device mini PC, không dựa tên kho).
+   device Atomman, không dựa tên kho).
 6. **Smoke:** bỏ 1 file PDF qua đường Share vào một môn → thấy ⏳ → chờ vòng worker →
    thành tài liệu mở được. Thông chuỗi này = môi trường sống.
 
@@ -136,7 +142,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 
 ## 6. Khi có biến — checklist chẩn đoán nhanh
 
-- **App báo "Chưa thấy mini PC":** kiểm Syncthing mini PC đang chạy (service) + máy đó
+- **App báo "Chưa thấy Atomman":** kiểm Syncthing Atomman đang chạy (service) + máy đó
   connected trong Syncthing UI. Từ v1.2.1 badge chỉ sai khi device thật sự mất kết nối.
 - **App (Cài đặt) hiện version cũ sau khi update:** `versionName` được **nướng vào APK
   lúc build** (build.gradle đọc `package.json`), không đọc runtime → cài lại một APK dựng
@@ -175,7 +181,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   Chỉ theo dõi xem có tái diễn thành mẫu hình lặp lại hay không; nếu chỉ lẻ tẻ thì bỏ qua.
 - **Nghi hai kho lẫn nhau:** kiểm từng máy Android chỉ share đúng 1 folder-ID;
   kiểm `-KhoRoot` của task đúng 2 đường dẫn.
-- **Mini PC vừa reboot:** không phải làm gì — service Syncthing + Scheduled Task (S4U)
+- **Atomman vừa reboot:** không phải làm gì — service Syncthing + Scheduled Task (S4U)
   tự dậy. Chỉ kiểm nếu 15 phút sau file vẫn kẹt.
 - **Nghi rclone chết:** hai task hạ tầng chết độc lập với worker — worker chạy ngon
   không nói lên rclone còn sống. Kiểm `D:\GuLibrary-Prod\_print-sync.log` / `_backup.log`

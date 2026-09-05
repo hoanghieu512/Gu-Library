@@ -1,6 +1,6 @@
 # Worker — Chuẩn hoá đuôi `.tmp` của file app (Samsung SAF)
 
-> **Repo:** `gu-library-worker` (mini PC). **Lý do:** app (Android, ghi qua SAF) trên **Samsung** ghi FILE THẬT trên đĩa thành `<tên>.<ext>.tmp` ở một số ca (chập chờn, gặp ở pdf/docx/ppt…), trong khi MediaStore/`DocumentFile.getName()` báo tên sạch → **app không đọc/sửa được tên thật qua SAF**. Worker đọc filesystem thật (qua Syncthing) nên là nơi duy nhất sửa chắc.
+> **Repo:** `gu-library-worker` (Atomman). **Lý do:** app (Android, ghi qua SAF) trên **Samsung** ghi FILE THẬT trên đĩa thành `<tên>.<ext>.tmp` ở một số ca (chập chờn, gặp ở pdf/docx/ppt…), trong khi MediaStore/`DocumentFile.getName()` báo tên sạch → **app không đọc/sửa được tên thật qua SAF**. Worker đọc filesystem thật (qua Syncthing) nên là nơi duy nhất sửa chắc.
 >
 > **Bằng chứng (app repo v0.8.1, 6 vòng đo logcat + adb):** `createFile` tạo `[Chưa phân loại] X (1).ppt` nhưng đĩa thật `= ...(1).ppt.tmp`; `getName()` trả `...(1).ppt` (nói dối). `renameTo` cũng chập chờn. Xác nhận không phải lỗi worker, không phải tên nguồn (đã strip ở app).
 
