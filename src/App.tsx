@@ -9,7 +9,7 @@ import { library, search, add, settings } from 'ionicons/icons';
 
 import HomePage from './pages/HomePage';
 import FolderPage from './pages/FolderPage';
-import SearchStubPage from './pages/SearchStubPage';
+import SearchPage from './pages/SearchPage';
 import AddPage from './pages/AddPage';
 import SettingsPage from './pages/SettingsPage';
 import PrintPage from './pages/PrintPage';
@@ -47,7 +47,7 @@ export default function App() {
                 <ViewerPage />
               </Suspense>
             )} />
-            <Route exact path="/search" component={SearchStubPage} />
+            <Route exact path="/search" component={SearchPage} />
             <Route exact path="/add" component={AddPage} />
             <Route exact path="/settings" component={SettingsPage} />
             <Route exact path="/print" component={PrintPage} />

@@ -4,7 +4,7 @@ import {
   IonInput, IonButton, IonFooter, IonIcon, IonSpinner,
 } from '@ionic/react';
 import { browsersOutline } from 'ionicons/icons';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
 import { useGuToast } from '../lib/useGuToast';
@@ -39,6 +39,10 @@ function baseName(contentUri: string): string {
 
 export default function ViewerPage() {
   const { uri } = useParams<{ uri: string }>();
+  // `?p=N` — mở thẳng tới trang, dùng khi vào từ kết quả tìm kiếm. Vắng thì theo trang đang đọc dở.
+  // Nhớ trang vẫn ghi bình thường từ chỗ nhảy tới, không có ngoại lệ.
+  const jumpParam = Number(new URLSearchParams(useLocation().search).get('p'));
+  const fromSearch = Number.isFinite(jumpParam) && jumpParam > 0 ? jumpParam : null;
   const docUri = decodeUriParam(uri);
   const name = baseName(docUri);
 
@@ -83,12 +87,12 @@ export default function ViewerPage() {
         const base = await getBaseScale();
         if (!alive) return;
         setBaseScale(base);
-        setInitialPage(resumePage);
+        setInitialPage(fromSearch ?? resumePage);
         setFlagged(await isPrintFlagged(docUri));
       } catch { /* lỗi meta nhẹ → DocPane vẫn tự thử đọc + báo "chết cho đẹp" nếu file hỏng */ }
     })();
     return () => { alive = false; };
-  }, [docUri]);
+  }, [docUri, fromSearch]);
 
   // ĐỔI tài liệu pane tra cứu (B4b) — TUẦN TỰ, KHÔNG chồng lấn: đưa `bottomUri` về null trước để
   // `DocPane` cũ UNMOUNT HẲN (nhả `bytes`) rồi mới hiện DocPicker cho chọn cái mới. Hai tài liệu
