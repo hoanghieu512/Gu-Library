@@ -158,10 +158,10 @@ function BuildingState({ done, total }: { done: number; total: number }) {
   return (
     <div style={{ marginTop: '18vh', textAlign: 'center', padding: '0 24px' }}>
       <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: 17, color: 'var(--gu-brown-deep)' }}>
-        Đang đọc kho lần đầu
+        Đang đọc kho lần đầu nha dợ iu
       </div>
       <p style={{ color: 'var(--gu-grey)', fontSize: 13.5, lineHeight: 1.6, margin: '8px 0 16px' }}>
-        Chỉ lâu lần này thôi — những lần sau mở là tìm được ngay.
+        Chỉ lâu lần này thôi, những lần sau mở là tìm được ngay. Iu lắm!
       </p>
       <div style={{ height: 6, borderRadius: 999, background: 'rgba(117,66,14,.14)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: 'var(--gu-brown)', transition: 'width .2s' }} />
