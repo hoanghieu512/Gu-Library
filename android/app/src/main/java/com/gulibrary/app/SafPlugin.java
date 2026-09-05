@@ -319,7 +319,7 @@ public class SafPlugin extends Plugin {
         } catch (Exception e) { call.reject("createDir failed: " + e.getMessage()); }
     }
 
-    // Đổi tên THẬT một thư mục (rename tại chỗ trên đĩa) → tên trong app khớp tên thật ở mini PC/Drive.
+    // Đổi tên THẬT một thư mục (rename tại chỗ trên đĩa) → tên trong app khớp tên thật ở Atomman/Drive.
     // renameDocument trả URI MỚI (docId của tree dựa đường dẫn nên đổi tên = đổi uri; con bên trong
     // giữ vị trí, companion .print.json/.display.json theo cùng). Caller (JS) đã chặn trùng anh-em TRƯỚC
     // nên ở đây không tự dedup. Trả cả uri mới cho caller cập nhật điều hướng nếu cần.

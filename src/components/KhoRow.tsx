@@ -38,7 +38,7 @@ export function PrintMark() {
   return <IonIcon icon={print} style={{ color: 'var(--gu-brown)', fontSize: 18 }} aria-label="Đã chọn đi in" />;
 }
 
-// Pill "chờ mini PC xử lý" — tài liệu vừa nhập, worker chưa ghép xong.
+// Pill "chờ Atomman xử lý" — tài liệu vừa nhập, worker chưa ghép xong.
 export function PendingPill() {
   return (
     <span style={{

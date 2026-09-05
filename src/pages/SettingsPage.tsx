@@ -103,11 +103,11 @@ export default function SettingsPage() {
 
         <Row
           icon={syncOutline} tint="rgba(45,211,111,0.14)" iconColor="var(--ion-color-success)"
-          title="Đồng bộ (Syncthing)" hint="API key + chọn mini PC"
+          title="Đồng bộ (Syncthing)" hint="API key + chọn Atomman"
           onClick={() => setSyncOpen(true)} trailing={chevron}
           value={
             /* Trạng thái để DƯỚI tiêu đề chứ không nhét bên phải: nhãn của app ("Đã đồng bộ",
-               "Chưa thấy mini PC") dài hơn chữ "OK" ở bản vẽ nên tranh chỗ, làm tiêu đề gãy 2 dòng. */
+               "Chưa thấy Atomman") dài hơn chữ "OK" ở bản vẽ nên tranh chỗ, làm tiêu đề gãy 2 dòng. */
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span style={{
                 width: 9, height: 9, borderRadius: '50%', flex: '0 0 auto',

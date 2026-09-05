@@ -18,7 +18,7 @@ export function useSyncStatus(): { light: SyncState; refresh: () => void } {
     let completion: CompletionResp | null = null;
     try { connections = await stGet<ConnectionsResp>('/rest/system/connections', cfg.apiKey); } catch { connections = null; }
     try {
-      // Chỉ theo device (Syncthing gộp tiến độ mọi folder share với mini PC) — KHÔNG hardcode folder-ID môi trường.
+      // Chỉ theo device (Syncthing gộp tiến độ mọi folder share với Atomman) — KHÔNG hardcode folder-ID môi trường.
       completion = await stGet<CompletionResp>(
         `/rest/db/completion?device=${encodeURIComponent(cfg.minipcId)}`,
         cfg.apiKey,

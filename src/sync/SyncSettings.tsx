@@ -13,7 +13,7 @@ import {
 // B3 (10a/10b) — CHỈ áp da: vỏ chung `GuSheet` (kèm SỬA lề: file này còn dính
 // `className="ion-padding"` VÔ HIỆU trên IonContent — bài học v1.10.0) + pill trạng thái dùng
 // chung + thẻ giấy. TOÀN BỘ LOGIC đồng bộ GIỮ NGUYÊN: đọc/ghi API key, checkConnection,
-// listOtherDevices, chọn mini PC, ngưỡng và thông báo — không đổi một dòng.
+// listOtherDevices, chọn Atomman, ngưỡng và thông báo — không đổi một dòng.
 export default function SyncSettings({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [key, setKey] = useState('');
   const [minipc, setMinipc] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export default function SyncSettings({ isOpen, onClose }: { isOpen: boolean; onC
 
         {devices.length > 0 && (
           <div style={{ marginTop: 18 }}>
-            <IonNote style={{ color: 'var(--gu-grey)', fontSize: 13 }}>Chọn thiết bị nào là mini PC:</IonNote>
+            <IonNote style={{ color: 'var(--gu-grey)', fontSize: 13 }}>Chọn thiết bị nào là Atomman:</IonNote>
             <IonRadioGroup value={minipc} onIonChange={(e) => pick(e.detail.value)}>
               <IonList style={{ background: 'transparent', marginTop: 8 }}>
                 {devices.map((d) => (

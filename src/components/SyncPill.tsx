@@ -6,7 +6,7 @@ import type { SyncState } from '../sync/useSyncStatus';
 export const SYNC_MAP: Record<SyncState, { icon: string; color: string; label: string }> = {
   synced: { icon: checkmarkCircle, color: 'success', label: 'Đã đồng bộ' },
   syncing: { icon: syncCircle, color: 'warning', label: 'Đang đẩy…' },
-  offline: { icon: warningOutline, color: 'danger', label: 'Chưa thấy mini PC' },
+  offline: { icon: warningOutline, color: 'danger', label: 'Chưa thấy Atomman' },
   unconfigured: { icon: settingsOutline, color: 'medium', label: 'Chưa cấu hình' },
 };
 

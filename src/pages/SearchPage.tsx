@@ -49,7 +49,7 @@ export default function SearchPage() {
         setIx(cached.index);
         stamps.current = cached.stamps;
         setPhase('ready');
-        // Làm mới NGẦM: kho có thể đã nhận file mới từ mini PC. Không chặn ô nhập.
+        // Làm mới NGẦM: kho có thể đã nhận file mới từ Atomman. Không chặn ô nhập.
         setRefreshing(true);
         try {
           const r = await refreshIndex(stamps.current ?? undefined);

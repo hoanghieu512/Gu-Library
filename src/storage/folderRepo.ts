@@ -23,7 +23,7 @@ function pendingUnder(snap: Awaited<ReturnType<typeof getKhoSnapshot>>, folderSe
   return n;
 }
 
-// Đổi tên THẬT một thư mục (môn hoặc thư mục con) — rename tại chỗ trên đĩa (tên khớp mini PC/Drive).
+// Đổi tên THẬT một thư mục (môn hoặc thư mục con) — rename tại chỗ trên đĩa (tên khớp Atomman/Drive).
 // `siblingNames` = tên các thư mục anh-em (chặn trùng, KHÔNG tự đẻ (1)). Trả uri MỚI hoặc lỗi (hiện trong sheet).
 // Companion `.print.json`/`.display.json` của tài liệu bên trong theo thư mục tự động (rename dir tại chỗ);
 // chỉ entry đọc-dở (`_reading-*.json` lưu path theo tên) của MÁY NÀY cần dời — làm sau khi rename.

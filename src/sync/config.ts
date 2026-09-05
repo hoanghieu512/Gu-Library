@@ -4,7 +4,7 @@ import { stGet } from './client';
 const KEY_API = 'st_api_key';
 const KEY_MINIPC = 'st_minipc_id';
 
-// KHÔNG lưu/giả định folder-ID: trạng thái sync đọc theo device (gộp mọi folder share với mini PC)
+// KHÔNG lưu/giả định folder-ID: trạng thái sync đọc theo device (gộp mọi folder share với Atomman)
 // → app local-first, chạy đúng với BẤT KỲ kho nào (QA `gu-library-kho`, Prod `gu-library-kho-prod`, …).
 export interface SyncConfig {
   apiKey: string | null;

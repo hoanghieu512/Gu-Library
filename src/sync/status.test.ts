@@ -28,18 +28,18 @@ describe('deriveLight', () => {
     const edge = { ...done, needBytes: 50 };
     expect(deriveLight({ connections: connConnected, completion: edge, minipcId: MINIPC })).toBe('syncing');
   });
-  it('offline: mini PC not connected', () => {
+  it('offline: Atomman not connected', () => {
     expect(deriveLight({ connections: connDisconnected, completion: done, minipcId: MINIPC })).toBe('offline');
   });
-  it('offline: mini PC absent from connections map', () => {
+  it('offline: Atomman absent from connections map', () => {
     expect(deriveLight({ connections: { connections: {} } as ConnectionsResp, completion: done, minipcId: MINIPC })).toBe('offline');
   });
   it('offline: connections fetch failed (null)', () => {
     expect(deriveLight({ connections: null, completion: done, minipcId: MINIPC })).toBe('offline');
   });
   // Bug Prod (v1.2.1): connected + completion null (vd query folder-ID sai / device-only chưa hỗ trợ)
-  // KHÔNG được báo offline sai — vẫn THẤY mini PC → 'synced'.
-  it('synced: connected nhưng completion null (vẫn thấy mini PC, không báo offline sai)', () => {
+  // KHÔNG được báo offline sai — vẫn THẤY Atomman → 'synced'.
+  it('synced: connected nhưng completion null (vẫn thấy Atomman, không báo offline sai)', () => {
     expect(deriveLight({ connections: connConnected, completion: null, minipcId: MINIPC })).toBe('synced');
   });
 });
