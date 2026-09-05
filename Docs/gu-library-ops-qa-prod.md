@@ -312,11 +312,16 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     là ảnh, chưa tra được chữ", và khi không tìm thấy gì thì nhắc thêm dòng đó.
   - **`SCHEMA` chỉ mục 1 → 2** để mọi máy tự dựng lại — mảnh cũ đang mang token rác, không vá
     tại chỗ được.
-  - **CÒN PHẢI XÁC NHẬN:** repo app không nơi nào ghi **GIÁ TRỊ** của marker, chỉ ghi TÊN — bản
-    thân đó là lỗ hổng của hợp đồng "khớp 3 nơi" (§5). Hằng số hiện đặt là chuỗi
-    `'IMAGE_PAGE_MARKER'` ở `src/search/invertedIndex.ts`. **Cách kiểm không cần hỏi ai:** mở màn
-    Tìm trên máy QA — nếu hiện đúng **13 tài liệu là ảnh** thì hằng số đúng; ra 0 thì sai, sửa
-    đúng một dòng đó. Nên bổ sung giá trị marker vào `gu-library-sidecar-schema.md`.
+  - **ĐÃ XÁC NHẬN TRÊN MÁY (dGen1, 05/09) — và lần đoán đầu SAI.** Đệ đặt hằng số bằng chính chuỗi
+    `'IMAGE_PAGE_MARKER'`; đọc thẳng sidecar trong kho thì giá trị thật là **tiếng Việt kèm số
+    trang**: `"[trang ảnh scan — chưa có lớp văn bản] (trang 12)"`. `IMAGE_PAGE_MARKER` chỉ là
+    **TÊN HẰNG SỐ trong source worker**, không phải giá trị — Ops doc gọi tên nó mà không ghi giá
+    trị nên ai đọc cũng sẽ đoán nhầm y hệt. Vì có đuôi `(trang N)` nên phải khớp **TIỀN TỐ**.
+    **Đã bổ sung giá trị thật vào `gu-library-sidecar-schema.md`** (khớp 3 nơi).
+  - **Ba nguồn độc lập cùng ra 13** trên kho QA: phiên worker đếm · `grep -rl 'trang ảnh scan'`
+    trên máy · và bộ đếm `imageOnly` của chính app hiện *"đã đọc 178 tài liệu · 13 tài liệu là
+    ảnh, chưa tra được chữ"*. Token rác cũng sạch: gõ "scan" nay ra 6 đoạn thật
+    ("Scandinavia"), trước đó cả 13 tài liệu ảnh đều khớp.
 
 - **v1.38.0 — TÌM KIẾM TOÀN VĂN (mở Phase 2 lớp tri thức).** Màn Tìm từ bề mặt rỗng thành tra
   thật: gõ tới đâu tìm tới đó, kết quả là ĐOẠN TRÍCH có tô sáng kèm môn/tài liệu/nhãn/trang, chạm

@@ -17,22 +17,27 @@ export interface SidecarUnit {
 }
 
 /**
- * Chuỗi worker đặt vào `text` cho trang ẢNH chưa OCR (Ops doc §3). Nó là DẤU HIỆU "không có chữ",
- * KHÔNG phải nội dung — index nó vào là tài liệu ảnh nằm trong bảng như thể tra được, mà gõ gì
- * cũng không ra, lại còn đẻ token rác. Đây là lỗi có thật trong v1.38.0.
+ * Trang ẢNH chưa OCR: worker đặt một câu ĐÁNH DẤU vào `text` thay vì để rỗng. Nó là dấu hiệu
+ * "không có chữ", KHÔNG phải nội dung — index nó vào thì tài liệu ảnh nằm trong bảng như thể tra
+ * được, gõ gì cũng không ra, lại đẻ token rác. Đây là lỗi có thật của v1.38.0.
  *
- * ĐÂY LÀ MỘT PHẦN HỢP ĐỒNG SIDECAR → phải khớp worker (Ops doc §5: khớp 3 nơi).
- * CHƯA đối chiếu tận mắt với worker vì repo app không nơi nào ghi GIÁ TRỊ của nó, chỉ ghi TÊN.
- * Nếu worker dùng chuỗi khác thì sửa ĐÚNG dòng này — và số "tài liệu là ảnh" ở màn Tìm sẽ nói
- * ngay là đúng hay sai (lượt đếm 05/09 bên worker: kho QA 13, kho Prod 12).
+ * GIÁ TRỊ THẬT (đọc thẳng từ sidecar trong kho QA ngày 05/09):
+ *   "[trang ảnh scan — chưa có lớp văn bản] (trang 12)"
+ *
+ * Hai điều phải nhớ:
+ *  1. Ops doc gọi nó là `IMAGE_PAGE_MARKER` — đó là TÊN BIẾN trong source worker, KHÔNG phải giá
+ *     trị. Đệ từng đặt nhầm hằng số bằng chính cái tên đó và nó không khớp gì cả.
+ *  2. Câu này có ĐUÔI `(trang N)` đổi theo từng trang → KHÔNG so bằng nhau được, phải so TIỀN TỐ.
+ *
+ * Đối chiếu 05/09 trên kho QA: đúng 13 sidecar dính marker này, khớp số phiên worker đếm được.
  */
-export const IMAGE_PAGE_MARKER = 'IMAGE_PAGE_MARKER';
+export const IMAGE_PAGE_PREFIX = '[trang ảnh scan';
 
-/** Có chữ đọc được không — rỗng và marker đều KHÔNG tính là chữ. */
+/** Có chữ đọc được không — rỗng và câu đánh dấu trang-ảnh đều KHÔNG tính là chữ. */
 export function isReadableText(t: unknown): t is string {
   if (typeof t !== 'string') return false;
   const v = t.trim();
-  return v !== '' && v !== IMAGE_PAGE_MARKER;
+  return v !== '' && !v.startsWith(IMAGE_PAGE_PREFIX);
 }
 
 export interface Sidecar {

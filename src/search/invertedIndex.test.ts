@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { emptyIndex, addDoc, search, indexStats } from './invertedIndex';
+
+// Đúng câu worker ghi vào sidecar cho trang ảnh — có đuôi số trang nên phải khớp TIỀN TỐ.
+const MARK = (n: number) => `[trang ảnh scan — chưa có lớp văn bản] (trang ${n})`;
 import type { SearchIndex } from './invertedIndex';
 
 const DOC_A = { pdfUri: 'uri://a.pdf', name: 'Luật Đất đai', mon: 'Đất Đai' };
@@ -128,24 +131,24 @@ describe('xếp hạng', () => {
   });
 });
 
-describe('IMAGE_PAGE_MARKER — ảnh chưa OCR không phải là chữ', () => {
+describe('trang ảnh chưa OCR không phải là chữ', () => {
   it('KHÔNG index marker như nội dung (lỗi thật của v1.38.0)', () => {
     const ix = emptyIndex();
     addDoc(ix, DOC_A, {
       units: [
-        { label: '', page: 1, text: 'IMAGE_PAGE_MARKER' },
-        { label: '', page: 2, text: 'IMAGE_PAGE_MARKER' },
+        { label: '', page: 1, text: MARK(1) },
+        { label: '', page: 2, text: MARK(1) },
       ],
     });
     expect(indexStats(ix).units).toBe(0);
     expect(indexStats(ix).postings).toBe(0);
-    expect(search(ix, 'image')).toEqual([]);
-    expect(search(ix, 'marker')).toEqual([]);
+    expect(search(ix, 'trang anh scan')).toEqual([]);
+    expect(search(ix, 'lop van ban')).toEqual([]);
   });
 
   it('đếm được tài liệu là ảnh scan, để còn nói cho người dùng biết', () => {
     const ix = emptyIndex();
-    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: 'IMAGE_PAGE_MARKER' }] });
+    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: MARK(1) }] });
     addDoc(ix, DOC_B, { units: [{ label: '', page: 1, text: 'Tội phạm và hình phạt.' }] });
     expect(indexStats(ix).imageOnly).toBe(1);
     expect(indexStats(ix).docs).toBe(2);
@@ -153,7 +156,7 @@ describe('IMAGE_PAGE_MARKER — ảnh chưa OCR không phải là chữ', () => 
 
   it('marker có khoảng trắng thừa vẫn bị loại', () => {
     const ix = emptyIndex();
-    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: '  IMAGE_PAGE_MARKER\n' }] });
+    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: `  ${MARK(3)}\n` }] });
     expect(indexStats(ix).units).toBe(0);
     expect(indexStats(ix).imageOnly).toBe(1);
   });
@@ -168,7 +171,7 @@ describe('IMAGE_PAGE_MARKER — ảnh chưa OCR không phải là chữ', () => 
     const ix = emptyIndex();
     addDoc(ix, DOC_A, {
       units: [
-        { label: '', page: 1, text: 'IMAGE_PAGE_MARKER' },
+        { label: '', page: 1, text: MARK(1) },
         { label: 'Điều 5', page: 2, text: 'Người sử dụng đất được cấp giấy chứng nhận.' },
       ],
     });

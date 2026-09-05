@@ -60,6 +60,25 @@
 
 ---
 
+## Trang ẢNH chưa OCR — câu đánh dấu (`IMAGE_PAGE_MARKER`)
+
+Trang là ảnh scan, không có lớp văn bản → worker vẫn sinh unit hợp lệ nhưng `text` mang một **câu
+đánh dấu** thay vì nội dung:
+
+```
+[trang ảnh scan — chưa có lớp văn bản] (trang 12)
+```
+
+- **`IMAGE_PAGE_MARKER` là TÊN HẰNG SỐ trong source worker, KHÔNG phải giá trị.** Ghi giá trị thật
+  ra đây vì đã có lần bên app đặt hằng số bằng chính cái tên đó → không khớp gì cả (v1.38.0/1).
+- **Có đuôi `(trang N)` đổi theo từng trang** → bên tiêu thụ phải khớp **TIỀN TỐ**, không so bằng nhau.
+- Đây **không phải nội dung**: bên tiêu thụ (index tìm kiếm) phải loại nó ra, nếu không tài liệu
+  ảnh sẽ nằm trong chỉ mục như thể tra được. App loại ở `isReadableText()`
+  (`src/search/invertedIndex.ts`), và đếm riêng `imageOnly` để nói cho người dùng biết.
+- Đối chiếu 2026-09-05, kho QA: đúng **13/178** tài liệu có MỌI unit mang câu này (kho Prod 12/113).
+
+---
+
 ## Quy tắc điền `bbox` (đã chốt — chỉ PDF)
 
 - **Nguồn PDF** (`sourceFormat: "pdf"`, gốc đã là PDF): PyMuPDF nhả toạ độ text thẳng trên PDF canonical → **điền `bbox`**.
