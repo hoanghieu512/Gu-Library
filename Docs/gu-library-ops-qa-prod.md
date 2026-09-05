@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-05, trạng thái: app v1.38.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-05, trạng thái: app v1.38.1 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -302,6 +302,22 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
     → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
     đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
+- **v1.38.1 — sửa lỗi index nhầm `IMAGE_PAGE_MARKER` (lỗi của chính v1.38.0).**
+  App KHÔNG hề biết marker này nên coi nó là chữ. Hậu quả: 13 tài liệu QA / 12 Prod nằm trong
+  chỉ mục như thể tra được, gõ chữ trong đó thì không ra gì mà cũng không có dấu hiệu nào báo,
+  cộng thêm token rác trong bảng.
+  - Sửa: `isReadableText()` loại cả chuỗi rỗng lẫn marker; đếm riêng **`imageOnly`** = sidecar CÓ
+    đơn vị nhưng KHÔNG đơn vị nào đọc được chữ (khác hẳn ca sidecar rỗng/hỏng — đó là lỗi worker).
+  - **Nói ra cho người dùng biết** thay vì im lặng: màn Tìm hiện "đã đọc N tài liệu · M tài liệu
+    là ảnh, chưa tra được chữ", và khi không tìm thấy gì thì nhắc thêm dòng đó.
+  - **`SCHEMA` chỉ mục 1 → 2** để mọi máy tự dựng lại — mảnh cũ đang mang token rác, không vá
+    tại chỗ được.
+  - **CÒN PHẢI XÁC NHẬN:** repo app không nơi nào ghi **GIÁ TRỊ** của marker, chỉ ghi TÊN — bản
+    thân đó là lỗ hổng của hợp đồng "khớp 3 nơi" (§5). Hằng số hiện đặt là chuỗi
+    `'IMAGE_PAGE_MARKER'` ở `src/search/invertedIndex.ts`. **Cách kiểm không cần hỏi ai:** mở màn
+    Tìm trên máy QA — nếu hiện đúng **13 tài liệu là ảnh** thì hằng số đúng; ra 0 thì sai, sửa
+    đúng một dòng đó. Nên bổ sung giá trị marker vào `gu-library-sidecar-schema.md`.
+
 - **v1.38.0 — TÌM KIẾM TOÀN VĂN (mở Phase 2 lớp tri thức).** Màn Tìm từ bề mặt rỗng thành tra
   thật: gõ tới đâu tìm tới đó, kết quả là ĐOẠN TRÍCH có tô sáng kèm môn/tài liệu/nhãn/trang, chạm
   là mở đúng trang (`/viewer/<uri>?p=N`). **Gõ KHÔNG DẤU ra kết quả CÓ DẤU** — yêu cầu gốc của
@@ -337,8 +353,11 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
        mà là làm cho nó BẤM ĐƯỢC: Viewer render bằng pdf.js ra canvas, không có lớp text.
     4. **Kho Prod của Gú khác kho QA** (QA 178 tài liệu, Ops doc ghi Prod ~107) → lần dựng đầu bên
        Prod sẽ nhanh hơn, nhưng chưa đo.
-  - **Số cho câu hỏi OCR: 1/178 tài liệu trong kho QA rỗng text.** OCR mở khoá ~0,6% corpus →
-    chưa đáng làm, đúng như spec §7 đã chốt. Cần đếm lại trên kho Prod trước khi đóng sổ hẳn.
+  - **SỐ OCR ĐỆ BÁO 05/09 LÀ SAI — đã sửa ở v1.38.1.** Đệ đếm "tài liệu rỗng text" bằng tiêu chí
+    `text` RỖNG THẬT → ra 1/178. Phiên worker đếm bằng tiêu chí đúng (mọi unit là
+    `IMAGE_PAGE_MARKER`) → **QA 13/178 (7,3%) · Prod 12/113 (10,6%)**. Hai số khác nhau vì
+    **marker là chuỗi KHÔNG rỗng**, nên v1.38.0 đã **index marker như chữ thật**: tài liệu ảnh
+    nằm trong bảng như thể tra được, gõ gì cũng không ra, lại đẻ token rác. Xem v1.38.1.
   - Chi tiết spike dẫn tới thiết kế này: `Docs/perf/2026-09-05-spike-search-index.md`.
 
 - **v1.38.0 verify trên dGen1 (05/09) — CHẠY ĐÚNG, kèm 3 bài học về máy này.**

@@ -127,3 +127,53 @@ describe('xếp hạng', () => {
     expect(search(ix, 'hợp đồng')[0].unit.label).toBe('ngắn');
   });
 });
+
+describe('IMAGE_PAGE_MARKER — ảnh chưa OCR không phải là chữ', () => {
+  it('KHÔNG index marker như nội dung (lỗi thật của v1.38.0)', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, {
+      units: [
+        { label: '', page: 1, text: 'IMAGE_PAGE_MARKER' },
+        { label: '', page: 2, text: 'IMAGE_PAGE_MARKER' },
+      ],
+    });
+    expect(indexStats(ix).units).toBe(0);
+    expect(indexStats(ix).postings).toBe(0);
+    expect(search(ix, 'image')).toEqual([]);
+    expect(search(ix, 'marker')).toEqual([]);
+  });
+
+  it('đếm được tài liệu là ảnh scan, để còn nói cho người dùng biết', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: 'IMAGE_PAGE_MARKER' }] });
+    addDoc(ix, DOC_B, { units: [{ label: '', page: 1, text: 'Tội phạm và hình phạt.' }] });
+    expect(indexStats(ix).imageOnly).toBe(1);
+    expect(indexStats(ix).docs).toBe(2);
+  });
+
+  it('marker có khoảng trắng thừa vẫn bị loại', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: '  IMAGE_PAGE_MARKER\n' }] });
+    expect(indexStats(ix).units).toBe(0);
+    expect(indexStats(ix).imageOnly).toBe(1);
+  });
+
+  it('sidecar KHÔNG có đơn vị nào thì KHÔNG tính là ảnh — đó là lỗi worker, ca khác', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: [] });
+    expect(indexStats(ix).imageOnly).toBe(0);
+  });
+
+  it('tài liệu có LẪN trang ảnh và trang chữ: giữ trang chữ, KHÔNG tính là ảnh', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, {
+      units: [
+        { label: '', page: 1, text: 'IMAGE_PAGE_MARKER' },
+        { label: 'Điều 5', page: 2, text: 'Người sử dụng đất được cấp giấy chứng nhận.' },
+      ],
+    });
+    expect(indexStats(ix).units).toBe(1);
+    expect(indexStats(ix).imageOnly).toBe(0);
+    expect(search(ix, 'giay chung nhan')[0].unit.page).toBe(2);
+  });
+});

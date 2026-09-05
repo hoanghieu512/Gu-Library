@@ -16,6 +16,25 @@ export interface SidecarUnit {
   page?: number;
 }
 
+/**
+ * Chuỗi worker đặt vào `text` cho trang ẢNH chưa OCR (Ops doc §3). Nó là DẤU HIỆU "không có chữ",
+ * KHÔNG phải nội dung — index nó vào là tài liệu ảnh nằm trong bảng như thể tra được, mà gõ gì
+ * cũng không ra, lại còn đẻ token rác. Đây là lỗi có thật trong v1.38.0.
+ *
+ * ĐÂY LÀ MỘT PHẦN HỢP ĐỒNG SIDECAR → phải khớp worker (Ops doc §5: khớp 3 nơi).
+ * CHƯA đối chiếu tận mắt với worker vì repo app không nơi nào ghi GIÁ TRỊ của nó, chỉ ghi TÊN.
+ * Nếu worker dùng chuỗi khác thì sửa ĐÚNG dòng này — và số "tài liệu là ảnh" ở màn Tìm sẽ nói
+ * ngay là đúng hay sai (lượt đếm 05/09 bên worker: kho QA 13, kho Prod 12).
+ */
+export const IMAGE_PAGE_MARKER = 'IMAGE_PAGE_MARKER';
+
+/** Có chữ đọc được không — rỗng và marker đều KHÔNG tính là chữ. */
+export function isReadableText(t: unknown): t is string {
+  if (typeof t !== 'string') return false;
+  const v = t.trim();
+  return v !== '' && v !== IMAGE_PAGE_MARKER;
+}
+
 export interface Sidecar {
   title?: string;
   kind?: string;
@@ -42,6 +61,7 @@ export interface SearchIndex {
   units: IndexUnit[];
   postings: Map<string, number[]>;   // token -> danh sách unit id (tăng dần, không trùng)
   chars: number;                     // tổng ký tự đã nạp — dùng để báo cáo/ước lượng
+  imageOnly: number;                 // số tài liệu là ảnh scan, chưa tra được chữ nào
   sorted?: string[];                 // token đã sắp, dựng LƯỜI — để tra tiền tố bằng nhị phân
 }
 
@@ -72,7 +92,7 @@ function prefixTokens(ix: SearchIndex, p: string): string[] {
 }
 
 export function emptyIndex(): SearchIndex {
-  return { docs: [], units: [], postings: new Map(), chars: 0 };
+  return { docs: [], units: [], postings: new Map(), chars: 0, imageOnly: 0 };
 }
 
 /**
@@ -88,6 +108,8 @@ export interface DocShard {
   units: Omit<IndexUnit, 'd'>[];
   tokens: [string, number[]][];
   chars: number;
+  /** Sidecar CÓ đơn vị nhưng KHÔNG đơn vị nào có chữ đọc được → ảnh scan chưa OCR. */
+  imageOnly: boolean;
 }
 
 export function indexDoc(doc: IndexDoc, sidecar: Sidecar): DocShard {
@@ -96,8 +118,8 @@ export function indexDoc(doc: IndexDoc, sidecar: Sidecar): DocShard {
   let chars = 0;
   const list = Array.isArray(sidecar?.units) ? sidecar.units : [];
   for (const u of list) {
-    const text = typeof u?.text === 'string' ? u.text : '';
-    if (!text) continue;                       // ảnh chưa OCR → sidecar hợp lệ nhưng rỗng text
+    if (!isReadableText(u?.text)) continue;    // rỗng, hoặc marker trang-ảnh → không phải chữ
+    const text = u.text as string;
     const local = units.length;
     units.push({
       label: typeof u.label === 'string' ? u.label : '',
@@ -115,7 +137,9 @@ export function indexDoc(doc: IndexDoc, sidecar: Sidecar): DocShard {
       if (l) l.push(local); else tokens.set(t, [local]);
     }
   }
-  return { doc, units, tokens: [...tokens], chars };
+  // "Ảnh scan" = có đơn vị nhưng không đơn vị nào đọc được chữ. Khác hẳn "sidecar rỗng/hỏng"
+  // (không có đơn vị nào) — cái sau là lỗi worker, cái này là tài liệu chờ OCR.
+  return { doc, units, tokens: [...tokens], chars, imageOnly: list.length > 0 && units.length === 0 };
 }
 
 /** Gộp các mảnh thành index tra được. Chỉ dồn mảng — KHÔNG tách từ lại. */
@@ -127,6 +151,7 @@ export function mergeShards(shards: DocShard[]): SearchIndex {
     ix.docs.push(sh.doc);
     for (const u of sh.units) ix.units.push({ d, ...u });
     ix.chars += sh.chars;
+    if (sh.imageOnly) ix.imageOnly++;
     for (const [t, locals] of sh.tokens) {
       const l = ix.postings.get(t);
       if (l) for (const i of locals) l.push(base + i);
@@ -144,6 +169,7 @@ export function addDoc(ix: SearchIndex, doc: IndexDoc, sidecar: Sidecar): void {
   ix.docs.push(doc);
   for (const u of sh.units) ix.units.push({ d, ...u });
   ix.chars += sh.chars;
+  if (sh.imageOnly) ix.imageOnly++;
   ix.sorted = undefined;                        // thêm token mới → cache tra tiền tố hết hạn
   for (const [t, locals] of sh.tokens) {
     const l = ix.postings.get(t);
@@ -223,5 +249,6 @@ export function indexStats(ix: SearchIndex) {
     chars: ix.chars,
     tokens: ix.postings.size,
     postings,
+    imageOnly: ix.imageOnly,
   };
 }

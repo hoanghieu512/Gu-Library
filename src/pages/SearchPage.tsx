@@ -83,6 +83,9 @@ export default function SearchPage() {
 
   const { exact, prefix } = parseQuery(q);
   const docCount = ix?.docs.length ?? 0;
+  // Tài liệu là ảnh scan chưa OCR: KHÔNG có chữ nào để tra. Phải nói ra, không thì Gú gõ chữ
+  // mình biết chắc nằm trong tài liệu đó mà không ra gì, lại tưởng search hỏng.
+  const imageOnly = ix?.imageOnly ?? 0;
 
   return (
     <IonPage>
@@ -124,12 +127,20 @@ export default function SearchPage() {
               {refreshing && <IonSpinner name="dots" style={{ width: 18, height: 12 }} />}
               {refreshing ? 'đang cập nhật chỉ mục…'
                 : q.trim() ? `${hits.length}${hits.length >= LIMIT ? '+' : ''} đoạn khớp`
-                  : `đã đọc ${docCount} tài liệu`}
+                  : `đã đọc ${docCount} tài liệu`
+                    + (imageOnly ? ` · ${imageOnly} tài liệu là ảnh, chưa tra được chữ` : '')}
             </div>
 
             {q.trim() && hits.length === 0 && !refreshing && (
               <Empty title="Không tìm thấy đoạn nào">
                 Thử bớt chữ, hoặc gõ không dấu cũng được — “to tung” ra “Tố tụng”.
+                {imageOnly > 0 && (
+                  <>
+                    <br />
+                    Lưu ý: {imageOnly} tài liệu trong kho là ảnh chụp/scan nên chưa tra được chữ
+                    bên trong.
+                  </>
+                )}
               </Empty>
             )}
 

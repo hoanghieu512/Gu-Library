@@ -18,7 +18,9 @@ const DB = 'gu-search';
 const STORE = 'shards';
 const KEY = 'v1';
 // Tăng số này khi đổi cách sinh token / hình dạng mảnh → mọi máy tự dựng lại, khỏi so tay.
-const SCHEMA = 1;
+// 2 (05/09): v1.38.0 index NHẦM `IMAGE_PAGE_MARKER` như chữ thật. Mảnh cũ đang mang token rác
+// nên PHẢI dựng lại, không thể vá tại chỗ.
+const SCHEMA = 2;
 
 export interface StoredShard extends DocShard {
   jsonUri: string;
