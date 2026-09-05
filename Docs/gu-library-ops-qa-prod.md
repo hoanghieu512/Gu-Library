@@ -22,13 +22,26 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 |---|---|---|
 | Folder trên mini PC | `D:\GuLibrary\kho` | `D:\GuLibrary-Prod\kho` |
 | Folder-ID Syncthing | `gu-library-kho` | `gu-library-kho-prod` |
-| Máy trong cụm | Z Flip 4 · S22 Ultra · Z Fold 3 (máy test) | Galaxy Tab S9 (SM-X710) · S20 FE · Z Flip 6 (máy Gú) |
+| Máy trong cụm | Z Flip 4 · S22 Ultra · Z Fold 3 · **UBS1** · **dGen1** (máy test) | Galaxy Tab S9 (SM-X710) · S20 FE · Z Flip 6 (máy Gú) |
 | Archive nguồn (v0.10.0 + v0.13.0) | sibling ngoài cây sync | sibling ngoài cây sync |
 
 - Tách ở **cấp cha** (`GuLibrary-Prod\kho`, không phải `kho-prod` cạnh nhau) — cô lập
   `.stversions/`, `_worker.log`, archive; worker trỏ rạch ròi, khó copy nhầm.
 - Mini PC = anchor node 24/7 (Syncthing chạy dạng Windows service). Android dùng
   Syncthing-Fork (Catfriend1).
+- **Hai máy test dùng luân phiên từ 05/09 — KHÁC LỚP NHAU, số đo KHÔNG suy sang nhau được:**
+
+  | | UBS1 | dGen1 |
+  |---|---|---|
+  | serial | `UBS1240902002011` | `dG1408299JIT` |
+  | model | Unisoc T616 (ums9230) | alps `k6789v1_64` (MediaTek) |
+  | Android | 14 | **15** |
+  | RAM | **5,89 GB** | **7,59 GB** |
+  | Màn | 720×1600 @320dpi (360dp dọc) | **720×720 VUÔNG** @240dpi (**480×480 dp**) |
+  | WebView | `com.google.android.webview` (bản mới) | **`com.android.webview` 124 (AOSP, cũ)** |
+
+  → **Đo bộ nhớ phải ghi rõ máy nào.** Mọi số v1.37/v1.38 trước 05/09 đều là UBS1.
+  → dGen1 là máy DUY NHẤT có màn **vuông** — ca bố cục không máy nào khác phủ được.
 
 ## 3. Worker
 
@@ -319,6 +332,26 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   - **Số cho câu hỏi OCR: 1/178 tài liệu trong kho QA rỗng text.** OCR mở khoá ~0,6% corpus →
     chưa đáng làm, đúng như spec §7 đã chốt. Cần đếm lại trên kho Prod trước khi đóng sổ hẳn.
   - Chi tiết spike dẫn tới thiết kế này: `Docs/perf/2026-09-05-spike-search-index.md`.
+
+- **v1.38.0 verify trên dGen1 (05/09) — CHẠY ĐÚNG, kèm 3 bài học về máy này.**
+  Dựng chỉ mục 178 tài liệu · nạp lại sau reboot vẫn đúng · gõ "dat dai" ra 50+ đoạn tô đúng ·
+  cần gạt "Dựng lại chỉ mục" hoạt động (lần đầu bấm thử).
+  - **Bộ nhớ (chính + renderer):** Home sạch **250 MB** → màn Tìm **433 MB** (**+183 MB**).
+    So với UBS1: 174 → 303 (+129 MB). Chỉ mục tốn nhiều hơn trên dGen1 — WebView 124 cũ hơn,
+    máy khác lớp. 433 MB trên máy 7,59 GB là thoải mái.
+  - **BẪY 1 — MÀN ĐEN sau nhiều lượt `am force-stop` (KHÔNG phải lỗi app).** Log của chính tiến
+    trình app: `cr_ChildProcessConn: Failed to establish the service connection` + `Fallback to
+    …SandboxedProcessService1` → WebView KHÔNG bind được tiến trình con sandbox → không có
+    renderer → màn đen, dù activity vẫn resumed, RAM còn 5 GB, không lmkd, không crash.
+    **`am force-stop com.android.webview` KHÔNG cứu được. REBOOT máy thì hết.** Chỉ xuất hiện sau
+    chuỗi force-stop liên tiếp do adb — người dùng thật không gặp. Gặp lại thì reboot, đừng đi
+    tìm bug trong JS.
+  - **BẪY 2 — tên gói WebView KHÁC THEO MÁY.** UBS1 là `com.google.android.webview`, dGen1 là
+    `com.android.webview`. Script đo bộ nhớ hard-code tên gói của UBS1 nên trên dGen1 nó không
+    tìm được renderer (may là có guard nên nó DỪNG chứ không báo số thiếu). Khớp theo `*webview*`.
+  - **BẪY 3 — màn VUÔNG 480dp chật chiều dọc.** Home: mục "Môn học" bị thanh nav cắt ngang ngay
+    từ đầu. Màn Tìm: bàn phím ăn quá nửa màn, chỉ còn chỗ cho ~1 kết quả. Không phải lỗi, nhưng
+    là ca bố cục chưa từng có trong dự án — cân nhắc khi làm UI về sau.
 
 - **v1.37.0 — Book Press raster.** Huynh duyệt và merge 04/09; tag `v1.37.0`.
   **CHƯA lên máy Gú** — Prod vẫn ở bản trước, đẩy sang khi huynh thấy đúng lúc (§7: máy Gú chỉ nhận
