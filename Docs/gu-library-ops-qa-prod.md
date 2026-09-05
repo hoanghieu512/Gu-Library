@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-05, trạng thái: app v1.38.0 (nhánh, chờ duyệt) · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-05, trạng thái: app v1.38.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -299,7 +299,9 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 - **v1.38.0 — TÌM KIẾM TOÀN VĂN (mở Phase 2 lớp tri thức).** Màn Tìm từ bề mặt rỗng thành tra
   thật: gõ tới đâu tìm tới đó, kết quả là ĐOẠN TRÍCH có tô sáng kèm môn/tài liệu/nhãn/trang, chạm
   là mở đúng trang (`/viewer/<uri>?p=N`). **Gõ KHÔNG DẤU ra kết quả CÓ DẤU** — yêu cầu gốc của
-  spec §7. Nhánh `feat/v1.38.0-search`.
+  spec §7. Huynh test tay rồi duyệt và merge 05/09; tag `v1.38.0`.
+  **CHƯA lên máy Gú** — Prod vẫn đang ở bản trước v1.37.0, hai beat này đẩy sang lúc nào là quyết
+  riêng (§7: máy Gú chỉ nhận bản đã nghiệm thu).
   - **Chỉ mục nằm trong IndexedDB của máy, KHÔNG vào cây Syncthing** (spec §4.3 dữ liệu phái sinh).
     Hỏng thì xoá dựng lại — có cần gạt **"Dựng lại chỉ mục tìm kiếm"** trong Cài đặt.
   - **`SafPlugin.listFolder` nay trả thêm `size` + `lastModified`** trong CÙNG cursor (không tốn
