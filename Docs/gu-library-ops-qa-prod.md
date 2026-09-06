@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-05, trạng thái: app v1.38.1 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-06, trạng thái: app v1.39.0 (nhánh, chờ duyệt) · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -302,6 +302,31 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
     → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
     đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
+- **v1.39.0 — TÌM TRONG MỘT TÀI LIỆU (từ góp ý THẬT của Gú).** Gú dùng v1.38.1 rồi phản hồi:
+  tìm toàn kho tốt, nhưng đang mở một quyển thì muốn tra ngay trong quyển đó. Đây là friction
+  quan sát được từ người dùng thật — đúng loại tín hiệu §8 vẫn chờ.
+  - **Chế độ đơn:** icon 🔍 nằm **CÙNG HÀNG** với ô "Tới trang…", bên trái nó. Gú nói "ở dưới chỗ
+    Nhảy tới trang" nhưng chọn cùng hàng vì thêm hàng riêng ăn ~40px chiều cao vùng đọc — đáng kể
+    trên màn **vuông 480dp của dGen1**. Huynh chốt phương án này.
+  - **Chế độ split:** chữ **"Tìm"** cạnh **"Đổi"** trên vạch chia, tra **pane DƯỚI** (pane tra cứu)
+    đúng như Gú xin. Pane trên trong split CHƯA có — Gú không xin, không tự thêm.
+  - **Kết quả là SHEET ĐOẠN TRÍCH, KHÔNG phải thanh ‹ › kiểu Ctrl+F.** Lý do kỹ thuật, không phải
+    thẩm mỹ: pdf.js render ra **canvas, không có lớp text** → **không tô sáng được chữ khớp trên
+    trang**. Bấm › nhảy tới trang 47 rồi phải dò bằng mắt trên trang luật dày là hụt; đoạn trích
+    chính là thứ thay cho tô sáng.
+  - **Không dựng engine mới:** tái dùng nguyên `indexDoc` + `search` + `makeSnippet` của v1.38.0.
+    Index MỘT tài liệu ≈ đọc 1 sidecar (~50ms) + tách từ (~30ms) → Viewer **không** phải nạp chỉ
+    mục toàn kho (~130 MB heap). `src/search/docIndex.ts`.
+  - Tài liệu là ảnh scan → sheet nói thẳng *"tài liệu này là ảnh chụp/scan — chưa tra được chữ"*,
+    khác hẳn ca "không tìm thấy".
+  - **HAI BẪY React đã vấp:** (a) đặt state đồng bộ trong effect để reset ô nhập → lint bắt, sửa
+    bằng cách tách thân sheet ra component có `key` theo tài liệu, state tự tươi; (b) **`autoFocus`
+    KHÔNG ăn trong `IonModal`** — sheet mở mà bàn phím không bật, phải chạm thêm một nhát. Sửa bằng
+    focus hoãn 350ms cho sheet trượt xong.
+  - **Verify tay trên UBS1 (6GB):** đơn — icon đúng chỗ, gõ "toi pham" ra 50+ đoạn của RIÊNG tài
+    liệu đó, chạm kết quả nhảy đúng **trang 64/322**; split — "Tìm" tra đúng tài liệu pane dưới
+    (14 đoạn, nhãn "Slide 35 · trang 35"), không lẫn sang pane trên; bàn phím tự bật sau khi sửa.
+
 - **v1.38.1 — sửa lỗi index nhầm `IMAGE_PAGE_MARKER` (lỗi của chính v1.38.0).**
   App KHÔNG hề biết marker này nên coi nó là chữ. Hậu quả: 13 tài liệu QA / 12 Prod nằm trong
   chỉ mục như thể tra được, gõ chữ trong đó thì không ra gì mà cũng không có dấu hiệu nào báo,
