@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-07, trạng thái: app v1.39.0 · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-07, trạng thái: app v1.39.0 trên main · **Prod (máy Gú) đang chạy v1.38.1** · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -336,8 +336,9 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   - **Verify tay trên UBS1 (6GB):** đơn — icon đúng chỗ, gõ "toi pham" ra 50+ đoạn của RIÊNG tài
     liệu đó, chạm kết quả nhảy đúng **trang 64/322**; split — "Tìm" tra đúng tài liệu pane dưới
     (14 đoạn, nhãn "Slide 35 · trang 35"), không lẫn sang pane trên; bàn phím tự bật sau khi sửa.
-    Huynh duyệt và merge 07/09; tag `v1.39.0`. **CHƯA lên máy Gú** — Prod vẫn ở bản trước v1.37.0,
-    nay tụt ba bản (v1.37 · v1.38.1 · v1.39). Đẩy sang lúc nào là quyết riêng.
+    Huynh duyệt và merge 07/09; tag `v1.39.0`. **Chưa lên máy Gú** — Prod đang ở **v1.38.1**, mới
+    tụt ĐÚNG MỘT bản. Mà bản này chính Gú xin nên Gú đang chờ; §7 đã đủ (nghiệm thu tay trên UBS1,
+    cả chế độ đơn lẫn split).
 
 - **v1.38.1 — sửa lỗi index nhầm `IMAGE_PAGE_MARKER` (lỗi của chính v1.38.0).**
   App KHÔNG hề biết marker này nên coi nó là chữ. Hậu quả: 13 tài liệu QA / 12 Prod nằm trong
@@ -364,8 +365,8 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   thật: gõ tới đâu tìm tới đó, kết quả là ĐOẠN TRÍCH có tô sáng kèm môn/tài liệu/nhãn/trang, chạm
   là mở đúng trang (`/viewer/<uri>?p=N`). **Gõ KHÔNG DẤU ra kết quả CÓ DẤU** — yêu cầu gốc của
   spec §7. Huynh test tay rồi duyệt và merge 05/09; tag `v1.38.0`.
-  **CHƯA lên máy Gú** — Prod vẫn đang ở bản trước v1.37.0, hai beat này đẩy sang lúc nào là quyết
-  riêng (§7: máy Gú chỉ nhận bản đã nghiệm thu).
+  **ĐÃ LÊN MÁY GÚ** — huynh đẩy bản **v1.38.1** sang Prod ngày 05/09, và chính từ đó Gú phản hồi
+  xin thêm "tìm trong một tài liệu" → thành v1.39.0.
   - **Chỉ mục nằm trong IndexedDB của máy, KHÔNG vào cây Syncthing** (spec §4.3 dữ liệu phái sinh).
     Hỏng thì xoá dựng lại — có cần gạt **"Dựng lại chỉ mục tìm kiếm"** trong Cài đặt.
   - **`SafPlugin.listFolder` nay trả thêm `size` + `lastModified`** trong CÙNG cursor (không tốn
@@ -423,8 +424,9 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     là ca bố cục chưa từng có trong dự án — cân nhắc khi làm UI về sau.
 
 - **v1.37.0 — Book Press raster.** Huynh duyệt và merge 04/09; tag `v1.37.0`.
-  **CHƯA lên máy Gú** — Prod vẫn ở bản trước, đẩy sang khi huynh thấy đúng lúc (§7: máy Gú chỉ nhận
-  bản đã nghiệm thu; beat này mới nghiệm thu trên MỘT máy QA là UBS1).
+  **ĐÃ LÊN MÁY GÚ** — đi theo bản v1.38.1 đẩy sang Prod ngày 05/09 (một APK mang cả hai beat).
+  *(Lúc merge có ghi "chưa lên máy Gú" và nghiệm thu mới trên MỘT máy QA là UBS1 — sau đó huynh
+  đẩy cùng v1.38.1.)*
   Beat THÍ ĐIỂM cho hướng gáy-sách-raster bàn ngày 04/09: lấy máy ép làm miếng nhỏ nhất kiểm được
   cả chất asset lẫn perf raster trên WebView mà không đụng kệ. `BookPress.tsx` đổi từ SVG tự vẽ sang
   3 sprite cắt từ MỘT tấm ảnh Higgsfield bằng `scripts/make-press-sprites.py`.
