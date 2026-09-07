@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-06, trạng thái: app v1.39.0 (nhánh, chờ duyệt) · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-07, trạng thái: app v1.39.0 · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -323,9 +323,21 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     bằng cách tách thân sheet ra component có `key` theo tài liệu, state tự tươi; (b) **`autoFocus`
     KHÔNG ăn trong `IonModal`** — sheet mở mà bàn phím không bật, phải chạm thêm một nhát. Sửa bằng
     focus hoãn 350ms cho sheet trượt xong.
+  - **GỠ hàng "Đo hiệu năng (debug)" khỏi Cài đặt** (huynh xác nhận không dùng). Suốt v1.37→v1.39
+    toàn việc đo hiệu năng nhưng đo bằng `adb dumpsys`/`gfxinfo`, chưa mở modal đó lần nào; mà đây
+    là màn Cài đặt của Gú, không phải ngăn kéo dev.
+    **CHỈ gỡ LỐI VÀO — bộ đo `src/perf/perf.ts` GIỮ NGUYÊN** (vẫn cắm vào 16 chỗ trong `PdfView` /
+    `ImportDestinationFlow` / `FolderDocRow`): gỡ nó ra phải sờ read-path để đổi lấy 0 lợi ích, mà
+    nó vốn rẻ (`performance.now()` + Map trong RAM, tối đa 30 mẫu, không ghi file).
+    `PerfDebugModal.tsx` giữ lại nhưng **không ai import** → Vite tree-shake hẳn khỏi bản dựng
+    (kiểm: nhãn "Khởi động → Trang chủ" không còn trong bundle). Cần lại thì cắm lại **một dòng**
+    trong `SettingsPage`; giữ file cũng để `FLOW_LABELS`/`FLOW_ORDER` của `perf.ts` không thành
+    export chết.
   - **Verify tay trên UBS1 (6GB):** đơn — icon đúng chỗ, gõ "toi pham" ra 50+ đoạn của RIÊNG tài
     liệu đó, chạm kết quả nhảy đúng **trang 64/322**; split — "Tìm" tra đúng tài liệu pane dưới
     (14 đoạn, nhãn "Slide 35 · trang 35"), không lẫn sang pane trên; bàn phím tự bật sau khi sửa.
+    Huynh duyệt và merge 07/09; tag `v1.39.0`. **CHƯA lên máy Gú** — Prod vẫn ở bản trước v1.37.0,
+    nay tụt ba bản (v1.37 · v1.38.1 · v1.39). Đẩy sang lúc nào là quyết riêng.
 
 - **v1.38.1 — sửa lỗi index nhầm `IMAGE_PAGE_MARKER` (lỗi của chính v1.38.0).**
   App KHÔNG hề biết marker này nên coi nó là chữ. Hậu quả: 13 tài liệu QA / 12 Prod nằm trong

@@ -5,7 +5,7 @@ import {
   IonSegment, IonSegmentButton, IonLabel,
 } from '@ionic/react';
 import {
-  folderOutline, syncOutline, textOutline, phonePortraitOutline, speedometerOutline, chevronForward,
+  folderOutline, syncOutline, textOutline, phonePortraitOutline, chevronForward,
   searchOutline,
 } from 'ionicons/icons';
 import { App } from '@capacitor/app';
@@ -14,7 +14,6 @@ import { readableTreePath } from '../storage/safPath';
 import { getDeviceId } from '../reading/store';
 import { getBaseScale, setBaseScale, SCALE_OPTIONS } from '../viewer/fontScale';
 import SyncSettings from '../sync/SyncSettings';
-import PerfDebugModal from '../perf/PerfDebugModal';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { clearIndex } from '../search/store';
 import { useGuToast } from '../lib/useGuToast';
@@ -69,7 +68,6 @@ export default function SettingsPage() {
   const { toastResult, node: toastNode } = useGuToast();
   const [root, setRoot] = useState<string | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
-  const [perfOpen, setPerfOpen] = useState(false);
   const [version, setVersion] = useState<string>(__APP_VERSION__);
   const [deviceId, setDeviceId] = useState<string>('');
   const [scale, setScale] = useState<string>('1');
@@ -137,12 +135,6 @@ export default function SettingsPage() {
           hint="Khớp tên file _reading-<id>.json"
         />
 
-        <Row
-          icon={speedometerOutline} title="Đo hiệu năng (debug)"
-          hint="Bảng số đo phiên để lập baseline · không đo gì tự động"
-          trailing={chevron} onClick={() => setPerfOpen(true)}
-        />
-
         {/* Chỉ mục tìm kiếm là DỮ LIỆU PHÁI SINH (spec §4.3): hỏng/lệch thì xoá dựng lại, không
             có gì để mất. Đây là cần gạt đó — lần vào màn Tìm kế tiếp sẽ tự dựng lại từ đầu. */}
         <Row
@@ -156,7 +148,6 @@ export default function SettingsPage() {
         />
 
         <SyncSettings isOpen={syncOpen} onClose={() => setSyncOpen(false)} />
-        <PerfDebugModal isOpen={perfOpen} onClose={() => setPerfOpen(false)} />
         {toastNode}
         <p style={{ textAlign: 'center', color: 'var(--gu-grey)', fontSize: 13, marginTop: 24 }}>
           Phiên bản {version}
