@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-07, trạng thái: app v1.39.1 trên main · **Prod (máy Gú) đang chạy v1.38.1** · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-07, trạng thái: app v1.39.2 trên main · **Prod (máy Gú) đang chạy v1.38.1** · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -311,6 +311,32 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
     → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
     đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
+- **v1.39.2 — tra nhiều chữ BẮT BUỘC LIỀN NHAU (Gú báo qua huynh).** Tra "là công dân" ra cả
+  *"Lỗi kỹ thuật **LÀ** lỗi do sai sót… **ĐÁNH** máy… văn bản **CÔNG** chứng"*. Hai lỗi khác nhau
+  chồng lên nhau:
+  1. **`search()` là AND thuần** — đoạn nào chứa ĐỦ các chữ ở BẤT KỲ đâu là khớp. Cụm liền nhau
+     chỉ được ưu tiên khi xếp hạng, không phải điều kiện.
+  2. **Gõ CÓ DẤU không thu hẹp được gì** — index chỉ lưu dạng bỏ dấu, mà `fold("công")` và
+     `fold("cộng")` ra **cùng** chuỗi `cong`; `fold("đánh")` = `danh` nên khớp tiền tố `dan`.
+     Đây là hệ quả cố hữu của tra-không-dấu, không sửa riêng được.
+  → Sửa (1) thì (2) tự hết phần lớn: bắt liền nhau thì *"**Cộng** hòa… **là** thành viên"* rớt ngay.
+  - **Cách làm — KHÔNG phình index:** bảng token vẫn dùng để **lọc thô**, rồi `phraseAt()` xác nhận
+    liền-nhau trên tập ứng viên. So theo **TOKEN** chứ không phải chuỗi con, nên "là,\ncông dân"
+    (dấu phẩy + xuống dòng) vẫn tính là liền — chuỗi con thì hụt ngay. Lưu vị trí token vào index
+    sẽ phình mạnh (đang 24,6 MB / +130 MB heap) nên không làm.
+  - **Tô sáng đổi theo:** trước tô RỜI RẠC từng token khớp (nên "đánh" bị tô khi tra "dân"), nay tô
+    **nguyên cụm thành một vệt**.
+  - **BẪY TỰ GÂY, đã sửa trong cùng beat:** thêm `SCAN_CAP` chặn tách-từ nhưng đếm nhầm — đếm CẢ
+    những đoạn bị loại bằng phép giao rẻ tiền, nên trần cháy trước khi kịp xét. Kết quả trên máy
+    tụt **50+ → 7**, và tệ hơn: kết quả phụ thuộc THỨ TỰ TÀI LIỆU chứ không phải độ liên quan.
+    Sửa thành **chỉ đếm việc đắt** (số đoạn thật sự đem đi tách từ) → 50+ trở lại.
+  - **Verify trên UBS1:** màn Tìm toàn kho — "la cong dan" ra 50+ đoạn, mọi đoạn tô liền một vệt
+    "là công dân"; **màn Tìm-trong-tài-liệu — đúng ca Gú báo: 32 đoạn → 1 đoạn**, đoạn còn lại là
+    *"1. Là công dân Việt Nam không quá 70 tuổi; · Khoản 1 · trang 6"*.
+  - **Đánh đổi đã chọn:** tra nhiều chữ nay **NGHIÊM** — "sử dụng quy hoạch" không còn khớp
+    *"nguyên tắc sử dụng đất phải đúng quy hoạch"*. Nếu Gú thấy chặt quá thì món tiếp theo là thêm
+    một mục "các đoạn có đủ chữ nhưng nằm rời" bên dưới, chưa làm vì chưa có ai kêu.
+
 - **v1.39.0 — TÌM TRONG MỘT TÀI LIỆU (từ góp ý THẬT của Gú).** Gú dùng v1.38.1 rồi phản hồi:
   tìm toàn kho tốt, nhưng đang mở một quyển thì muốn tra ngay trong quyển đó. Đây là friction
   quan sát được từ người dùng thật — đúng loại tín hiệu §8 vẫn chờ.

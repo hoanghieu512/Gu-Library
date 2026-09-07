@@ -61,10 +61,13 @@ describe('search', () => {
     expect(hits[0].doc.name).toBe('Luật Đất đai');
   });
 
-  it('AND: unit phải chứa ĐỦ mọi token', () => {
+  it('nhiều chữ phải LIỀN NHAU, không phải chỉ "có đủ chữ"', () => {
+    // Đổi từ v1.39.2 sau khi Gú kêu: trước đây đoạn nào chứa đủ các chữ ở BẤT KỲ đâu cũng khớp,
+    // nên tra "là công dân" lọt cả "…LÀ lỗi do sai sót… ĐÁNH máy… văn bản CÔNG chứng".
     const ix = fixture();
-    expect(search(ix, 'sử dụng đất')).toHaveLength(2);       // cả Điều 5 và Điều 6
-    expect(search(ix, 'sử dụng quy hoạch')).toHaveLength(1); // chỉ Điều 6
+    expect(search(ix, 'sử dụng đất')).toHaveLength(2);       // liền nhau ở cả Điều 5 và Điều 6
+    // "sử dụng … quy hoạch" nằm rời trong Điều 6 → nay KHÔNG còn tính là khớp.
+    expect(search(ix, 'sử dụng quy hoạch')).toEqual([]);
   });
 
   it('một token không có trong kho → rỗng, không quét gì thêm', () => {
@@ -178,5 +181,65 @@ describe('trang ảnh chưa OCR không phải là chữ', () => {
     expect(indexStats(ix).units).toBe(1);
     expect(indexStats(ix).imageOnly).toBe(0);
     expect(search(ix, 'giay chung nhan')[0].unit.page).toBe(2);
+  });
+});
+
+describe('bắt buộc LIỀN NHAU khi tra nhiều chữ (lỗi Gú gặp ở v1.39.0)', () => {
+  function ix2() {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, {
+      units: [
+        { label: 'Khoản 1', page: 6, text: '1. Là công dân Việt Nam không quá 70 tuổi;' },
+        { label: 'Khoản 1', page: 40, text: '1. Lỗi kỹ thuật là lỗi do sai sót trong khi ghi chép, đánh máy, in ấn văn bản công chứng.' },
+        { label: '', page: 21, text: 'điều ước quốc tế mà Cộng hòa xã hội chủ nghĩa Việt Nam là thành viên' },
+      ],
+    });
+    return ix;
+  }
+
+  it('chỉ trả đoạn có NGUYÊN CỤM, bỏ đoạn có đủ chữ nhưng nằm rời', () => {
+    const hits = search(ix2(), 'la cong dan');
+    expect(hits).toHaveLength(1);
+    expect(hits[0].unit.page).toBe(6);
+  });
+
+  it('gõ CÓ DẤU cũng vậy — "cộng" không còn lọt vào chỗ tra "công"', () => {
+    const hits = search(ix2(), 'là công dân');
+    expect(hits.map((h) => h.unit.page)).toEqual([6]);
+  });
+
+  it('MỘT chữ thì vẫn tra rộng như cũ (không áp luật cụm)', () => {
+    expect(search(ix2(), 'cong').length).toBeGreaterThan(1);
+  });
+
+  it('dấu câu và xuống dòng KHÔNG cắt cụm', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: 'Người đó là,\ncông dân hợp pháp' }] });
+    expect(search(ix, 'la cong dan')).toHaveLength(1);
+  });
+
+  it('cụm phải đúng THỨ TỰ — đảo chữ thì không khớp', () => {
+    expect(search(ix2(), 'dan cong la')).toEqual([]);
+  });
+
+  it('token cuối vẫn khớp TIỀN TỐ để gõ tới đâu tìm tới đó', () => {
+    expect(search(ix2(), 'la cong d')).toHaveLength(1);
+    expect(search(ix2(), 'la công dâ')).toHaveLength(1);
+  });
+});
+
+describe('trần quét — chữ phổ biến không được làm khựng bàn phím', () => {
+  it('kho lớn toàn đoạn KHÔNG khớp cụm vẫn trả về nhanh, không quét hết', () => {
+    const ix = emptyIndex();
+    // 5000 đoạn đều chứa ĐỦ "là" + "công" + "dân" nhưng KHÔNG liền cụm → qua được phép giao
+    // rẻ tiền, nên đoạn nào cũng phải tách từ. Không có trần thì mỗi phím gõ tách từ đủ 5000 đoạn.
+    const units = Array.from({ length: 5000 }, (_, i) => ({
+      label: '', page: i + 1,
+      text: 'Đây là một đoạn dài nói về công tác của người dân trong thực tiễn số ' + i,
+    }));
+    addDoc(ix, DOC_A, { units });
+    const t0 = Date.now();
+    expect(search(ix, 'la cong dan')).toEqual([]);
+    expect(Date.now() - t0).toBeLessThan(400);
   });
 });

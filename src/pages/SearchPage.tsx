@@ -81,7 +81,7 @@ export default function SearchPage() {
   const open = (pdfUri: string, page: number) =>
     history.push(`/viewer/${encodeUriParam(pdfUri)}?p=${page}`);
 
-  const { exact, prefix } = parseQuery(q);
+  const { seq } = parseQuery(q);
   const docCount = ix?.docs.length ?? 0;
   // Tài liệu là ảnh scan chưa OCR: KHÔNG có chữ nào để tra. Phải nói ra, không thì Gú gõ chữ
   // mình biết chắc nằm trong tài liệu đó mà không ra gì, lại tưởng search hỏng.
@@ -153,7 +153,7 @@ export default function SearchPage() {
             {hits.map((h, i) => (
               <ResultRow
                 key={`${h.doc.pdfUri}#${h.unit.page}#${i}`}
-                hit={h} exact={exact} prefix={prefix}
+                hit={h} seq={seq}
                 onOpen={() => open(h.doc.pdfUri, h.unit.page)}
               />
             ))}
@@ -206,11 +206,11 @@ function Empty({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function ResultRow({ hit, exact, prefix, onOpen }: {
-  hit: Hit; exact: string[]; prefix: string | null; onOpen: () => void;
+function ResultRow({ hit, seq, onOpen }: {
+  hit: Hit; seq: string[]; onOpen: () => void;
 }) {
   const { unit, doc } = hit;
-  const sn = makeSnippet(unit.text, exact, prefix);
+  const sn = makeSnippet(unit.text, seq);
   const pieces: React.ReactNode[] = [];
   let at = 0;
   sn.marks.forEach((m, i) => {

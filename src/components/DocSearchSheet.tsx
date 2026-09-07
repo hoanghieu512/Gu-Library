@@ -72,7 +72,7 @@ function Body({ docUri, docName, onClose, onJump }: {
     return () => clearTimeout(t);
   }, [q, ix]);
 
-  const { exact, prefix } = parseQuery(q);
+  const { seq } = parseQuery(q);
 
   return (
     <div style={{ padding: '4px 16px 16px' }}>
@@ -119,7 +119,7 @@ function Body({ docUri, docName, onClose, onJump }: {
         )}
 
         {hits.map((h, i) => {
-          const sn = makeSnippet(h.unit.text, exact, prefix);
+          const sn = makeSnippet(h.unit.text, seq);
           const parts: React.ReactNode[] = [];
           let at = 0;
           sn.marks.forEach((m, k) => {

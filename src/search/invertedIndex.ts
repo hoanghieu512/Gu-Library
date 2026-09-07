@@ -70,21 +70,54 @@ export interface SearchIndex {
   sorted?: string[];                 // token đã sắp, dựng LƯỜI — để tra tiền tố bằng nhị phân
 }
 
-/** Truy vấn: token cuối luôn là TIỀN TỐ (người dùng đang gõ dở). */
-export interface Query { exact: string[]; prefix: string | null }
+/**
+ * Truy vấn: token cuối luôn là TIỀN TỐ (người dùng đang gõ dở).
+ * `seq` giữ THỨ TỰ và giữ cả token lặp — cần cho việc bắt CỤM LIỀN NHAU; `exact` là bản đã gộp
+ * trùng, chỉ dùng để lọc thô qua bảng token.
+ */
+export interface Query { seq: string[]; exact: string[]; prefix: string | null }
 
 export function parseQuery(q: string): Query {
   const t = tokenize(q);
-  if (t.length === 0) return { exact: [], prefix: null };
-  return { exact: [...new Set(t.slice(0, -1))], prefix: t[t.length - 1] };
+  if (t.length === 0) return { seq: [], exact: [], prefix: null };
+  return { seq: t, exact: [...new Set(t.slice(0, -1))], prefix: t[t.length - 1] };
+}
+
+/**
+ * Cụm truy vấn có xuất hiện LIỀN NHAU trong đoạn không? Trả vị trí token bắt đầu, -1 nếu không.
+ *
+ * Vì sao kiểm ở đây chứ không lưu vị trí token vào index: index hiện đã 24,6 MB / +130 MB heap,
+ * lưu thêm vị trí từng lần xuất hiện sẽ phình mạnh. Còn ở đây chỉ chạy trên tập ỨNG VIÊN đã lọc
+ * (≤ CANDIDATE_CAP đoạn, mỗi đoạn ~140 ký tự) → vài mili giây, không tốn byte nào.
+ *
+ * So theo TOKEN chứ không phải chuỗi con: "là, công dân" hay "là\ncông dân" vẫn phải tính là
+ * liền nhau — dấu câu và xuống dòng không được phép cắt cụm.
+ */
+export function phraseAt(text: string, seq: string[]): number {
+  if (seq.length === 0) return -1;
+  const toks = tokenize(text);
+  const last = seq.length - 1;
+  outer:
+  for (let i = 0; i + last < toks.length; i++) {
+    for (let k = 0; k < last; k++) if (toks[i + k] !== seq[k]) continue outer;
+    if (!toks[i + last].startsWith(seq[last])) continue;   // token cuối khớp TIỀN TỐ
+    return i;
+  }
+  return -1;
 }
 
 // Trần số token khớp tiền tố. Gõ "d" khớp hàng nghìn token; không chặn thì mỗi phím gõ là một
 // lượt gộp khổng lồ. Cắt ở đây làm kết quả KHÔNG đầy đủ cho tiền tố quá ngắn — chấp nhận, vì
 // người dùng gõ thêm một chữ là thu hẹp ngay.
 const PREFIX_CAP = 400;
-// Trần ứng viên đem đi chấm điểm — chặn ca token cực phổ biến ("của", "và").
+// Trần ứng viên GIỮ LẠI — chặn ca token cực phổ biến ("của", "và").
 const CANDIDATE_CAP = 600;
+// Trần số đoạn ĐEM ĐI TÁCH TỪ để kiểm cụm — đây mới là việc đắt. Đoạn bị loại bằng phép giao
+// tập token thì gần như miễn phí, quét bao nhiêu cũng được và PHẢI quét hết, nếu không kết quả
+// sẽ phụ thuộc thứ tự tài liệu chứ không phải độ liên quan.
+// Đánh đổi còn lại: truy vấn mà HÀNG NGHÌN đoạn chứa đủ các chữ nhưng rời sẽ bị cắt ở mốc này —
+// hiếm, và giống đánh đổi của PREFIX_CAP.
+const SCAN_CAP = 2500;
 
 function prefixTokens(ix: SearchIndex, p: string): string[] {
   if (!ix.sorted) ix.sorted = [...ix.postings.keys()].sort();
@@ -198,8 +231,12 @@ export interface Hit {
  *   3. đơn vị NGẮN hơn (đoạn ngắn mà chứa đủ từ thì sát nghĩa hơn đoạn dài)
  */
 export function search(ix: SearchIndex, query: string, limit = 50): Hit[] {
-  const { exact, prefix } = parseQuery(query);
+  const { seq, exact, prefix } = parseQuery(query);
   if (!prefix) return [];
+  // Từ 2 chữ trở lên thì BẮT BUỘC liền nhau. Trước đây chỉ cần đoạn chứa đủ các chữ ở bất kỳ đâu
+  // nên "Lỗi kỹ thuật LÀ lỗi do sai sót… ĐÁNH máy… văn bản CÔNG chứng" lọt vào khi tra
+  // "là công dân" — Gú gặp thật. Bảng token vẫn dùng để LỌC THÔ, đây là bước xác nhận.
+  const needPhrase = seq.length >= 2;
 
   const lists: number[][] = [];
   for (const t of exact) {
@@ -222,25 +259,28 @@ export function search(ix: SearchIndex, query: string, limit = 50): Hit[] {
   const driver: number[] = driveByExact ? lists[0] : [...pset];
   const others = (driveByExact ? lists.slice(1) : lists).map((l) => new Set(l));
 
-  const phrase = fold(query).trim().replace(/\s+/g, ' ');
-  const scored: { id: number; phraseHit: number; pos: number; len: number }[] = [];
+  const scored: { id: number; pos: number; len: number }[] = [];
+  let scanned = 0;
   for (const id of driver) {
     // Chỉ phải kiểm lại tập tiền tố khi đang quét theo danh sách token nguyên.
     if (driveByExact && !pset.has(id)) continue;
     if (!others.every((s) => s.has(id))) continue;
+    // Trần chỉ đếm VIỆC ĐẮT (tách từ để kiểm cụm). Đếm cả những đoạn bị loại bằng phép giao
+    // rẻ tiền là sai: trần cháy trước khi kịp xét, kết quả tụt từ 50+ xuống 7 — đã đo thật.
+    if (++scanned > SCAN_CAP) break;
     const u = ix.units[id];
-    const f = fold(u.text);
-    const at = phrase.includes(' ') ? f.indexOf(phrase) : f.indexOf(prefix);
-    scored.push({ id, phraseHit: at >= 0 ? 1 : 0, pos: at >= 0 ? at : 1e9, len: u.text.length });
+    const pos = needPhrase ? phraseAt(u.text, seq) : fold(u.text).indexOf(prefix);
+    if (needPhrase && pos < 0) continue;         // có đủ chữ nhưng nằm rời → KHÔNG tính là khớp
+    scored.push({ id, pos: pos < 0 ? 1e9 : pos, len: u.text.length });
     if (scored.length >= CANDIDATE_CAP) break;
   }
 
-  scored.sort((a, b) =>
-    (b.phraseHit - a.phraseHit) || (a.pos - b.pos) || (a.len - b.len) || (a.id - b.id));
+  // Cụm xuất hiện SỚM trong đoạn xếp trên; cùng vị trí thì đoạn NGẮN hơn sát nghĩa hơn.
+  scored.sort((a, b) => (a.pos - b.pos) || (a.len - b.len) || (a.id - b.id));
 
   return scored.slice(0, limit).map(({ id }) => {
     const unit = ix.units[id];
-    return { unit, doc: ix.docs[unit.d], matched: exact.length + 1 };
+    return { unit, doc: ix.docs[unit.d], matched: seq.length };
   });
 }
 
