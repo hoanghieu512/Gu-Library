@@ -3,11 +3,12 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonInput, IonButton, IonFooter, IonIcon, IonSpinner,
 } from '@ionic/react';
-import { browsersOutline } from 'ionicons/icons';
+import { browsersOutline, searchOutline } from 'ionicons/icons';
 import { useLocation, useParams } from 'react-router-dom';
 import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
 import { useGuToast } from '../lib/useGuToast';
+import DocSearchSheet from '../components/DocSearchSheet';
 import { getResumePage, recordProgress } from '../reading/store';
 import { getBaseScale } from '../viewer/fontScale';
 import { resolveDocDisplayName } from '../storage/docRepo';
@@ -62,6 +63,10 @@ export default function ViewerPage() {
   // đổi tài liệu B4b (state này tách khỏi `bottomUri`). CỐ Ý **không** nhớ qua lần mở app sau:
   // thoát split rồi vào lại → về 50/50, đó là hành vi đúng ở beat này.
   const [ratio, setRatio] = useState(0.5);
+  // "Tìm trong tài liệu này" (v1.39.0 — góp ý của Gú). `searchFor` = pane nào đang mở sheet:
+  // 'top' ở chế độ đơn, 'bottom' ở split (pane TRA CỨU, đúng chỗ Gú xin).
+  const [searchFor, setSearchFor] = useState<'top' | 'bottom' | null>(null);
+  const [bottomJumpTo, setBottomJumpTo] = useState<number | undefined>(undefined);
   const [frameH, setFrameH] = useState(0);
   const roRef = useRef<ResizeObserver | null>(null);
   // Callback-ref (không dùng useEffect) → gắn/gỡ theo dõi ngay khi khung mount, khỏi phụ thuộc
@@ -247,6 +252,17 @@ export default function ViewerPage() {
                         Bỏ đi thì thanh mỏng lại 12px, đổi lại split có thêm chỗ đọc. Nút "Đổi" giữ,
                         dựng bằng <button> thường để ép đúng chiều cao 26px (IonButton có cao tối thiểu). */}
                     <button
+                      type="button" onClick={() => setSearchFor('bottom')} aria-label="Tìm trong tài liệu tra cứu"
+                      onTouchStart={(e) => e.stopPropagation()}
+                      style={{
+                        background: 'none', border: 'none', padding: '0 4px', height: '100%',
+                        color: 'var(--gu-cream)', fontFamily: 'var(--gu-serif)', fontWeight: 700,
+                        fontSize: 12, cursor: 'pointer',
+                      }}
+                    >
+                      Tìm
+                    </button>
+                    <button
                       type="button" onClick={swapBottom} aria-label="Đổi tài liệu tra cứu"
                       onTouchStart={(e) => e.stopPropagation()}
                       style={{
@@ -277,6 +293,7 @@ export default function ViewerPage() {
                       docUri={bottomUri}
                       initialPage={1}
                       baseScale={baseScale}
+                      jumpTo={bottomJumpTo}
                       compactError
                       onErrorAction={{ label: 'Chọn tài liệu khác', onClick: () => setBottomUri(null) }}
                     />
@@ -309,6 +326,15 @@ export default function ViewerPage() {
                 Trang {currentPage} / {total || '…'}
               </span>
               <div style={{ flex: 1 }} />
+              {/* Tìm trong tài liệu này — CÙNG hàng với ô nhảy trang, không ăn thêm chiều cao
+                  vùng đọc (đáng kể trên màn vuông dGen1 480dp). */}
+              <IonButton
+                size="small" fill="clear" shape="round" aria-label="Tìm trong tài liệu này"
+                style={{ '--padding-start': '6px', '--padding-end': '6px' } as React.CSSProperties}
+                onClick={() => setSearchFor('top')}
+              >
+                <IonIcon slot="icon-only" icon={searchOutline} style={{ fontSize: 20 }} />
+              </IonButton>
               <IonInput
                 type="number" inputmode="numeric" placeholder="Tới trang…"
                 value={target} onIonInput={(e) => setTarget(e.detail.value ?? '')}
@@ -326,6 +352,13 @@ export default function ViewerPage() {
           </IonToolbar>
         </IonFooter>
       )}
+      <DocSearchSheet
+        isOpen={searchFor !== null}
+        docUri={searchFor === 'bottom' ? bottomUri : searchFor === 'top' ? docUri : null}
+        docName={searchFor === 'bottom' ? baseName(bottomUri ?? '') : title}
+        onClose={() => setSearchFor(null)}
+        onJump={(p) => (searchFor === 'bottom' ? setBottomJumpTo(p) : setJumpTo(p))}
+      />
       {toastNode}
     </IonPage>
   );
