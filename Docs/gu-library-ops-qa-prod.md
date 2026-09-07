@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-07, trạng thái: app v1.39.0 trên main · **Prod (máy Gú) đang chạy v1.38.1** · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-07, trạng thái: app v1.39.1 trên main · **Prod (máy Gú) đang chạy v1.38.1** · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -148,6 +148,15 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   lúc build** (build.gradle đọc `package.json`), không đọc runtime → cài lại một APK dựng
   *trước* lúc bump sẽ vẫn hiện số cũ dù code mới. Không phải bug: dựng LẠI `assembleRelease`
   sau khi bump rồi cài đè (đã gặp thật v1.16.0→v1.17.0).
+- **Biến thể NGUY HIỂM HƠN của cùng bẫy đó — hai APK KHÁC NHAU cùng mang một `versionName`
+  (gặp thật 07/09):** sửa code sau khi đã dựng APK, rồi merge + tag mà **quên dựng lại APK**.
+  Tag `v1.39.0` trên main CÓ chứa thay đổi, nhưng file APK nằm trên đĩa thì dựng *trước* đó và
+  vẫn tên `Gu-Library-1.39.0-release.apk` → cài lên máy thấy **thiếu hẳn thay đổi vừa merge**,
+  mà nhìn số version thì không tài nào biết. Ở đây là hàng "Đo hiệu năng (debug)" đã gỡ trong
+  code nhưng vẫn hiện trên máy.
+  **Luật giữ về sau: sửa code sau khi dựng APK thì BUMP version rồi dựng lại, đừng dựng đè cùng
+  số.** Cách kiểm không cần cài: `unzip -p <apk> assets/public/assets/index-*.js | grep -c "<chuỗi>"`
+  — soi thẳng chuỗi mong đợi trong bundle của chính file APK sắp đưa đi.
 - **File kẹt ⏳ lâu:** mở `<kho>\_worker.log`. File đuôi lạ/tmp kẹt lại là *tín hiệu
   dọn tay theo thiết kế*, worker không tự xóa. Segment tiền tố độc → worker route về
   "Chưa phân loại" + WARNING trong log.
@@ -336,7 +345,8 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   - **Verify tay trên UBS1 (6GB):** đơn — icon đúng chỗ, gõ "toi pham" ra 50+ đoạn của RIÊNG tài
     liệu đó, chạm kết quả nhảy đúng **trang 64/322**; split — "Tìm" tra đúng tài liệu pane dưới
     (14 đoạn, nhãn "Slide 35 · trang 35"), không lẫn sang pane trên; bàn phím tự bật sau khi sửa.
-    Huynh duyệt và merge 07/09; tag `v1.39.0`. **Chưa lên máy Gú** — Prod đang ở **v1.38.1**, mới
+    Huynh duyệt và merge 07/09; tag `v1.39.0`, sửa lại thành **`v1.39.1`** (xem bẫy "hai APK
+    cùng versionName" ở §6 — bản .0 đã dựng trước lúc gỡ hàng "Đo hiệu năng"). **Chưa lên máy Gú** — Prod đang ở **v1.38.1**, mới
     tụt ĐÚNG MỘT bản. Mà bản này chính Gú xin nên Gú đang chờ; §7 đã đủ (nghiệm thu tay trên UBS1,
     cả chế độ đơn lẫn split).
 
