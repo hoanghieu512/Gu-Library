@@ -1,6 +1,6 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-07, trạng thái: app v1.39.2 trên main · **Prod (máy Gú) đang chạy v1.38.1** · worker v0.13.0. **Bản hợp nhất** —
+*Cập nhật 2026-09-08, trạng thái: app v1.39.2 trên main · **Prod (máy Gú) đang chạy v1.39.2 — đã bắt kịp main** · worker v0.13.0. **Bản hợp nhất** —
 nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
 dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
@@ -372,9 +372,9 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
     liệu đó, chạm kết quả nhảy đúng **trang 64/322**; split — "Tìm" tra đúng tài liệu pane dưới
     (14 đoạn, nhãn "Slide 35 · trang 35"), không lẫn sang pane trên; bàn phím tự bật sau khi sửa.
     Huynh duyệt và merge 07/09; tag `v1.39.0`, sửa lại thành **`v1.39.1`** (xem bẫy "hai APK
-    cùng versionName" ở §6 — bản .0 đã dựng trước lúc gỡ hàng "Đo hiệu năng"). **Chưa lên máy Gú** — Prod đang ở **v1.38.1**, mới
-    tụt ĐÚNG MỘT bản. Mà bản này chính Gú xin nên Gú đang chờ; §7 đã đủ (nghiệm thu tay trên UBS1,
-    cả chế độ đơn lẫn split).
+    cùng versionName" ở §6 — bản .0 đã dựng trước lúc gỡ hàng "Đo hiệu năng"). **ĐÃ LÊN MÁY GÚ**
+    theo bản **v1.39.2** ngày 08/09 (một APK mang cả tìm-trong-tài-liệu lẫn bản vá cụm-liền-nhau).
+    Prod nay **bắt kịp main**, không còn bản nào treo.
 
 - **v1.38.1 — sửa lỗi index nhầm `IMAGE_PAGE_MARKER` (lỗi của chính v1.38.0).**
   App KHÔNG hề biết marker này nên coi nó là chữ. Hậu quả: 13 tài liệu QA / 12 Prod nằm trong
