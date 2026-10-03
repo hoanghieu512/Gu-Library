@@ -1,8 +1,18 @@
 # Gú's Library — Ghi chú vận hành QA / Prod
 
-*Cập nhật 2026-09-08, trạng thái: app v1.39.2 trên main · **Prod (máy Gú) đang chạy v1.39.2 — đã bắt kịp main** · worker v0.13.0. **Bản hợp nhất** —
-nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn Obsidian. File này
-dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
+***Bản hợp nhất** — nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn
+Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
+
+- **App** *(Mac ghi dòng này)*: v1.39.2 trên main · **Prod (máy Gú) đang chạy v1.39.2 — đã
+  bắt kịp main** · cập nhật 2026-09-08
+
+- **Worker** *(Atomman ghi dòng này)*: v0.19.0 · cập nhật 2026-09-30
+
+> **Đồng bộ file này giữa hai repo — KHÔNG copy tay:** `scripts/sync-ops-doc.sh` (gộp 3 chiều
+> với bản của repo bên kia, gốc so sánh tự dò) → xem diff, gỡ conflict nếu có →
+> `scripts/sync-ops-doc.sh --publish` (commit ở đây + đẩy CÙNG bản sang repo kia + chép sang
+> Obsidian nếu máy có cấu hình). Hai dòng trạng thái trên và §8.1/§8.2 mỗi máy chỉ ghi phần
+> của mình — hai bên sửa cách nhau ít nhất một dòng thì git tự gộp, không ra conflict.
 
 > **Prod đã có người dùng thật.** Gú đang dùng hằng ngày trên máy của Gú. Mọi thay đổi
 > chạm Prod từ đây tính là chạm vào công cụ học của một người thật, không còn là sân tập.
@@ -23,7 +33,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
 | Folder trên Atomman | `D:\GuLibrary\kho` | `D:\GuLibrary-Prod\kho` |
 | Folder-ID Syncthing | `gu-library-kho` | `gu-library-kho-prod` |
 | Máy trong cụm | Z Flip 4 · S22 Ultra · Z Fold 3 · **UBS1** · **dGen1** (máy test) | Galaxy Tab S9 (SM-X710) · S20 FE · Z Flip 6 (máy Gú) |
-| Archive nguồn (v0.10.0 + v0.13.0) | sibling ngoài cây sync | sibling ngoài cây sync |
+| Archive nguồn + backup sidecar | sibling ngoài cây sync (`…_archive\`, chi tiết §3) | sibling ngoài cây sync (`…_archive\`, chi tiết §3) |
 
 - Tách ở **cấp cha** (`GuLibrary-Prod\kho`, không phải `kho-prod` cạnh nhau) — cô lập
   `.stversions/`, `_worker.log`, archive; worker trỏ rạch ròi, khó copy nhầm.
@@ -69,17 +79,71 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   trong PDF, Gú giữ bản trên điện thoại) → **xóa, KHÔNG archive**. Sidecar ảnh hợp lệ
   nhưng rỗng text (`IMAGE_PAGE_MARKER`, không OCR).
 - **Khu archive sibling `…\kho_archive\`** (vd `D:\GuLibrary-Prod\kho_archive\`, ngoài
-  Syncthing) giờ giữ hai loại nguồn: (a) bản gốc PDF scan nặng trước chuẩn hóa (v0.10.0),
-  (b) gốc `.doc`/`.ppt` (OLE cũ) sau khi convert (v0.13.0 — convert LibreOffice làm sidecar
-  degrade về `paragraph`/mất cấu trúc, nên giữ nguồn OOXML để phase 2 re-extract khi làm
-  search). Trùng tên → suffix `(n)`, không đè. `.docx`/`.pptx` + PDF gốc + ảnh **KHÔNG**
-  vào archive. Dọn tay định kỳ nếu đầy đĩa, không có gì tự xóa.
+  Syncthing) giữ ba loại nội dung: (a) bản gốc PDF scan nặng trước chuẩn hóa (v0.10.0),
+  (b) gốc `.doc`/`.ppt` (OLE cũ) sau khi convert (v0.13.0), (c) `_sidecar_backup/` — bản
+  sidecar trước khi `reslide` ghi đè (v0.14.0), (d) `_sidecar_backup_vni/` — bản trước khi
+  `vnifix` ghi đè (v0.15.0). Trùng tên → suffix `(n)`, không đè.
+  `.docx`/`.pptx` + ảnh **KHÔNG** vào archive; **PDF gốc chỉ vào archive khi bị re-raster**
+  (scan nặng, nhánh (a)) — PDF thường thì không. Dọn tay định kỳ nếu đầy đĩa, không có gì
+  tự xóa. Thực đo 2026-09-05: QA 12 nguồn OLE + 12 PDF scan; Prod 6 nguồn OLE + 4 PDF scan.
+- **`reslide` — dựng lại cấu trúc slide (v0.14.0), chạy TAY, không nằm trong vòng 3 phút:**
+  `python -m gu_library_worker.reslide --kho "D:\GuLibrary\kho" --kho "D:\GuLibrary-Prod\kho"`
+  → **mặc định DRY-RUN**, chỉ báo; thêm `--apply` mới ghi. Gom các `paragraph` không nhãn
+  của sidecar gốc-`.ppt` lại theo `page` thành một unit `slide` mỗi trang. **`page` bê
+  nguyên từ unit cũ** — không tính lại, không convert lại PDF; sai bất kỳ điều kiện an
+  toàn nào (page vượt `pageCount`, `validate_sidecar` bẩn) thì **bỏ qua, giữ sidecar
+  degrade**. Sidecar cũ copy sang `_sidecar_backup/` trước khi ghi. Idempotent — chạy lại
+  ra `targets=0`. Ghi log vào `<kho>\_worker.log` như pass thường.
+- **Chuẩn hóa text lúc nuốt file — TỰ ĐỘNG, mọi định dạng (v0.16.0).** Worker tự sửa hai
+  lỗi làm search không tra được dù chữ nhìn vẫn bình thường: (a) **font cũ VNI-Times**
+  (`MIEÃN, GIAÛM` — gõ "miễn giảm" không khớp), (b) **dấu tiếng Việt bị tách rời**
+  (`i` + dấu sắc tổ hợp thay vì `í`). Chạy **sau mọi nhánh reader và sau khi neo trang**,
+  áp cho `.pdf` / `.docx` / `.pptx` / `.doc` / `.ppt` / ảnh như nhau. *(v0.15.0 chỉ cắm ở
+  nhánh `.doc`/`.ppt` nên tài liệu PDF/docx/pptx cùng lỗi vẫn lọt — đã vá ở v0.16.0.)*
+  **Không cần nhờ ai sửa tay nữa** với tài liệu thêm mới từ đây.
+- **`vnifix` — vá ngược tài liệu ĐÃ nằm trong kho (v0.15.0, mở rộng v0.16.0), chạy TAY,
+  ngoài vòng 3 phút:** `python -m gu_library_worker.vnifix --kho "D:\GuLibrary-Prod\kho"`
+  → **mặc định DRY-RUN**, thêm `--apply` mới ghi. Làm đúng việc mà pipeline làm lúc nuốt
+  file (VNI + NFC), nên chạy sau một lượt nhập sẽ ra `targets=0`. Tên module giữ `vnifix`
+  từ v0.15.0 nhưng phạm vi giờ là **chuẩn hóa text nói chung**, không riêng VNI. **Chỉ
+  `text` đổi** — `page`, `bbox`, `label`, `path`, metadata bê nguyên, nên neo trang không
+  thể xê dịch. Từ chối ghi nếu làm rỗng unit, đổi số từ, đổi danh sách `page`, hoặc
+  `validate_sidecar` bẩn. Backup vào `_sidecar_backup_vni/` (**tách khỏi**
+  `_sidecar_backup/` của `reslide` — thư mục đó giữ bản trước-khi-gom-slide, không được
+  đè). Idempotent.
 - **Hai task hạ tầng riêng (v0.11.0 — ĐANG CHẠY, độc lập với `GuLibraryWorker`, chết
   độc lập):** `GuLibraryPrintSync` (mirror `_print/` Prod → `gdrive:GuLibrary/Di-in`
   mỗi ~15 phút) và `GuLibraryBackup` (CN 03:00 — robocopy snapshot → `rclone sync` lên
   `gdrive:GuLibrary/Backup`). Register bằng `scripts\register-ops-tasks.ps1` (Admin).
   Log riêng, **NGOÀI kho**: `D:\GuLibrary-Prod\_print-sync.log` và `_backup.log`. rclone
   cài user-scope (winget), remote tên `gdrive`, config OAuth ở `%APPDATA%\rclone\rclone.conf`.
+- **Cảnh báo qua chat (v0.17.0, Zalo Bot — đổi sang Telegram chỉ bằng config):** print-sync
+  lỗi liên tục **≥ 2 giờ** → tin `FAILING`, còn lỗi thì nhắc lại mỗi 24 giờ, hết lỗi →
+  `RECOVERED`. Backup thì **gửi `OK` sau mỗi lượt Chủ nhật** — đây là nhịp tim: **Chủ nhật
+  không thấy tin = có chuyện**, kể cả khi chính kênh cảnh báo đã chết. Config (chứa token,
+  **ngoài repo**): `%APPDATA%\GuLibrary\notify.json`; state cạnh log
+  (`_print-sync.state.json`, `_backup.state.json`). Setup/test: `scripts\notify-setup.ps1`
+  (`-Test` để gửi thử). Cảnh báo hỏng → log `WARN notify failed`, không bao giờ làm task fail.
+  **Câu chữ tiếng Việt nằm ở `scripts\notify-messages.json` (v0.18.0), không nằm trong code.**
+  Backup xong nhắn "Đã backup xong rồi nha huynh!". Tin lỗi ghi rõ **nguyên nhân + cách xử
+  lý + lỗi gốc**, tra theo danh sách `errors` (regex, khớp cái đầu tiên): mất mạng, hết hạn
+  đăng nhập Google, Drive đầy, bị giới hạn tốc độ, lệch giờ, thiếu rclone/config, ổ đầy,
+  robocopy lỗi. Gặp lỗi lạ (`error_unknown`) → thêm một mục vào `errors`.
+  **Mất mạng/cúp điện (v0.19.0): mini PC không tự báo được lúc đang sự cố** (chính nó là
+  người gửi tin), nên nó **báo bù khi có lại**: lỗi đủ lâu mà tin cảnh báo không gửi được
+  → `recovered_unreported` ("bị lỗi từ… nhưng không gửi được cảnh báo, nhiều khả năng mất
+  mạng"); lượt chạy trước cách **> 60 phút** → `downtime` ("Mini PC đã ngừng chạy từ… đến…"),
+  kèm giờ khởi động Windows để phân biệt *đã khởi động lại* (cúp điện/treo/Windows Update)
+  với *không khởi động lại* (sleep/task bị tắt). Muốn biết **ngay trong lúc** sự cố thì phải
+  có máy canh từ bên ngoài (healthchecks.io…) — đã cân nhắc, chưa làm vì hàng đợi in chậm
+  vài giờ không sao.
+  **Giới hạn 7 ngày (nếu có) không làm bot ngừng hoạt động:** chỉ chặn *bot tự nhắn trước*
+  khi huynh không nhắn gì cho bot quá 7 ngày. Nhắn bot một tin bất kỳ là khung 7 ngày tính
+  lại từ đầu. Phép thử: tin `OK` ngày 11/10/2026 — **không nhắn bot từ 29/09 tới 11/10**
+  để phép thử có ý nghĩa.
+  *Chưa chứng minh:* Zalo Bot có chặn tin chủ động sau 7 ngày không tương tác như Zalo OA
+  hay không. Tài liệu Zalo Bot không nói; tin `OK` Chủ nhật tuần thứ 2 sau setup chính là
+  phép thử. Không tới → đổi `provider` sang `telegram`.
 - **Cả 3 Scheduled Task chạy principal S4U** (run-whether-logged-on-or-not) → sống lại
   sau reboot **không cần ai logon**, và headless (session 0, không cửa sổ). Đây chính là
   cái làm "reboot tự dậy" ở §4/§6 thành sự thật. Đổi/thêm task phải giữ S4U; các
@@ -93,7 +157,7 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
    (simple versioning) bật — đây là lưới M8.
 3. **Máy Android mới:** cài Syncthing-Fork → trao đổi device-ID với Atomman → share
    ĐÚNG MỘT folder (QA hoặc Prod, không bao giờ cả hai) → chờ sync xong lượt đầu.
-4. **Worker:** *(máy Atomman mới — dựng môi trường trước:* cài Python 3.11+ và LibreOffice,
+4. **Worker:** *(Atomman mới — dựng môi trường trước:* cài Python 3.11+ và LibreOffice,
    `git clone` repo worker, `python -m venv .venv` rồi `.venv\Scripts\python -m pip install
    -e .`; soffice auto-detect nên không cần sửa PATH — chi tiết README worker.*)*
    Nếu là kho mới, thêm đường dẫn vào `-KhoRoot` (tách phẩy) của Scheduled
@@ -102,6 +166,9 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
    **Nếu dựng lại Prod** cần thêm 2 task hạ tầng: cài rclone + `rclone config` (remote
    `gdrive`, OAuth — xem README worker mục "Prod ops") rồi
    `scripts\register-ops-tasks.ps1 -KhoRoot "D:\GuLibrary-Prod\kho" -RcloneRemote "gdrive"` (Admin).
+   **Kèm theo: sửa nguồn giờ ngay từ đầu.** Mặc định Windows chỉ có một nguồn giờ
+   (`time.windows.com`) và nó hỏng trên Atomman → đồng hồ trôi → rclone sync chết (§6).
+   Chạy lệnh `w32tm /config /manualpeerlist:...` ở §6 rồi kiểm bằng `/stripchart`.
 5. **App (dựng + cài APK release, làm trên máy Mac):** bump version = sửa **1 chỗ**
    `versionName` trong `package.json` (`versionCode` tĩnh =2 ở build.gradle — không tăng,
    sideload không cần). Dựng: `cd android && ./gradlew assembleRelease` →
@@ -196,6 +263,40 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   không nói lên rclone còn sống. Kiểm `D:\GuLibrary-Prod\_print-sync.log` / `_backup.log`
   và `Get-ScheduledTask GuLibraryPrintSync,GuLibraryBackup | Get-ScheduledTaskInfo |
   Select State,LastTaskResult` (LastTaskResult `0` = OK). Test auth tay: `rclone lsd gdrive:`.
+  Từ v0.17.0 lỗi kéo dài sẽ tự báo qua Zalo (§3). **Không nhận được tin `OK` backup Chủ
+  nhật** = kiểm cả kênh cảnh báo: `scripts\notify-setup.ps1 -Test` + tìm `WARN notify` trong log.
+- **`_print-sync.log` lặp `ERROR sync failed: ... NOTICE: Time may be set wrong` — file
+  nằm trong `_print/` mà không lên Drive:** đã gặp thật (2026-09-21 → 09-26, 6 ngày không
+  sync được lần nào). **Đồng hồ Atomman lệch**, không phải lỗi Drive/OAuth — `rclone lsl
+  gdrive:` chạy tay vẫn exit 0. Hai lớp chồng nhau:
+  1. *Gốc — đồng hồ trôi:* Atomman chậm **~5 phút 44 giây**, trôi ~3 s/ngày. Lần sync
+     giờ thành công cuối là **11/06/2026**. `w32time` mặc định chỉ có **một** nguồn
+     `time.windows.com,0x9` (poll thưa ~9 tiếng), và nguồn đó hỏng dai dẳng từ máy này:
+     Event Log (System, nguồn `Time-Service`) lặp **ID 47** "peer is unreachable" và **ID
+     134** "No such host is known" (DNS lúc mạng rớt ban đêm). Không có nguồn dự phòng →
+     không sync được lần nào. *Giả thuyết, chưa chứng minh:* `time.windows.com` chỉ có IPv4,
+     service gửi từ **cổng nguồn UDP 123**, và nhiều ISP/router chặn cổng này. `w32tm
+     /stripchart` (cổng ngẫu nhiên) tới **cùng IP đó vẫn nhận được giờ**, còn service thì
+     không. `time.google.com` đi được qua IPv6 nên chạy ngon.
+  2. *Khuếch đại — script dừng vì một dòng cảnh báo:* `scripts\sync-print.ps1` đặt
+     `$ErrorActionPreference = "Stop"` và gọi `rclone ... 2>&1`. Trên **Windows PowerShell
+     5.1**, *bất kỳ* dòng stderr nào (kể cả NOTICE vô hại) cũng thành lỗi dừng script ngay
+     → rclone bị cắt trước khi kịp sync. Dấu hiệu nhận biết: dòng ERROR **không có** tiền
+     tố `rclone exit N :` (tiền tố này chỉ có khi rclone thất bại thật). **Đã vá ở v0.16.1**
+     (cả `sync-print.ps1` lẫn `backup.ps1`): script chỉ phán theo exit code. NOTICE giờ
+     hiện thành dòng `WARN rclone: ...` rồi vẫn `sync ok` → **thấy dòng WARN lệch giờ là
+     tín hiệu đi chỉnh đồng hồ**, sync không còn chết vì nó.
+  **Cách xử (Admin PowerShell):** thêm nguồn giờ dự phòng, bỏ kiểu poll thưa, rồi buộc
+  sync ngay:
+  `w32tm /config /manualpeerlist:"time.google.com,0x8 time.windows.com,0x8"
+  /syncfromflags:manual /update; Restart-Service w32time; w32tm /resync /rediscover`
+  (thêm `Set-Service w32time -StartupType Automatic` nếu service đang Stopped/Manual).
+  Báo `no time data was available` thì đợi 10–20 giây rồi chạy lại `w32tm /resync
+  /rediscover`. Dùng `/resync` trơn ngay sau khi vừa bật service thì chắc chắn gặp lỗi
+  này, vì peer chưa được hỏi lần nào. **Kiểm (không cần Admin):** `w32tm /stripchart
+  /computer:time.google.com /samples:2 /dataonly` → độ lệch phải cỡ `±00.0xs`; `w32tm
+  /query /peers` → `time.google.com` có `Stratum: 1`. Nút "Sync now" trong Settings dùng
+  chung service/nguồn này nên cũng hỏng theo khi nguồn hỏng — đừng tin nó để chẩn đoán.
 
 ## 7. Mô hình test cuốn chiếu (đã chốt 2026-07-03)
 
@@ -208,6 +309,10 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   nghiệm thu đủ hai máy test.
 
 ## 8. Trạng thái mốc & việc còn treo
+
+*Chia ba phần để hai máy không ghi đè lên nhau: Mac ghi §8.1, Atomman ghi §8.2.*
+
+### 8.1 App *(Mac ghi)*
 
 - App **v1.36.0** trên main, sạch, chỉ còn nhánh `main` (tag `v1.36.0`). Từ v1.19.0
   đến nay là **polish UI/UX + read-path thuần, KHÔNG coupling worker/hạ tầng mới** — deploy độc
@@ -524,10 +629,96 @@ dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài 
   - **Còn để ngỏ:** xấp giấy vẫn là khối CSS phẳng cạnh cỗ máy chụp thật — hợp mắt ở khổ 83px nhưng
     là chỗ chênh chất liệu rõ nhất nếu sau này phóng to.
 
-- Worker **v0.13.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
+### 8.2 Worker *(Atomman ghi)*
+
+- **Search của app (từ v1.38.0) ăn thẳng `units[]` trong sidecar:** mỗi đơn vị là một
+  kết quả tra được, hiện kèm `label` (vd "Điều 5", "Slide 12") và `page`, chạm là mở PDF
+  đúng trang.
+- **Hệ quả vận hành của search (quan trọng khi sửa sidecar):** app đọc `units[].text`,
+  `label`, `page`, và **cache chỉ mục theo `size` + `lastModified` của file sidecar**.
+  Ghi đè sidecar → mọi máy Android đọc lại và dựng lại chỉ mục **riêng file đó** (đúng
+  thiết kế). Ghi đè hàng loạt thì máy Gú sẽ có một lượt cập nhật chỉ mục dài — cân nhắc
+  chia đợt nếu số file lớn. Loạt v0.14.0–v0.16.0 đụng 19 + 7 + 26 file nên không cần chia.
+  **Chất lượng `units[]` giờ nhìn thấy được bằng mắt thường**, không còn là dữ liệu nằm im
+  — đây là lý do cả ba beat vừa rồi đều đáng làm.
+- Worker **v0.19.0** — hai task rclone đã triển khai và đang chạy; OAuth Drive đã setup.
+  v0.16.1 vá lỗi script rclone dừng vì một dòng NOTICE (sự cố lệch giờ 09/2026, §6);
+  v0.17.0 thêm cảnh báo qua Zalo Bot (§3), đã setup và nhận tin thử 2026-09-29; v0.18.0 tin tiếng Việt ghi rõ lỗi gì + cách xử; v0.19.0 báo bù sau mất mạng/cúp điện.
   **Không còn nợ hạ tầng.** Beat gần đây: ảnh→PDF 1 trang (v0.12.0), archive gốc
-  `.doc`/`.ppt` thay vì xóa (v0.13.0). Nợ Phase 2 đã đặt cọc: re-extract cấu trúc từ
-  các nguồn `.doc`/`.ppt` đã archive (làm cùng lúc thiết kế search).
+  `.doc`/`.ppt` thay vì xóa (v0.13.0), dựng lại cấu trúc slide (v0.14.0),
+  chuyển font cũ VNI→Unicode (v0.15.0),
+  chuẩn hóa text mọi đường vào (v0.16.0).
+- **Nợ Phase 2 "re-extract nguồn `.doc`/`.ppt` đã archive" — ĐÃ TRẢ (v0.14.0), nhưng khác
+  cách đặt cọc.** Đo trước khi làm cho ra ba điều không lường:
+  1. `.doc` **không** degrade — hai bộ luật `.doc` vẫn parse ra `legal` đủ 1717/912 unit.
+     Chỉ `.ppt` (slide) mới hỏng. Phạm vi thật: **19 tài liệu** (QA 7, Prod 12), không
+     phải hàng trăm. Tổng số sidecar degrade là 50/178 (QA) và 32/113 (Prod), nhưng phần
+     lớn là **PDF gốc dạng văn xuôi** — vốn không có cấu trúc để cứu, không phải nợ này.
+  2. Prod có **15 tài liệu gốc-OLE trong kho nhưng chỉ 6 nguồn trong archive** → 9 tài
+     liệu mất nguồn (xử lý trước v0.13.0, hồi đó còn xóa gốc). Re-extract từ archive
+     không chạm tới được.
+  3. Vì vậy chọn cách **gom lại từ chính sidecar** thay vì đọc lại nguồn: `page` bê
+     nguyên nên không thể lệch trang, và vá được cả 9 ca mất nguồn. Archive **không cần
+     dùng tới**, nhưng vẫn giữ (nguồn OOXML còn giá trị nếu sau này muốn speaker notes).
+  Verify: QA áp trước, xong mới tới Prod; kiểm ngược trên chính PDF trong kho —
+  **515/515 unit (QA 140, Prod 375) có text nằm đúng trang nó trỏ tới**, không mất chữ,
+  `validate_sidecar` sạch, chạy lại ra `targets=0`.
+- **Mồ côi trong archive (tín hiệu, KHÔNG xóa):** QA có 2 nguồn đã archive mà không tìm
+  thấy cặp `pdf`+`json` tương ứng trong kho — `BÀI GIẢNG LUẬT KINH TẾ-2.ppt` và
+  `2022-11-Luat So huu tri tue - HN lan 3-2.doc`. Nhiều khả năng Gú đã xóa/đổi tên tài
+  liệu trong kho sau khi worker xử lý. Prod map đủ 6/6.
+- **Một sidecar hỏng sẵn ở QA (có từ trước, chưa đụng):** `Chưa phân loại\Giám định pháp
+  y, tâm thần.json` thiếu `schemaVersion` + `title` → `validate_sidecar` fail. Có `.pdf`
+  đi kèm. Không phải do beat này; cần soi riêng. Prod: 113/113 sidecar hợp lệ.
+- **Nợ font cũ VNI-Times — ĐÃ TRẢ (v0.15.0).** Text sidecar ra dạng
+  `"CHÖÔNG XV — MIEÃN, GIAÛM"` nên gõ "miễn giảm" không khớp. Thực tế là **6 deck chứ
+  không phải 5** — `Bai 11` cũng có 645 ký tự VNI (chỉ ~9% nên chỉ số tỉ-lệ-ký-tự ban đầu
+  không bắt được); tất cả nằm trong `Hình sự phần chung\Slide tổ HS\`. Cộng 1 đoạn lẫn
+  VNI trong `Ôn thi\GIÁO TRÌNH HSPC` → **7 tài liệu, 224 unit** đã chuyển trên Prod.
+  Nguồn `.ppt` trong archive được dùng làm **trọng tài**, không phải nguồn text: convert
+  `.ppt`→`.pptx` bằng LibreOffice giữ nguyên tên font `VNI-Times` ở từng run, xác nhận
+  chỗ nào VNI chỗ nào Unicode. Text vẫn lấy từ sidecar tại chỗ nên `page` không đổi.
+  Verify: `page`/`bbox`/`label`/metadata/số-từ giữ nguyên tuyệt đối 7/7, `validate_sidecar`
+  sạch. Còn **20 unit sót ký tự VNI** — mảnh chữ PDF trích ra đã vỡ sẵn (dấu bị tách khỏi
+  nguyên âm bởi xuống dòng), không bảng chuyển nào cứu được.
+- **Bài học từ v0.15.0 — dữ liệu thật bác hai quy tắc "hiển nhiên đúng", cả hai đều bị
+  chặn ở dry-run:** (a) "nguyên âm + dấu" KHÔNG phải bằng chứng VNI — `oà`/`oá` là tiếng
+  Việt Unicode bình thường, quy tắc đó biến `Toà án`→`Tồ án`, `hoàn thiện`→`hồn thiện`,
+  `Hoàng`→`Hồng` trên 4 tài liệu; (b) ký tự `ö ä ü ñ` cũng KHÔNG phải bằng chứng — kho có
+  trích dẫn tiếng Đức/Tây Ban Nha, quy tắc đó biến `öffentliches`→`ưffentliches`,
+  `Acuña`→`Acuđa`. Bằng chứng chốt: **dấu riêng của VNI đứng NGAY SAU nguyên âm**. Đây là
+  lý do mọi công cụ ghi-đè sidecar phải mặc định DRY-RUN.
+- **Dấu tiếng Việt bị TÁCH RỜI — ĐÃ SỬA (v0.16.0).** Lưu là `i` + dấu sắc tổ hợp thay vì
+  `í`: nhìn y hệt trên màn hình, nhưng không truy vấn nào khớp được. Đã chuẩn hóa NFC cho
+  **26 tài liệu / 2.381 unit** ở Prod. Nặng nhất là các bộ luật —
+  `3. HỢP NHẤT_BLHS 2015…` 940/1674 unit, `0. VBHN BLHS 2015` 938/1627,
+  `8. TỌA ĐÀM TƯ PHÁP NGƯỜI CTN` 103/1157 — nên đây là món cải thiện tra cứu lớn nhất
+  trong cả loạt. Kiểm mẫu xác nhận thay đổi **thuần NFC** (`NFC(cũ) == mới`, đổi do VNI = 0);
+  verify 26/26 giữ nguyên `page`/`bbox`/`label`/metadata/số-từ.
+- **Lỗ hổng v0.15.0 đã vá:** bản đó chỉ cắm chuẩn hóa ở nhánh `.doc`/`.ppt`, mà 26 tài
+  liệu dính lỗi gồm **12 pdf, 8 pptx, 6 docx** — tức phần lớn vẫn lọt, và tài liệu thêm
+  mới cũng sẽ lọt. v0.16.0 chuyển thành một lượt chạy sau mọi nhánh reader. Bài học: cắm
+  bản vá vào đúng cái nhánh nơi mình *tình cờ tìm thấy* lỗi thì bỏ sót mọi đường vào khác.
+- **OCR — số đo mới, mở lại món đã tưởng đóng (2026-09-05).** Con số cũ "1/178 (~0,6%)"
+  đã lỗi thời (đo trước v0.12.0, trước khi có ảnh→PDF). Đo lại, tiêu chí: sidecar hợp lệ
+  mà **mọi unit đều mang `IMAGE_PAGE_MARKER`**:
+
+  | | Tài liệu | Trang |
+  |---|---|---|
+  | QA | 13/178 (7,3%) | 844/12.136 (7,0%) |
+  | **Prod** | **12/113 (10,6%)** | **680/9.096 (7,5%)** |
+
+  Đối chiếu với lịch sử đọc thật (`_reading-*.json`): Prod **5/12** tài liệu ảnh đã từng
+  được mở, và mở gần đây (7/2026) — trong đó `2. Luật sửa đổi BLHS 2025` đọc tới trang
+  **38/48**, `GT LUAT HINH SU PHAN CHUNG` 398 trang, `Giám định pháp y, tâm thần` 164
+  trang. 7 tài liệu còn lại (6 ảnh báo giấy 1 trang + 1 NQ 6 trang) chưa mở bao giờ.
+  Quy mô kỹ thuật: 680 trang, ~1,78 MP/trang, 146,7 MB. **Tesseract chưa cài trên
+  Atomman.** *Ước lượng (CHƯA đo, chỉ để cân nhắc): Tesseract `vie` cỡ 1–3 s/trang ở độ
+  phân giải này → ~12–35 phút cho một lượt toàn kho Prod, cộng công cài Tesseract +
+  traineddata tiếng Việt.* Chưa xây gì — chờ huynh quyết.
+
+### 8.3 Nguyên tắc chung
+
 - Backlog cũ (M10 folder-level, breadcrumb, nav chữ-bên-icon) đã **giải quyết xong** (M10 +
   breadcrumb đã làm; nav = won't-do). **Không còn backlog feature Phase 1 mở.** Nguyên tắc giữ
   nguyên: không mở beat mới cho tới khi có vấn đề quan sát được từ người dùng thật — không suy
