@@ -8,6 +8,9 @@ import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry, rena
 
 const DEVICE_KEY = 'device_id';
 let _seq = 0;
+// NOT milliseconds despite the name: ms × 1000 + a 0–999 counter, so two writes in the same ms
+// still order strictly. lastReadAt and tombstones use this scale; only compare/sort them —
+// divide by 1000 before treating one as a Date.
 function nowMs(): number { return Date.now() * 1000 + (_seq++ % 1000); }
 
 export async function getDeviceId(): Promise<string> {
