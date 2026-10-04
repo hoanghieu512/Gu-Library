@@ -150,6 +150,21 @@ export interface DocShard {
   imageOnly: boolean;
 }
 
+const DIEU = /^Điều\s/;
+
+/**
+ * Result label = unit label + its ancestors up to the nearest "Điều" (nearest first):
+ * "Khoản 2" under Điều 2 → "Khoản 2 · Điều 2", since every Điều has a Khoản 2. No Điều above →
+ * label unchanged, so Chương never clutters it (and odd worker paths like a "Chương II" heading
+ * under "Chương I" stay harmless).
+ */
+export function displayLabel(label: string, path: unknown): string {
+  const anc = Array.isArray(path) ? path.filter((p): p is string => typeof p === 'string' && p !== label) : [];
+  const k = anc.findLastIndex((p) => DIEU.test(p.normalize('NFC')));
+  const parts = k < 0 ? [label] : [label, ...anc.slice(k).reverse()];
+  return parts.filter(Boolean).join(' · ');
+}
+
 export function indexDoc(doc: IndexDoc, sidecar: Sidecar): DocShard {
   const units: Omit<IndexUnit, 'd'>[] = [];
   const tokens = new Map<string, number[]>();
@@ -160,7 +175,7 @@ export function indexDoc(doc: IndexDoc, sidecar: Sidecar): DocShard {
     const text = u.text as string;
     const local = units.length;
     units.push({
-      label: typeof u.label === 'string' ? u.label : '',
+      label: displayLabel(typeof u.label === 'string' ? u.label : '', u.path),
       page: Number.isFinite(u.page) ? (u.page as number) : 1,
       text,
     });

@@ -2,6 +2,78 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.40.0] — 2026-10-04 — Tìm kiếm: nhãn mang Điều + sheet tìm-trong-tài-liệu giữ câu tra
+### Changed
+- **Nhãn kết quả mang Điều chứa nó:** "Khoản 2 · trang 38" → **"Khoản 2 · Điều 2 · trang 38"** (trong một luật Điều nào cũng có Khoản 2). Ghép từ `path` của sidecar, đi lên tới Điều gần nhất; không có Điều phía trên thì giữ nguyên nhãn (không kéo "Chương" vào). Áp cho cả màn Tìm toàn kho lẫn sheet "Tìm trong tài liệu này".
+- **Sheet "Tìm trong tài liệu này" giữ câu tra:** chạm một kết quả → nhảy trang → mở lại sheet thì câu tra và kết quả vẫn còn (trước phải gõ lại). Nhớ theo từng tài liệu, trong lần mở Viewer đó; mở lại với câu cũ thì KHÔNG bật bàn phím để kết quả hiện ngay.
+### Notes
+- Chỉ mục tìm kiếm `SCHEMA` 2 → 3: nhãn ghép lúc dựng chỉ mục nên lần đầu vào màn Tìm sau khi cập nhật, **mọi máy tự dựng lại chỉ mục một lần** (dGen1 ~19,5 s / 180 tài liệu, có thanh tiến độ).
+- Màn Tìm toàn kho (tab dưới) vốn đã giữ câu tra vì Ionic giữ trang sống — không đổi.
+
+## [1.39.2] — 2026-09-07 — Tra nhiều chữ BẮT BUỘC liền nhau (Gú báo)
+### Fixed
+- **Tra nhiều chữ nay phải khớp NGUYÊN CỤM liền nhau.** Gú tra "là công dân" ra cả *"Lỗi kỹ thuật **là** lỗi… **đánh** máy… văn bản **công** chứng"*. Hai lỗi chồng nhau: (1) `search()` là AND thuần — đủ chữ ở bất kỳ đâu là khớp, cụm liền chỉ được ưu tiên khi xếp hạng; (2) gõ có dấu không thu hẹp được gì vì chỉ mục chỉ lưu dạng bỏ dấu (`công`/`cộng` cùng ra `cong`). Sửa (1) thì (2) tự hết phần lớn.
+- **Tô sáng nguyên cụm thành một vệt** thay vì tô rời từng chữ.
+### Notes
+- **Không phình chỉ mục:** bảng token vẫn lọc thô, rồi `phraseAt()` xác nhận liền-nhau trên tập ứng viên. So theo TOKEN chứ không phải chuỗi con, nên "là,\ncông dân" (phẩy + xuống dòng) vẫn tính là liền. Lưu vị trí token vào chỉ mục bị loại vì phình mạnh (đang 24,6 MB).
+- **Bẫy tự gây, sửa trong cùng beat:** trần quét `SCAN_CAP` đếm cả những đoạn bị loại bằng phép giao rẻ tiền → trần cháy sớm, kết quả tụt **50+ → 7** và phụ thuộc thứ tự tài liệu. Sửa thành **chỉ đếm việc đắt** (đoạn thật sự đem tách từ).
+- Verify UBS1: đúng ca Gú báo trong Tìm-trong-tài-liệu **32 đoạn → 1 đoạn** (*"1. Là công dân Việt Nam không quá 70 tuổi; · Khoản 1 · trang 6"*).
+- **Đánh đổi đã chọn:** tra nhiều chữ nay NGHIÊM — "sử dụng quy hoạch" không còn khớp *"sử dụng đất phải đúng quy hoạch"*. Chặt quá thì thêm mục "đủ chữ nhưng nằm rời", chưa làm vì chưa ai kêu.
+- **Đây là bản đưa lên máy Gú ngày 08/09** — một APK mang cả 1.39.0, 1.39.1 lẫn bản vá này.
+
+## [1.39.1] — 2026-09-07 — Dựng lại APK sau khi gỡ hàng "Đo hiệu năng"
+### Fixed
+- **APK v1.39.0 trên đĩa dựng TRƯỚC lúc gỡ hàng "Đo hiệu năng (debug)"**, rồi merge + tag mà quên dựng lại → cài lên máy thấy thiếu hẳn thay đổi vừa merge, nhìn số phiên bản không phân biệt được. Bump để hai APK khác nhau không mang cùng `versionName`. Không đổi code.
+### Notes
+- **Luật rút ra:** sửa code sau khi đã dựng APK thì **bump rồi dựng lại**, đừng dựng đè cùng số. Kiểm không cần cài: `unzip -p <apk> assets/public/assets/index-*.js | grep -c "<chuỗi mong đợi>"`.
+
+## [1.39.0] — 2026-09-07 — Tìm trong một tài liệu (góp ý thật của Gú)
+### Added
+- **"Tìm trong tài liệu này" ngay trong Viewer.** Gú dùng v1.38.1 rồi phản hồi: tìm toàn kho tốt, nhưng đang mở một quyển thì muốn tra ngay trong quyển đó.
+  - **Chế độ đơn:** icon 🔍 cùng hàng, bên trái ô "Tới trang…" — không thêm hàng riêng vì ăn ~40px vùng đọc, đáng kể trên màn vuông 480dp của dGen1.
+  - **Chế độ split:** chữ "Tìm" cạnh "Đổi" trên vạch chia, tra **pane dưới** (pane tra cứu) đúng như Gú xin.
+- Tài liệu là ảnh scan → sheet nói thẳng *"tài liệu này là ảnh chụp/scan — chưa tra được chữ"*, khác ca "không tìm thấy".
+### Removed
+- **Hàng "Đo hiệu năng (debug)" khỏi Cài đặt** — suốt v1.37→v1.39 đo bằng `adb dumpsys`/`gfxinfo`, chưa mở modal lần nào, mà đây là màn Cài đặt của Gú. **Chỉ gỡ lối vào:** bộ đo `src/perf/perf.ts` giữ nguyên (gỡ ra phải sờ read-path); `PerfDebugModal.tsx` không ai import nên Vite tree-shake khỏi bản dựng.
+### Notes
+- **Kết quả là SHEET ĐOẠN TRÍCH, không phải thanh ‹ › kiểu Ctrl+F** — lý do kỹ thuật: pdf.js vẽ ra canvas, không có lớp text nên **không tô sáng được chữ trên trang**; đoạn trích thay cho tô sáng.
+- **Không dựng engine mới:** tái dùng `indexDoc` + `search` + `makeSnippet` của v1.38.0. Index MỘT tài liệu ≈ 50ms đọc + 30ms tách từ → Viewer không phải nạp chỉ mục toàn kho (~130 MB). `src/search/docIndex.ts`.
+- **Hai bẫy React:** (a) đặt state đồng bộ trong effect để reset ô nhập → lint bắt; sửa bằng thân sheet có `key` theo tài liệu; (b) **`autoFocus` không ăn trong `IonModal`** → focus hoãn 350ms.
+- Verify UBS1: đơn — "toi pham" ra 50+ đoạn, chạm nhảy đúng **trang 64/322**; split — tra đúng pane dưới (14 đoạn, "Slide 35 · trang 35"), không lẫn pane trên.
+
+## [1.38.1] — 2026-09-05 — Không index câu đánh dấu trang ảnh như chữ thật
+### Fixed
+- **Câu đánh dấu trang ảnh scan bị index như nội dung** (lỗi của chính v1.38.0): 13 tài liệu QA / 12 Prod nằm trong chỉ mục như thể tra được, gõ gì cũng không ra mà không có dấu hiệu nào, lại đẻ token rác ("scan" khớp cả 13 tài liệu ảnh). `isReadableText()` nay loại cả chuỗi rỗng lẫn câu đánh dấu (khớp TIỀN TỐ `[trang ảnh scan`, vì đuôi `(trang N)` đổi theo trang).
+### Added
+- **Nói ra cho người dùng biết:** màn Tìm hiện *"đã đọc N tài liệu · M tài liệu là ảnh, chưa tra được chữ"*, và nhắc lại khi không tìm thấy gì. Đếm `imageOnly` = sidecar CÓ đơn vị nhưng KHÔNG đơn vị nào đọc được chữ (khác ca sidecar rỗng/hỏng — đó là lỗi worker).
+### Notes
+- Chỉ mục `SCHEMA` 1 → 2: mảnh cũ mang token rác, không vá tại chỗ được → mọi máy tự dựng lại.
+- **Lần đoán đầu SAI:** đặt hằng số bằng chính chuỗi `'IMAGE_PAGE_MARKER'` — đó là **TÊN BIẾN bên worker**, không phải giá trị. Giá trị thật đọc từ sidecar: `"[trang ảnh scan — chưa có lớp văn bản] (trang 12)"`. Đã bổ sung giá trị vào `gu-library-sidecar-schema.md` (khớp 3 nơi).
+- Ba nguồn độc lập cùng ra **13** trên kho QA: phiên worker đếm · `grep` trên máy · bộ đếm `imageOnly` của app. Gõ "scan" nay ra 6 đoạn thật ("Scandinavia").
+- **Bản đưa lên máy Gú ngày 05/09** (mang theo cả 1.37.0 và 1.38.0).
+
+## [1.38.0] — 2026-09-05 — Tìm kiếm toàn văn (mở Phase 2 lớp tri thức)
+### Added
+- **Màn Tìm tra thật:** gõ tới đâu tìm tới đó, kết quả là ĐOẠN TRÍCH tô sáng kèm môn/tài liệu/nhãn/trang; chạm là mở đúng trang (`/viewer/<uri>?p=N`). **Gõ KHÔNG DẤU ra kết quả CÓ DẤU** — yêu cầu gốc spec §7 ("dat dai" khớp `ĐẤT ĐAI`/`Đất đai`/`đất đai`).
+- Cài đặt → **"Dựng lại chỉ mục tìm kiếm"**: chỉ mục là dữ liệu phái sinh, hỏng thì xoá dựng lại.
+- `SafPlugin.listFolder` trả thêm **`size` + `lastModified`** trong cùng cursor (không tốn thêm vòng SAF) — dấu vân tay để chỉ đọc lại file đã đổi. **`-1` = provider không trả cột đó → coi là ĐÃ ĐỔI**, không bao giờ coi hai cái "không biết" là bằng nhau.
+### Notes
+- **Chỉ mục nằm trong IndexedDB của máy, KHÔNG vào cây Syncthing** (spec §4.3). **Chẻ theo tài liệu** (`DocShard`): đổi một file chỉ tách từ lại đúng file đó; kèm lối tắt "kho không đổi" khỏi đọc IndexedDB (thiếu nó đỉnh bộ nhớ 304 → 568 MB vì hai bản chỉ mục cùng sống).
+- **Số đo UBS1 (kho QA 178 tài liệu · 147.777 đơn vị · 20,8M ký tự):** dựng lần đầu **14,0 s** (có màn tiến độ) · tra một từ **1–3 ms** · chỉ mục **24,6 MB** · bộ nhớ màn Tìm **303 MB** lắng, đỉnh **389 MB** (nền Home 174). dGen1: Home 250 → màn Tìm 433 MB.
+- **Đọc sidecar bằng `Saf.readFile` (bridge), KHÔNG fetch** — đảo ngược suy đoán ban đầu: 8,7 s so với 14,2 s cho 178 file. **Luật: nhiều file nhỏ → bridge, một file lớn → fetch.** Chi tiết: `Docs/perf/2026-09-05-spike-search-index.md`.
+- **Còn treo:** chỉ mục nằm lại RAM sau khi rời màn Tìm (~130 MB, Ionic giữ trang sống) · xếp hạng còn thô, trần 50 kết quả · cross-link tới Điều (spec §8) chưa làm.
+
+## [1.37.0] — 2026-09-04 — Book Press raster (beat thí điểm gáy-sách-raster)
+### Changed
+- **Máy ép "Chưa phân loại" (`BookPress.tsx`) từ SVG tự vẽ → 3 sprite cắt từ MỘT tấm ảnh** (Higgsfield, nano-banana) bằng `scripts/make-press-sprites.py`. Lấy máy ép làm miếng nhỏ nhất kiểm được cả chất asset lẫn perf raster trên WebView mà không đụng kệ.
+- **Trạng thái LIÊN TỤC theo số tài liệu** (bản SVG chỉ 3 nấc 0 / 1–4 / ≥5). Phép ánh xạ tách ra `src/home/press.ts` — thuần, 12 test.
+### Notes
+- **`PRESS_W` giữ đúng 83** như bản SVG: thử 122 rồi 88, cả hai đều bị `packShelves` đẩy xuống một tầng gần như trống.
+- **Gate máy 6GB — A/B trên UBS1, 3 lượt mỗi bản:** PSS Home **173 → 174 MB** (nằm trong dải dao động 171–176) · giật khi cuộn kệ 0,40% → 0,41% · p95 11 ms cả hai · APK **+115 KB** → **raster không tốn thêm gì đo được.**
+- **Ranh giới ảnh/code:** ảnh chỉ mang **vân + độ cong**; mọi thứ có kích thước phụ thuộc dữ liệu là code (lần đầu để gờ/khung trong ảnh → chồng đúp với thứ code vẽ).
+- **Luật chữ nhỏ:** WebView âm thầm nâng chữ đặt bằng CSS lên ~8px → bảng đồng tràn. **Chữ < 8px BẮT BUỘC đi `<svg viewBox>`** (cỡ tính bằng user unit, không bị nâng).
+- Prompt sinh ảnh gốc ghi ở ops doc §8.1 (ảnh gốc 6MB không commit). Lên máy Gú cùng bản 1.38.1 ngày 05/09.
+
 ## [1.36.0] — 2026-07-28 — Tuyến B / Beat B4c: thanh chia kéo được (BEAT CUỐI TUYẾN B)
 ### Added
 - **Kéo vạch chia để đổi tỉ lệ hai pane.** Vùng chạm rộng cho ngón cái: vạch dày **22px** ở CẢ HAI trạng thái (trước là 5px — quá mảnh); khi đang có tài liệu tra cứu thì vạch mang thêm nút "Đổi" và vẫn kéo được. **Tay-nắm** (pill nhũ-kem) nay mới vẽ — B4a cố ý chưa vẽ vì lúc đó kéo chưa tồn tại.
