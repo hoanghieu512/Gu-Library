@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyIndex, addDoc, search, indexStats } from './invertedIndex';
+import { emptyIndex, addDoc, search, indexStats, displayLabel } from './invertedIndex';
 
 // Đúng câu worker ghi vào sidecar cho trang ảnh — có đuôi số trang nên phải khớp TIỀN TỐ.
 const MARK = (n: number) => `[trang ảnh scan — chưa có lớp văn bản] (trang ${n})`;
@@ -241,5 +241,37 @@ describe('trần quét — chữ phổ biến không được làm khựng bàn 
     const t0 = Date.now();
     expect(search(ix, 'la cong dan')).toEqual([]);
     expect(Date.now() - t0).toBeLessThan(400);
+  });
+});
+
+describe('nhãn kết quả mang Điều chứa nó (v1.40.0)', () => {
+  // "Khoản 2 · trang 38" không nói khoản đó của Điều nào — trong một luật Điều nào cũng có Khoản 2.
+  it.each([
+    ['Khoản 1', ['Chương I', 'Điều 2'], 'Khoản 1 · Điều 2'],
+    ['Khoản 2', ['Điều 2'], 'Khoản 2 · Điều 2'],
+    ['Điểm a', ['Chương I', 'Điều 5', 'Khoản 2'], 'Điểm a · Khoản 2 · Điều 5'],
+    ['', ['Chương I', 'Điều 7'], 'Điều 7'],
+    // Không có Điều phía trên → giữ nguyên, không kéo Chương vào làm rối nhãn.
+    ['Điều 1', ['Chương I'], 'Điều 1'],
+    ['', ['Chương I'], ''],
+    ['Slide 12', [], 'Slide 12'],
+    // Worker đôi khi để chính đơn vị trong path, hoặc path lạ (heading "Chương II" dưới "Chương I").
+    ['Điều 28', ['Chương V', 'Điều 28'], 'Điều 28'],
+    ['Chương II', ['Chương I'], 'Chương II'],
+  ])('%s + %j → "%s"', (label, path, want) => {
+    expect(displayLabel(label, path)).toBe(want);
+  });
+
+  it('path thiếu hoặc hỏng → chỉ còn nhãn gốc, không ném', () => {
+    expect(displayLabel('Khoản 3', undefined)).toBe('Khoản 3');
+    expect(displayLabel('Khoản 3', 'Điều 2' as unknown as string[])).toBe('Khoản 3');
+  });
+
+  it('nhãn ghép đi tới tận kết quả tra', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, {
+      units: [{ type: 'khoan', label: 'Khoản 2', path: ['Chương I', 'Điều 2'], page: 38, text: 'Quyết định về đặc xá.' }],
+    });
+    expect(search(ix, 'dac xa', 10)[0].unit.label).toBe('Khoản 2 · Điều 2');
   });
 });

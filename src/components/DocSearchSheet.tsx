@@ -24,22 +24,32 @@ export default function DocSearchSheet({ isOpen, docUri, docName, onClose, onJum
   onClose: () => void;
   onJump: (page: number) => void;
 }) {
+  // The body unmounts whenever the sheet closes (including after tapping a result), so the query
+  // lives out here, per document: jump to a hit, it's the wrong one, reopen → same query, same hits.
+  const [queries, setQueries] = useState<Record<string, string>>({});
   return (
     <GuSheet isOpen={isOpen} title="Tìm trong tài liệu này" onClose={onClose} breakpoint={0.75}>
       {/* `key` theo tài liệu: đổi tài liệu là thân sheet mount lại → ô nhập và kết quả tự tươi.
           KHÔNG reset state bằng tay trong effect (đặt state đồng bộ trong effect gây vẽ lại
           dây chuyền — lint bắt đúng, và cách này còn ít chỗ sai hơn). */}
       {isOpen && docUri && (
-        <Body key={docUri} docUri={docUri} docName={docName} onClose={onClose} onJump={onJump} />
+        <Body
+          key={docUri} docUri={docUri} docName={docName} onClose={onClose} onJump={onJump}
+          initialQ={queries[docUri] ?? ''}
+          onQueryChange={(v) => setQueries((m) => ({ ...m, [docUri]: v }))}
+        />
       )}
     </GuSheet>
   );
 }
 
-function Body({ docUri, docName, onClose, onJump }: {
+function Body({ docUri, docName, onClose, onJump, initialQ, onQueryChange }: {
   docUri: string; docName: string; onClose: () => void; onJump: (page: number) => void;
+  initialQ: string; onQueryChange: (q: string) => void;
 }) {
-  const [q, setQ] = useState('');
+  const [q, setQState] = useState(initialQ);
+  const [reopened] = useState(initialQ !== '');   // fixed at mount; initialQ keeps changing as we type
+  const setQ = (v: string) => { setQState(v); onQueryChange(v); };
   const [hits, setHits] = useState<Hit[]>([]);
   const [ix, setIx] = useState<SearchIndex | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'image' | 'error'>('loading');
@@ -47,10 +57,12 @@ function Body({ docUri, docName, onClose, onJump }: {
 
   // `autoFocus` KHÔNG ăn trong IonModal — đo trên máy: sheet mở ra mà bàn phím không bật, phải
   // chạm thêm một nhát vào ô. Hoãn một nhịp cho sheet trượt xong rồi mới focus.
+  // Reopened with a remembered query → leave the keyboard down so the hits stay visible.
   useEffect(() => {
+    if (reopened) return;
     const t = setTimeout(() => inputRef.current?.focus(), 350);
     return () => clearTimeout(t);
-  }, []);
+  }, [reopened]);
 
   // Nạp lại mỗi lần MỞ sheet cho một tài liệu — index một quyển rẻ (~80ms), khỏi giữ trong RAM
   // giữa các lần mở, và luôn tươi nếu worker vừa ghi đè sidecar.

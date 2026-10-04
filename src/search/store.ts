@@ -20,7 +20,9 @@ const KEY = 'v1';
 // Tăng số này khi đổi cách sinh token / hình dạng mảnh → mọi máy tự dựng lại, khỏi so tay.
 // 2 (05/09): v1.38.0 index NHẦM `IMAGE_PAGE_MARKER` như chữ thật. Mảnh cũ đang mang token rác
 // nên PHẢI dựng lại, không thể vá tại chỗ.
-const SCHEMA = 2;
+// 3 (04/10, v1.40.0): unit label now carries its Điều ("Khoản 2 · Điều 2") — built at index time,
+// so stored shards hold the old labels and must be rebuilt.
+const SCHEMA = 3;
 
 export interface StoredShard extends DocShard {
   jsonUri: string;

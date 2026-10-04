@@ -2,6 +2,14 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.40.0] — 2026-10-04 — Tìm kiếm: nhãn mang Điều + sheet tìm-trong-tài-liệu giữ câu tra
+### Changed
+- **Nhãn kết quả mang Điều chứa nó:** "Khoản 2 · trang 38" → **"Khoản 2 · Điều 2 · trang 38"** (trong một luật Điều nào cũng có Khoản 2). Ghép từ `path` của sidecar, đi lên tới Điều gần nhất; không có Điều phía trên thì giữ nguyên nhãn (không kéo "Chương" vào). Áp cho cả màn Tìm toàn kho lẫn sheet "Tìm trong tài liệu này".
+- **Sheet "Tìm trong tài liệu này" giữ câu tra:** chạm một kết quả → nhảy trang → mở lại sheet thì câu tra và kết quả vẫn còn (trước phải gõ lại). Nhớ theo từng tài liệu, trong lần mở Viewer đó; mở lại với câu cũ thì KHÔNG bật bàn phím để kết quả hiện ngay.
+### Notes
+- Chỉ mục tìm kiếm `SCHEMA` 2 → 3: nhãn ghép lúc dựng chỉ mục nên lần đầu vào màn Tìm sau khi cập nhật, **mọi máy tự dựng lại chỉ mục một lần** (dGen1 ~19,5 s / 180 tài liệu, có thanh tiến độ).
+- Màn Tìm toàn kho (tab dưới) vốn đã giữ câu tra vì Ionic giữ trang sống — không đổi.
+
 ## [1.36.0] — 2026-07-28 — Tuyến B / Beat B4c: thanh chia kéo được (BEAT CUỐI TUYẾN B)
 ### Added
 - **Kéo vạch chia để đổi tỉ lệ hai pane.** Vùng chạm rộng cho ngón cái: vạch dày **22px** ở CẢ HAI trạng thái (trước là 5px — quá mảnh); khi đang có tài liệu tra cứu thì vạch mang thêm nút "Đổi" và vẫn kéo được. **Tay-nắm** (pill nhũ-kem) nay mới vẽ — B4a cố ý chưa vẽ vì lúc đó kéo chưa tồn tại.
