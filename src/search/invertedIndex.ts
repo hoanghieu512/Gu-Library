@@ -245,9 +245,52 @@ export interface Hit {
  *   2. chỗ khớp xuất hiện SỚM trong đơn vị
  *   3. đơn vị NGẮN hơn (đoạn ngắn mà chứa đủ từ thì sát nghĩa hơn đoạn dài)
  */
+// Symbols that carry meaning when glued to a word/number ("35%", "15/5", "15.5", "TT-BCA").
+// Sentence marks (. , :) only count BETWEEN two alnums — "15.5" yes, "điều 5." no — so a stray
+// trailing dot or comma never narrows a query. Quotes/brackets are never meaningful.
+const SYMBOLS = '%/-+&°§.,:';
+const SENTENCE = '.,:';
+
+export interface Literal {
+  re: RegExp;        // run on fold(text)
+  syms: string[];    // every meaningful symbol — cheap raw-text pre-check (fold leaves them alone)
+}
+
+/**
+ * Query → strict literal matcher, or null when it has no meaningful symbol (then search behaves
+ * exactly as before). The index has no symbols at all, so this runs as a verification pass on
+ * candidates. Text may space a symbol out ("35 %", "15 / 5"); sentence marks must sit tight.
+ */
+export function literalOf(query: string): Literal | null {
+  const runs = fold(query).trim().match(/[a-z0-9]+|[^a-z0-9]+/g) ?? [];
+  const esc = (c: string) => c.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&');
+  const isTok = (r: string) => /^[a-z0-9]/.test(r);
+  const syms: string[] = [];
+  let src = '';
+  runs.forEach((run, i) => {
+    if (isTok(run)) { src += run; return; }
+    const prev = i > 0, next = i < runs.length - 1;
+    const kept = [...run].filter((c, k) => {
+      if (!SYMBOLS.includes(c)) return false;
+      const left = k === 0 && prev, right = k === run.length - 1 && next;
+      return SENTENCE.includes(c) ? left && right : left || right;
+    });
+    if (kept.length) {
+      syms.push(...kept);
+      src += kept.map((c) => (SENTENCE.includes(c) ? esc(c) : `\\s*${esc(c)}\\s*`)).join('');
+    } else if (prev && next) {
+      src += '[^a-z0-9]+';            // plain gap between words: punctuation/newlines don't break it
+    }
+  });
+  if (syms.length === 0) return null;
+  // Leading boundary only; the end stays open so the last word still matches as a prefix.
+  return { re: new RegExp((isTok(runs[0] ?? '') ? '(?<![a-z0-9])' : '') + src), syms };
+}
+
 export function search(ix: SearchIndex, query: string, limit = 50): Hit[] {
   const { seq, exact, prefix } = parseQuery(query);
   if (!prefix) return [];
+  const lit = literalOf(query);
   // Từ 2 chữ trở lên thì BẮT BUỘC liền nhau. Trước đây chỉ cần đoạn chứa đủ các chữ ở bất kỳ đâu
   // nên "Lỗi kỹ thuật LÀ lỗi do sai sót… ĐÁNH máy… văn bản CÔNG chứng" lọt vào khi tra
   // "là công dân" — Gú gặp thật. Bảng token vẫn dùng để LỌC THÔ, đây là bước xác nhận.
@@ -280,12 +323,16 @@ export function search(ix: SearchIndex, query: string, limit = 50): Hit[] {
     // Chỉ phải kiểm lại tập tiền tố khi đang quét theo danh sách token nguyên.
     if (driveByExact && !pset.has(id)) continue;
     if (!others.every((s) => s.has(id))) continue;
+    const u = ix.units[id];
+    // A unit missing the symbol at all is dropped BEFORE it counts toward any cap — otherwise the
+    // caps fill up with plain "35"s in kho order and a "35%" late in the kho is never reached.
+    if (lit && !lit.syms.every((c) => u.text.includes(c))) continue;
     // Trần chỉ đếm VIỆC ĐẮT (tách từ để kiểm cụm). Đếm cả những đoạn bị loại bằng phép giao
     // rẻ tiền là sai: trần cháy trước khi kịp xét, kết quả tụt từ 50+ xuống 7 — đã đo thật.
     if (++scanned > SCAN_CAP) break;
-    const u = ix.units[id];
-    const pos = needPhrase ? phraseAt(u.text, seq) : fold(u.text).indexOf(prefix);
-    if (needPhrase && pos < 0) continue;         // có đủ chữ nhưng nằm rời → KHÔNG tính là khớp
+    const pos = lit ? fold(u.text).search(lit.re)
+      : needPhrase ? phraseAt(u.text, seq) : fold(u.text).indexOf(prefix);
+    if ((lit || needPhrase) && pos < 0) continue; // có đủ chữ nhưng nằm rời / sai ký hiệu → KHÔNG khớp
     scored.push({ id, pos: pos < 0 ? 1e9 : pos, len: u.text.length });
     if (scored.length >= CANDIDATE_CAP) break;
   }
