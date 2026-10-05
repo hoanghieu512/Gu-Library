@@ -275,3 +275,67 @@ describe('nhãn kết quả mang Điều chứa nó (v1.40.0)', () => {
     expect(search(ix, 'dac xa', 10)[0].unit.label).toBe('Khoản 2 · Điều 2');
   });
 });
+
+describe('ký hiệu dính vào chữ/số phải khớp ĐÚNG (v1.40.1 — huynh bắt được)', () => {
+  // Trước: bộ tách từ vứt mọi ký hiệu → "35%" chỉ còn token `35` (tiền tố) → ra cả 35, 350, 135…
+  // "15/5" và "15.5" thành CÙNG một cụm `15 5`.
+  const DOC = { pdfUri: 'uri://ldn.pdf', name: 'Luật doanh nghiệp 2020', mon: 'PLCTKD' };
+  function ix() {
+    const x = emptyIndex();
+    addDoc(x, DOC, {
+      units: [
+        { label: 'A', page: 1, text: 'Khoản 35 Điều 4.' },
+        { label: 'B', page: 2, text: 'Vốn điều lệ 350 tỷ đồng.' },
+        { label: 'C', page: 3, text: 'Cổ đông sở hữu ít nhất 35% vốn điều lệ.' },
+        { label: 'D', page: 4, text: 'Tỷ lệ 135% so với năm trước.' },
+        { label: 'E', page: 5, text: 'Giá trị từ 35 % tổng tài sản.' },
+        { label: 'F', page: 6, text: 'Nghị quyết số 02/2018 ngày 15/5/2018.' },
+        { label: 'G', page: 7, text: '15.5. Phẫu thuật nối túi mật.' },
+        { label: 'H', page: 8, text: 'Kích thước 15,5cm.' },
+        { label: 'I', page: 9, text: 'Thông tư 15/2015/TT-BCA.' },
+        { label: 'J', page: 10, text: 'Có 15 ngày để khiếu nại.' },
+      ],
+    });
+    return x;
+  }
+  const labels = (q: string) => search(ix(), q, 50).map((h) => h.unit.label).sort();
+
+  it.each([
+    ['35%', ['C', 'E']],                 // "35 %" có dấu cách vẫn tính; 35, 350, 135% thì không
+    ['15/5', ['F']],                     // không còn lẫn 15.5 và 15,5cm
+    ['15.5', ['G']],
+    ['15,5', ['H']],
+    ['15/', ['F', 'I']],                 // 15/5/2018 và 15/2015 — không phải số 15 trơn
+    ['tt-bca', ['I']],
+  ])('"%s" → %j', (q, want) => {
+    expect(labels(q)).toEqual(want);
+  });
+
+  it.each([
+    ['.', []],                           // dấu câu đứng một mình: không có chữ để tra → rỗng như cũ
+    [',', []],
+  ])('"%s" đứng một mình → rỗng', (q, want) => {
+    expect(labels(q)).toEqual(want);
+  });
+
+  it.each([
+    ['dieu 4.', 'dieu 4'],               // dấu câu cuối câu: bỏ qua, tra như không có
+    ['khoan 35,', 'khoan 35'],
+    ['“dieu 4”', 'dieu 4'],              // ngoặc kép không phải ký hiệu có nghĩa
+  ])('"%s" tra y như "%s"', (q, same) => {
+    expect(labels(q)).toEqual(labels(same));
+    expect(labels(q).length).toBeGreaterThan(0);
+  });
+
+  it('đoạn có ký hiệu nằm SAU 600 ứng viên trong kho vẫn tìm ra (trần không còn cắt theo thứ tự kho)', () => {
+    const x = emptyIndex();
+    for (let i = 0; i < 8; i++) {
+      addDoc(x, { pdfUri: `uri://filler${i}.pdf`, name: `Filler ${i}`, mon: 'A' }, {
+        units: Array.from({ length: 100 }, (_, k) => ({ label: '', page: k + 1, text: `Trang 35 dòng ${k}.` })),
+      });
+    }
+    addDoc(x, DOC, { units: [{ label: 'Khoản 2', page: 9, text: 'Sở hữu ít nhất 35% vốn điều lệ.' }] });
+    const hits = search(x, '35%', 50);
+    expect(hits.map((h) => h.doc.name)).toEqual(['Luật doanh nghiệp 2020']);
+  });
+});

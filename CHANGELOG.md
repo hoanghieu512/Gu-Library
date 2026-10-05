@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.40.1] — 2026-10-05 — Tìm kiếm: ký hiệu dính vào chữ/số phải khớp đúng (huynh bắt được)
+### Fixed
+- **"35%" ra toàn "35".** Bộ tách từ vứt mọi ký hiệu → "35%" chỉ còn `35`, lại khớp kiểu tiền tố nên ra cả 35, 350, 135…; trong Luật doanh nghiệp 2020, 11 đoạn ra chỉ 6 đoạn có "35%" thật, bị xếp lẫn. Nay ký hiệu **dính vào chữ hoặc số** (`% / - + & ° §`, và `. , :` khi nằm GIỮA hai chữ/số) là **bắt buộc khớp đúng**: "35%" ra đúng 6 đoạn đó, "15/5" không còn lẫn "15.5"/"15,5cm", "15/" ra 15/5/2018, 15/2015… chứ không ra số 15 trơn.
+- **Màn Tìm toàn kho không hiện tài liệu cuối kho** khi tra "35%": trần 600 ứng viên tính theo THỨ TỰ KHO, bị lấp đầy bởi các đoạn "35" trơn trước khi tới PLCTKD. Đoạn không chứa ký hiệu nay bị loại TRƯỚC khi tính vào trần.
+### Notes
+- **Không làm tràn kết quả khi gõ dấu câu:** "." hay "," đứng một mình vẫn ra rỗng; dấu câu cuối câu/đứng trước khoảng trắng ("điều 5.", "a, b") bị bỏ qua như cũ; ngoặc kép không tính.
+- Văn bản viết "35 %" hay "15 / 5" (có dấu cách) vẫn khớp; `. , :` thì phải liền ("15.5").
+- **Đánh đổi đã chọn:** nghiêm — "15/5" không khớp "15/05". Tô sáng đoạn trích vẫn chỉ tô phần chữ/số ("35", chưa tô "%").
+- Kiểm bằng một lượt xác nhận trên ứng viên (như cụm liền nhau ở 1.39.2), **chỉ mục KHÔNG đổi** → không phải dựng lại. Trên sidecar thật: "35%" 6 đoạn trong ~5 ms.
+- Chưa sửa: tra số TRƠN rất phổ biến ("35") vẫn có thể bị trần 600 cắt theo thứ tự kho ở màn Tìm toàn kho — món xếp hạng riêng, chờ khi gặp.
+
 ## [1.40.0] — 2026-10-04 — Tìm kiếm: nhãn mang Điều + sheet tìm-trong-tài-liệu giữ câu tra
 ### Changed
 - **Nhãn kết quả mang Điều chứa nó:** "Khoản 2 · trang 38" → **"Khoản 2 · Điều 2 · trang 38"** (trong một luật Điều nào cũng có Khoản 2). Ghép từ `path` của sidecar, đi lên tới Điều gần nhất; không có Điều phía trên thì giữ nguyên nhãn (không kéo "Chương" vào). Áp cho cả màn Tìm toàn kho lẫn sheet "Tìm trong tài liệu này".
