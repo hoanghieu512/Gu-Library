@@ -24,13 +24,22 @@ export default function DocSearchSheet({ isOpen, docUri, docName, onClose, onJum
   docName: string;
   onClose: () => void;
   onJump: (page: number) => void;
-  /** A query to start with (Search screen "Xem cả N đoạn"); read once, at mount. */
-  seed?: { docUri: string; q: string };
+  /**
+   * A query to start with (Search screen "Xem cả N đoạn"). A new `key` replaces the remembered
+   * query and restarts the body — the Viewer may be a living page re-entered from another tab.
+   */
+  seed?: { docUri: string; q: string; key: string };
 }) {
   // The body unmounts whenever the sheet closes (including after tapping a result), so the query
   // lives out here, per document: jump to a hit, it's the wrong one, reopen → same query, same hits.
   // A seed counts as a remembered query, so the keyboard stays down and the hits show at once.
   const [queries, setQueries] = useState<Record<string, string>>(() => (seed ? { [seed.docUri]: seed.q } : {}));
+  // Adjust state while rendering when the seed changes (no effect → no extra render pass).
+  const [seedKey, setSeedKey] = useState(seed?.key);
+  if (seed && seed.key !== seedKey) {
+    setSeedKey(seed.key);
+    setQueries((m) => ({ ...m, [seed.docUri]: seed.q }));
+  }
   return (
     <GuSheet isOpen={isOpen} title="Tìm trong tài liệu này" onClose={onClose} breakpoint={0.75}>
       {/* `key` theo tài liệu: đổi tài liệu là thân sheet mount lại → ô nhập và kết quả tự tươi.
@@ -38,7 +47,7 @@ export default function DocSearchSheet({ isOpen, docUri, docName, onClose, onJum
           dây chuyền — lint bắt đúng, và cách này còn ít chỗ sai hơn). */}
       {isOpen && docUri && (
         <Body
-          key={docUri} docUri={docUri} docName={docName} onClose={onClose} onJump={onJump}
+          key={`${docUri}#${seedKey ?? ''}`} docUri={docUri} docName={docName} onClose={onClose} onJump={onJump}
           initialQ={queries[docUri] ?? ''}
           onQueryChange={(v) => setQueries((m) => ({ ...m, [docUri]: v }))}
         />

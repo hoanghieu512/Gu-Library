@@ -84,7 +84,7 @@ describe('DocSearchSheet giữ câu tra (v1.40.0)', () => {
 describe('DocSearchSheet from "Xem cả N đoạn" (v1.41.0)', () => {
   it('seeded query shows hits without typing and leaves the keyboard down', async () => {
     render(<DocSearchSheet isOpen docUri="uri://luat-sd.pdf" docName="Luật SĐ" onClose={noop} onJump={noop}
-      seed={{ docUri: 'uri://luat-sd.pdf', q: 'dac xa' }} />);
+      seed={{ docUri: 'uri://luat-sd.pdf', q: 'dac xa', key: 'k0' }} />);
     expect(await screen.findByText('2 đoạn khớp')).toBeInTheDocument();
     const input = screen.getByLabelText('Tìm trong tài liệu này');
     expect(input).toHaveValue('dac xa');
@@ -94,7 +94,7 @@ describe('DocSearchSheet from "Xem cả N đoạn" (v1.41.0)', () => {
 
   it('seed for another document does not leak into this one', async () => {
     render(<DocSearchSheet isOpen docUri="uri://b.pdf" docName="B" onClose={noop} onJump={noop}
-      seed={{ docUri: 'uri://a.pdf', q: 'dac xa' }} />);
+      seed={{ docUri: 'uri://a.pdf', q: 'dac xa', key: 'k0' }} />);
     expect(await screen.findByLabelText('Tìm trong tài liệu này')).toHaveValue('');
   });
 
@@ -109,5 +109,14 @@ describe('DocSearchSheet from "Xem cả N đoạn" (v1.41.0)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Hiện thêm 20 đoạn' }));
     expect(screen.getAllByRole('button', { name: /^Nhảy tới trang/ })).toHaveLength(120);
     expect(screen.queryByRole('button', { name: /^Hiện thêm/ })).toBeNull();
+  });
+
+  it('a NEW seed (new key) for an already-mounted sheet replaces the query — Viewer reused from another tab', async () => {
+    const props = { isOpen: true, docUri: 'uri://luat-sd.pdf', docName: 'Luật SĐ', onClose: noop, onJump: noop };
+    const { rerender } = render(<DocSearchSheet {...props} seed={{ docUri: 'uri://luat-sd.pdf', q: 'dac xa', key: 'k1' }} />);
+    expect(await screen.findByText('2 đoạn khớp')).toBeInTheDocument();
+    rerender(<DocSearchSheet {...props} seed={{ docUri: 'uri://luat-sd.pdf', q: 'khoan 2', key: 'k2' }} />);
+    expect(await screen.findByLabelText('Tìm trong tài liệu này')).toHaveValue('khoan 2');
+    expect(await screen.findByText('1 đoạn khớp')).toBeInTheDocument();
   });
 });

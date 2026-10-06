@@ -25,4 +25,13 @@ describe('viewerUrl / readViewerParams', () => {
   it('no options → bare viewer path', () => {
     expect(viewerUrl('content://x/a.pdf')).toBe(`/viewer/${encodeUriParam('content://x/a.pdf')}`);
   });
+
+  it('a page or query link carries a fresh one-shot nonce; a bare link carries none', () => {
+    const a = readViewerParams(viewerUrl('content://x/a.pdf', { q: 'hop dong' }).split('?')[1]);
+    const b = readViewerParams(viewerUrl('content://x/a.pdf', { q: 'hop dong' }).split('?')[1]);
+    expect(a.nonce).toBeTruthy();
+    expect(a.nonce).not.toBe(b.nonce);
+    expect(readViewerParams(viewerUrl('content://x/a.pdf', { page: 3 }).split('?')[1]).nonce).toBeTruthy();
+    expect(readViewerParams('').nonce).toBeNull();
+  });
 });

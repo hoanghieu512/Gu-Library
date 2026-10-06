@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
-  IonInput, IonButton, IonFooter, IonIcon, IonSpinner,
+  IonInput, IonButton, IonFooter, IonIcon, IonSpinner, useIonViewWillEnter,
 } from '@ionic/react';
 import { browsersOutline, searchOutline } from 'ionicons/icons';
-import { useLocation, useParams } from 'react-router-dom';
+import { useHistory, useLocation, useParams } from 'react-router-dom';
 import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
 import { useGuToast } from '../lib/useGuToast';
@@ -34,6 +34,10 @@ function SplitIcon() {
   );
 }
 
+// Nonces of viewer links already acted on (see viewerUrl). Module-level: it must outlive a page
+// instance, because Ionic re-enters a living Viewer with its tab's remembered URL.
+const consumedNonces = new Set<string>();
+
 function baseName(contentUri: string): string {
   const last = decodeURIComponent(contentUri).split('/').pop() ?? contentUri;
   return last.replace(/\.[^.]+$/, '');
@@ -45,7 +49,8 @@ export default function ViewerPage() {
   // Nhớ trang vẫn ghi bình thường từ chỗ nhảy tới, không có ngoại lệ.
   // `?q=…` (v1.41.0, "Xem cả N đoạn" on the Search screen) — open at the page being read, with the
   // in-document search sheet already up and holding that query.
-  const { page: fromSearch, q: seedQ } = readViewerParams(useLocation().search);
+  const { page: fromSearch, q: seedQ, nonce } = readViewerParams(useLocation().search);
+  const history = useHistory();
   const docUri = decodeUriParam(uri);
   const name = baseName(docUri);
 
@@ -68,6 +73,10 @@ export default function ViewerPage() {
   // "Tìm trong tài liệu này" (v1.39.0 — góp ý của Gú). `searchFor` = pane nào đang mở sheet:
   // 'top' ở chế độ đơn, 'bottom' ở split (pane TRA CỨU, đúng chỗ Gú xin).
   const [searchFor, setSearchFor] = useState<'top' | 'bottom' | null>(seedQ ? 'top' : null);
+  const [seed, setSeed] = useState(() => {
+    if (nonce) consumedNonces.add(nonce);
+    return seedQ ? { docUri, q: seedQ, key: nonce ?? '' } : undefined;
+  });
   const [bottomJumpTo, setBottomJumpTo] = useState<{ page: number } | undefined>(undefined);
   const [frameH, setFrameH] = useState(0);
   const roRef = useRef<ResizeObserver | null>(null);
@@ -82,6 +91,19 @@ export default function ViewerPage() {
   };
   const lastSaved = useRef(0);
   const { toastResult, node: toastNode } = useGuToast();
+
+  // Ionic keeps this page alive in its tab and REUSES it when another tab pushes a link to the same
+  // document (it matches the path, not the query) — so "Xem cả N đoạn" or a search hit for a
+  // document already open elsewhere arrives here, not at mount. Act on each link's nonce once.
+  useIonViewWillEnter(() => {
+    const loc = history.location;
+    if (!loc.pathname.endsWith(`/${uri}`)) return;
+    const { page, q, nonce: t } = readViewerParams(loc.search);
+    if (!t || consumedNonces.has(t)) return;
+    consumedNonces.add(t);
+    if (q) { setSeed({ docUri, q, key: t }); setSearchFor('top'); }
+    else if (page) setJumpTo({ page });
+  });
 
   useEffect(() => {
     let alive = true;
@@ -361,7 +383,7 @@ export default function ViewerPage() {
         docName={searchFor === 'bottom' ? baseName(bottomUri ?? '') : title}
         onClose={() => setSearchFor(null)}
         onJump={(p) => (searchFor === 'bottom' ? setBottomJumpTo({ page: p }) : setJumpTo({ page: p }))}
-        seed={seedQ ? { docUri, q: seedQ } : undefined}
+        seed={seed}
       />
       {toastNode}
     </IonPage>
