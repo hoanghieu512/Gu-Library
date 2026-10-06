@@ -94,7 +94,9 @@ Số trong ngoặc = [đoạn khớp / tổng đoạn của tài liệu].
 **Harness trên cùng sidecar (Mac), code v1.41.0:** tài liệu đầu đúng cột "Mật độ" ở mọi câu kiểm
 ("hop dong" → Hop_dong_Chuong_1_2_4 · "dieu tra" → BLTTHS VBHN 104 · "vi pham hanh chinh" → Luật
 XLVPHC · "trach nhiem hinh su" → NQ hướng dẫn Đ51–52). Bất biến "số trên thẻ = số dòng sheet, đoạn
-thẻ = dòng đầu sheet": 0 lệch, trừ câu 1 chữ cái (trần 400 tiền tố).
+thẻ = dòng đầu sheet": 0 lệch, trừ câu 1 chữ cái (trần 400 tiền tố). *Review sau đó bắt thêm: trần còn
+cắt cả câu nhiều chữ có chữ cuối là tiền tố phổ biến ("dieu 2": 2.118 thay vì 3.644 đoạn) — đã sửa,
+trần chỉ còn áp câu một chữ; "nguoi d" 12,8 → 18,1 ms trên Mac, câu đủ từ không đổi.*
 
 | Câu | trước tối ưu gom (Mac) | v1.41.0 (Mac) | v1.41.0 (UBS1) |
 |---|---|---|---|

@@ -8,10 +8,14 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 - **Xếp tài liệu theo mật độ** (khớp nhiều so với độ dày của chính tài liệu — BM25), không theo đếm thô: tập tài liệu tham khảo dày cộp không còn chiếm đầu chỉ vì dày. "dieu tra" → Bộ luật TTHS, "hop dong" → Hop_dong_Chuong_1_2_4 rồi BLDS 2015, "vi pham hanh chinh" → Luật XLVPHC.
 - **Mỗi thẻ một đoạn trích tiêu biểu** + "N đoạn"; chạm đoạn trích → mở đúng trang như cũ. **"Xem cả N đoạn ›"** → mở tài liệu ở trang đang đọc dở, sheet "Tìm trong tài liệu này" bật sẵn câu tra (bàn phím không bật). Số trên thẻ đúng bằng số trong sheet, đoạn trên thẻ là dòng đầu sheet. Hiện 20 tài liệu, nút "Hiện thêm tài liệu".
 - **Sheet "Tìm trong tài liệu này" đếm chính xác** ("200 đoạn khớp", bỏ "50+") và vẽ 50 dòng mỗi lượt, nút "Hiện thêm 50 đoạn". Thứ tự giữ như cũ.
+### Fixed
+- **"Xem cả" vào một tài liệu đang mở sẵn ở tab khác** (vd đang đọc từ "Đang đọc dở" rồi sang tab Tìm): trước khi phát hành, sheet không bật và câu tra mất vì Ionic dùng lại trang Viewer đang sống. Nay link Viewer mang một mã dùng-một-lần, Viewer làm theo mỗi mã đúng một lần — chạm đoạn trích vào tài liệu đang mở cũng nhảy đúng trang; quay lại tab cũ không tự bật lại sheet.
+- **Chạm một dòng trong sheet khi PDF dày chưa nạp xong** (dễ gặp vì sheet nay tự bật sẵn): trước rơi về trang đang đọc dở (UBS1: chạm "trang 69" ra trang 337). Nay lệnh nhảy được giữ tới khi PDF sẵn sàng.
+- **Chạm lại đúng dòng/trang vừa nhảy** (sau khi đã cuộn đi chỗ khác) giờ nhảy lại được (lỗi có từ 1.39).
 ### Notes
 - Chỉ mục `SCHEMA` 3 → 4: mỗi đoạn lưu thêm chuỗi chữ đã bỏ dấu để kiểm cụm liền nhau bằng một phép so chuỗi (nhanh ~50× cách tách từ từng đoạn) → **mọi máy tự dựng lại chỉ mục một lần** (UBS1 21,6 / 22,6 s, trước 18,8 s). Chỉ mục +~22 MB.
 - UBS1: tra câu đủ từ ≤ 37 ms ("toi pham" 27–29 ms); gõ dở hai chữ cái như "th" (~99 nghìn đoạn khớp) 132–144 ms; bộ nhớ màn Tìm 263 → 304 MB (+41 MB, huynh duyệt); cuộn danh sách giật 0,41%, p95 11 ms.
-- Vẫn giữ trần 400 từ cho tiền tố (chỉ cắn lúc mới gõ 1 chữ cái hoặc "co", "re"): ở các câu đó số trên thẻ có thể thấp hơn số trong sheet.
+- Trần 400 từ cho tiền tố chỉ còn áp cho câu MỘT chữ đang gõ dở (1–2 chữ cái, ví dụ "d", "co"): ở các câu đó số trên thẻ có thể thấp hơn số trong sheet. Câu nhiều chữ như "dieu 2", "khoan 2" đếm đủ (bản đầu của nhánh còn cắt cả những câu này — review toàn nhánh bắt được, đã sửa trước khi phát hành).
 - Đánh đổi đã chọn: tên trên thẻ vẫn là tên file (tên đổi bằng "Đổi tên" chưa hiện ở màn Tìm, như từ 1.38); một file nằm ở hai môn thì ra hai thẻ.
 
 ## [1.40.1] — 2026-10-05 — Tìm kiếm: ký hiệu dính vào chữ/số phải khớp đúng (huynh bắt được)

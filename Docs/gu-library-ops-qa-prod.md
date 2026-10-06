@@ -495,7 +495,17 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
     KHÔNG đẩy `console.log` ra logcat — APK đo tạm phải bật `loggingBehavior: 'production'` trong
     `capacitor.config.ts` (đã hoàn nguyên). (4) Trên UBS1 vị trí icon Tìm ở thanh nav đổi theo tab
     đang mở (nav "bung khi active").
-  - **Còn mở:** trần 400 tiền tố làm số thẻ < số sheet ở câu 1 chữ cái / "co" / "re"; tên thẻ vẫn là
+  - **Review toàn nhánh (agent Opus 5.5, 06/10) bắt 3 lỗi quan trọng — đã sửa, test đỏ trước, kiểm UBS1:**
+    (1) `PREFIX_CAP` còn lọt vào câu NHIỀU chữ → "dieu 2", "khoan 2" đếm thiếu, thẻ ≠ sheet → trần nay
+    chỉ áp câu một chữ. (2) Ionic DÙNG LẠI trang Viewer đang sống ở tab khác (khớp path, bỏ query) →
+    "Xem cả" vào tài liệu đang mở = không có sheet, mất câu tra → link mang mã dùng-một-lần `t`,
+    Viewer xử lý ở `useIonViewWillEnter`, mỗi mã một lần (quay lại tab có URL cũ không bật lại sheet);
+    cùng cơ chế cho `?p=`. (3) Chạm dòng sheet khi PDF 398 trang chưa nạp → rơi về trang đọc dở
+    (337 thay vì 69) → `jumpGate` giữ lệnh nhảy tới lúc dựng xong bố cục; lệnh nhảy thành đối tượng
+    `{ page }` nên chạm lại cùng trang vẫn nhảy; pane dưới đổi tài liệu thì xoá lệnh cũ.
+    **Bài học: Ionic tab giữ trang sống + khớp view theo PATH → mọi tham số query vào một trang có
+    thể đã mount phải xử lý ở view-enter, không chỉ lúc mount.**
+  - **Còn mở:** trần 400 tiền tố làm số thẻ < số sheet ở câu MỘT chữ đang gõ (1–2 chữ cái); tên thẻ vẫn là
     tên file (chưa đọc `.display.json`); một file ở hai môn ra hai thẻ.
 
 - **v1.40.1 — ký hiệu dính vào chữ/số phải khớp ĐÚNG (huynh bắt được, 05/10).** Tra "35%" trong
