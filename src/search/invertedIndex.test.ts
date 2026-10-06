@@ -467,9 +467,11 @@ describe('searchDocs (v1.41.0)', () => {
     expect(r.docs.every((d) => Number.isFinite(d.score))).toBe(true);
   });
 
-  it('a 2-letter prefix matching 100k units across 100 docs stays under 60 ms', () => {
+  it('a 2-letter prefix matching 100k units: searchDocs skips the full sort (well under half of search)', () => {
     // Real kho 06/10: "th" (typing "thời hiệu") matched 98,789 units and took 414 ms on the Mac
-    // when every match was sorted — a visible freeze on the phone.
+    // when every match was sorted — a visible freeze on the phone. Timed RELATIVE to `search`
+    // (which must sort everything) on the same data in the same run, so a busy CPU during the
+    // parallel test run moves both numbers and the ratio holds.
     const ix = emptyIndex();
     for (let d = 0; d < 100; d++) {
       addDoc(ix, { pdfUri: `uri://t${d}.pdf`, name: `T${d}`, mon: 'M' }, {
@@ -480,13 +482,19 @@ describe('searchDocs (v1.41.0)', () => {
         }),
       });
     }
-    searchDocs(ix, 'th');                       // warm the lazy caches (sorted tokens, docLen)
-    const t0 = performance.now();
+    const best = (f: () => unknown) => {
+      f();                                      // warm the lazy caches (sorted tokens, docLen)
+      let b = Infinity;
+      for (let k = 0; k < 5; k++) { const t0 = performance.now(); f(); b = Math.min(b, performance.now() - t0); }
+      return b;
+    };
+    const tDocs = best(() => searchDocs(ix, 'th'));
+    const tSorted = best(() => search(ix, 'th'));
+    expect(tDocs).toBeLessThan(tSorted * 0.6);
     const r = searchDocs(ix, 'th');
-    expect(performance.now() - t0).toBeLessThan(60);
     expect(r.total).toBe(100_000);
     expect(r.docs).toHaveLength(100);
-  });
+  }, 20_000);                                   // building 100k units is slow on a busy CPU
 
   it('empty or symbol-only query → { total: 0, docs: [] }', () => {
     expect(searchDocs(fixture(), '')).toEqual({ total: 0, docs: [] });
