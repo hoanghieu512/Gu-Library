@@ -2,6 +2,22 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.41.0] — 2026-10-06 — Tìm kiếm: gom kết quả theo tài liệu (hết lệch theo thứ tự môn)
+### Changed
+- **Màn Tìm toàn kho trả danh sách TÀI LIỆU thay vì 50 đoạn rời.** Trước đây tra một từ phổ biến chỉ ra môn đứng đầu A→Z: app gom tối đa 600 đoạn theo THỨ TỰ KHO rồi mới xếp hạng, mà kho QA có "Hình sự chung" chiếm 63% số đoạn — "dieu tra" không chạm tới Bộ luật TTHS, "hop dong" không chạm tới cả file "Hop_dong_Chuong_1_2_4" lẫn BLDS 2015 (đo 06/10: 17/30 câu chạm trần, 12 câu lệch nặng). Nay mọi đoạn khớp đều được đếm, dòng đầu ghi **"1.489 đoạn · 76 tài liệu"**.
+- **Xếp tài liệu theo mật độ** (khớp nhiều so với độ dày của chính tài liệu — BM25), không theo đếm thô: tập tài liệu tham khảo dày cộp không còn chiếm đầu chỉ vì dày. "dieu tra" → Bộ luật TTHS, "hop dong" → Hop_dong_Chuong_1_2_4 rồi BLDS 2015, "vi pham hanh chinh" → Luật XLVPHC.
+- **Mỗi thẻ một đoạn trích tiêu biểu** + "N đoạn"; chạm đoạn trích → mở đúng trang như cũ. **"Xem cả N đoạn ›"** → mở tài liệu ở trang đang đọc dở, sheet "Tìm trong tài liệu này" bật sẵn câu tra (bàn phím không bật). Số trên thẻ đúng bằng số trong sheet, đoạn trên thẻ là dòng đầu sheet. Hiện 20 tài liệu, nút "Hiện thêm tài liệu".
+- **Sheet "Tìm trong tài liệu này" đếm chính xác** ("200 đoạn khớp", bỏ "50+") và vẽ 50 dòng mỗi lượt, nút "Hiện thêm 50 đoạn". Thứ tự giữ như cũ.
+### Fixed
+- **"Xem cả" vào một tài liệu đang mở sẵn ở tab khác** (vd đang đọc từ "Đang đọc dở" rồi sang tab Tìm): trước khi phát hành, sheet không bật và câu tra mất vì Ionic dùng lại trang Viewer đang sống. Nay link Viewer mang một mã dùng-một-lần, Viewer làm theo mỗi mã đúng một lần — chạm đoạn trích vào tài liệu đang mở cũng nhảy đúng trang; quay lại tab cũ không tự bật lại sheet.
+- **Chạm một dòng trong sheet khi PDF dày chưa nạp xong** (dễ gặp vì sheet nay tự bật sẵn): trước rơi về trang đang đọc dở (UBS1: chạm "trang 69" ra trang 337). Nay lệnh nhảy được giữ tới khi PDF sẵn sàng.
+- **Chạm lại đúng dòng/trang vừa nhảy** (sau khi đã cuộn đi chỗ khác) giờ nhảy lại được (lỗi có từ 1.39).
+### Notes
+- Chỉ mục `SCHEMA` 3 → 4: mỗi đoạn lưu thêm chuỗi chữ đã bỏ dấu để kiểm cụm liền nhau bằng một phép so chuỗi (nhanh ~50× cách tách từ từng đoạn) → **mọi máy tự dựng lại chỉ mục một lần** (UBS1 21,6 / 22,6 s, trước 18,8 s). Chỉ mục +~22 MB.
+- UBS1: tra câu đủ từ ≤ 37 ms ("toi pham" 27–29 ms); gõ dở hai chữ cái như "th" (~99 nghìn đoạn khớp) 132–144 ms; bộ nhớ màn Tìm 263 → 304 MB (+41 MB, huynh duyệt); cuộn danh sách giật 0,41%, p95 11 ms. dGen1 (WebView 124): 269 → 347 MB (renderer +57 MB — WebView cũ tốn hơn ~1,5× như từ 1.38); bố cục thẻ trên màn vuông 720×720 ổn, "Xem cả" và nhảy trang đúng.
+- Trần 400 từ cho tiền tố chỉ còn áp cho câu MỘT chữ đang gõ dở (1–2 chữ cái, ví dụ "d", "co"): ở các câu đó số trên thẻ có thể thấp hơn số trong sheet. Câu nhiều chữ như "dieu 2", "khoan 2" đếm đủ (bản đầu của nhánh còn cắt cả những câu này — review toàn nhánh bắt được, đã sửa trước khi phát hành).
+- Đánh đổi đã chọn: tên trên thẻ vẫn là tên file (tên đổi bằng "Đổi tên" chưa hiện ở màn Tìm, như từ 1.38); một file nằm ở hai môn thì ra hai thẻ.
+
 ## [1.40.1] — 2026-10-05 — Tìm kiếm: ký hiệu dính vào chữ/số phải khớp đúng (huynh bắt được)
 ### Fixed
 - **"35%" ra toàn "35".** Bộ tách từ vứt mọi ký hiệu → "35%" chỉ còn `35`, lại khớp kiểu tiền tố nên ra cả 35, 350, 135…; trong Luật doanh nghiệp 2020, 11 đoạn ra chỉ 6 đoạn có "35%" thật, bị xếp lẫn. Nay ký hiệu **dính vào chữ hoặc số** (`% / - + & ° §`, và `. , :` khi nằm GIỮA hai chữ/số) là **bắt buộc khớp đúng**: "35%" ra đúng 6 đoạn đó, "15/5" không còn lẫn "15.5"/"15,5cm", "15/" ra 15/5/2018, 15/2015… chứ không ra số 15 trơn.
@@ -11,7 +27,7 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 - Văn bản viết "35 %" hay "15 / 5" (có dấu cách) vẫn khớp; `. , :` thì phải liền ("15.5").
 - **Đánh đổi đã chọn:** nghiêm — "15/5" không khớp "15/05". Tô sáng đoạn trích vẫn chỉ tô phần chữ/số ("35", chưa tô "%").
 - Kiểm bằng một lượt xác nhận trên ứng viên (như cụm liền nhau ở 1.39.2), **chỉ mục KHÔNG đổi** → không phải dựng lại. Trên sidecar thật: "35%" 6 đoạn trong ~5 ms.
-- Chưa sửa: tra số TRƠN rất phổ biến ("35") vẫn có thể bị trần 600 cắt theo thứ tự kho ở màn Tìm toàn kho — món xếp hạng riêng, chờ khi gặp.
+- ~~Chưa sửa: tra số TRƠN rất phổ biến ("35") vẫn có thể bị trần 600 cắt theo thứ tự kho ở màn Tìm toàn kho~~ — đã sửa ở 1.41.0 (bỏ trần, gom theo tài liệu).
 
 ## [1.40.0] — 2026-10-04 — Tìm kiếm: nhãn mang Điều + sheet tìm-trong-tài-liệu giữ câu tra
 ### Changed

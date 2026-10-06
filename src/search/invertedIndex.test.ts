@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyIndex, addDoc, search, indexStats, displayLabel } from './invertedIndex';
+import { emptyIndex, addDoc, search, indexStats, displayLabel, indexDoc, mergeShards, searchDocs } from './invertedIndex';
+import type { Sidecar } from './invertedIndex';
 
 // Đúng câu worker ghi vào sidecar cho trang ảnh — có đuôi số trang nên phải khớp TIỀN TỐ.
 const MARK = (n: number) => `[trang ảnh scan — chưa có lớp văn bản] (trang ${n})`;
@@ -228,7 +229,7 @@ describe('bắt buộc LIỀN NHAU khi tra nhiều chữ (lỗi Gú gặp ở v1
   });
 });
 
-describe('trần quét — chữ phổ biến không được làm khựng bàn phím', () => {
+describe('phrase check is cheap without any cap', () => {
   it('kho lớn toàn đoạn KHÔNG khớp cụm vẫn trả về nhanh, không quét hết', () => {
     const ix = emptyIndex();
     // 5000 đoạn đều chứa ĐỦ "là" + "công" + "dân" nhưng KHÔNG liền cụm → qua được phép giao
@@ -337,5 +338,166 @@ describe('ký hiệu dính vào chữ/số phải khớp ĐÚNG (v1.40.1 — huy
     addDoc(x, DOC, { units: [{ label: 'Khoản 2', page: 9, text: 'Sở hữu ít nhất 35% vốn điều lệ.' }] });
     const hits = search(x, '35%', 50);
     expect(hits.map((h) => h.doc.name)).toEqual(['Luật doanh nghiệp 2020']);
+  });
+});
+
+describe('n + exact phrase match, no kho-order cut (v1.41.0)', () => {
+  it('indexDoc builds n: folded tokens, one space apart, leading space', () => {
+    const sh = indexDoc(DOC_A, { units: [{ label: '', page: 1, text: 'Đất đai — 35% (Điều 5).\nHợp đồng' }] });
+    expect(sh.units[0].n).toBe(' dat dai 35 dieu 5 hop dong');
+  });
+
+  it('"phù hợp … cộng đồng" does not match "hop dong"', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: 'Phù hợp với cộng đồng dân cư.' }] });
+    expect(search(ix, 'hop dong')).toEqual([]);
+  });
+
+  it('no kho-order cut: 700 hits in the first doc + 1 in the last doc → all 701 returned', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: Array.from({ length: 700 }, (_, i) => ({ label: '', page: i + 1, text: `Hợp đồng số ${i}` })) });
+    addDoc(ix, DOC_B, { units: [{ label: '', page: 9, text: 'Hợp đồng cuối kho' }] });
+    const hits = search(ix, 'hop dong');
+    expect(hits).toHaveLength(701);
+    expect(hits.some((h) => h.doc.pdfUri === DOC_B.pdfUri)).toBe(true);
+  });
+
+  it('a multi-word query is not cut by the 400-token prefix cap ("hop d" ⊇ "hop dong")', () => {
+    const ix = emptyIndex();
+    // 401 distinct words that start with "d" and sort before "dong" fill the prefix cap.
+    addDoc(ix, DOC_A, { units: Array.from({ length: 401 }, (_, i) => ({ label: '', page: 1, text: `da${String(i).padStart(3, '0')}` })) });
+    addDoc(ix, DOC_B, { units: [{ label: '', page: 7, text: 'Giao kết hợp đồng.' }] });
+    expect(search(ix, 'hop dong')).toHaveLength(1);
+    expect(search(ix, 'hop d').map((h) => h.unit.page)).toEqual([7]);
+  });
+
+  it('single-letter prefix over 50k units stays under 400 ms', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: Array.from({ length: 50_000 }, (_, i) => ({ label: '', page: i + 1, text: `đoạn ${i} về dân sự` })) });
+    const t0 = performance.now();
+    expect(search(ix, 'd').length).toBe(50_000);
+    expect(performance.now() - t0).toBeLessThan(400);
+  });
+});
+
+describe('searchDocs (v1.41.0)', () => {
+  const DOC_C = { pdfUri: 'uri://c.pdf', name: 'Bộ luật Dân sự', mon: 'Dân sự' };
+  const unitsWith = (n: number, hits: number) => Array.from({ length: n }, (_, i) => ({
+    label: '', page: i + 1, text: i < hits ? `Giao kết hợp đồng mục ${i}` : `Quy định chung mục ${i}`,
+  }));
+
+  it('groups by document with exact counts and total', () => {
+    const r = searchDocs(fixture(), 'dat');        // DOC_A: 2 units contain "đất"; DOC_B: 0
+    expect(r.total).toBe(2);
+    expect(r.docs.map((d) => [d.doc.pdfUri, d.count])).toEqual([[DOC_A.pdfUri, 2]]);
+  });
+
+  it('density beats raw count: thin doc with 5/20 hits ranks above thick doc with 10/2000', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: unitsWith(2000, 10) });
+    addDoc(ix, DOC_B, { units: unitsWith(20, 5) });
+    const r = searchDocs(ix, 'hop dong');
+    expect(r.docs.map((d) => d.doc.pdfUri)).toEqual([DOC_B.pdfUri, DOC_A.pdfUri]);
+    expect(r.docs.map((d) => d.count)).toEqual([5, 10]);
+  });
+
+  it('identical score and count → kho order (deterministic)', () => {
+    const ix = emptyIndex();
+    const sc = { units: unitsWith(30, 4) };
+    addDoc(ix, DOC_A, sc);
+    addDoc(ix, DOC_B, sc);
+    expect(searchDocs(ix, 'hop dong').docs.map((d) => d.doc.pdfUri)).toEqual([DOC_A.pdfUri, DOC_B.pdfUri]);
+  });
+
+  it('card count and snippet equal the single-doc sheet: count = search(one-doc index).length, best = its first hit', () => {
+    const sidecars: [typeof DOC_A, Sidecar][] = [
+      [DOC_A, { units: [
+        { label: 'Điều 2', page: 2, text: 'Các bên có quyền thỏa thuận về nội dung của hợp đồng lao động dài hơn.' },
+        { label: 'Điều 1', page: 1, text: 'Hợp đồng lao động là sự thỏa thuận.' },
+        { label: 'Điều 3', page: 3, text: 'Không liên quan gì.' },
+      ] }],
+      [DOC_B, { units: unitsWith(12, 7) }],
+      [DOC_C, { units: [
+        { label: 'Điều 385', page: 21, text: 'Hợp đồng là sự thỏa thuận giữa các bên.' },
+        { label: 'Điều 386', page: 21, text: 'Đề nghị giao kết hợp đồng.' },
+      ] }],
+    ];
+    const ix = mergeShards(sidecars.map(([d, sc]) => indexDoc(d, sc)));
+    const q = 'hop dong';
+    const r = searchDocs(ix, q);
+    for (const [d, sc] of sidecars) {
+      const one = mergeShards([indexDoc(d, sc)]);
+      const hit = r.docs.find((h) => h.doc.pdfUri === d.pdfUri)!;
+      expect(hit.count).toBe(search(one, q).length);
+      expect(hit.best.unit.page).toBe(search(one, q)[0].unit.page);
+      expect(hit.best.unit.text).toBe(search(one, q)[0].unit.text);
+    }
+    expect(r.total).toBe(2 + 7 + 2);
+  });
+
+  it('symbol queries group too: "35%" counts only units with 35%', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: [
+      { label: '', page: 1, text: 'Tỷ lệ 35% vốn điều lệ' },
+      { label: '', page: 2, text: '35 thành viên' },
+    ] });
+    addDoc(ix, DOC_B, { units: [{ label: '', page: 1, text: '35 ngày' }] });
+    expect(searchDocs(ix, '35%')).toMatchObject({ total: 1, docs: [{ count: 1, doc: DOC_A }] });
+  });
+
+  it('card count = sheet count for a multi-word query even when its prefix has > 400 words', () => {
+    // DOC_B's 401 numbers "1000".."1400" sort before "199" and fill the kho-wide prefix cap for "1";
+    // DOC_A alone has just "199", so its one-document index never hits the cap.
+    const scA = { units: [{ label: 'Điều 199', page: 2, text: 'Điều 199. Quy định chung' }] };
+    const scB = { units: Array.from({ length: 401 }, (_, i) => ({ label: '', page: 1, text: `điều ${1000 + i}` })) };
+    const ix = mergeShards([indexDoc(DOC_A, scA), indexDoc(DOC_B, scB)]);
+    const one = mergeShards([indexDoc(DOC_A, scA)]);
+    const r = searchDocs(ix, 'dieu 1');
+    expect(r.docs.find((d) => d.doc.pdfUri === DOC_A.pdfUri)?.count).toBe(search(one, 'dieu 1').length);
+    expect(r.total).toBe(402);
+  });
+
+  it('a doc added after a search still gets a real score (cached lengths refresh)', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: unitsWith(10, 2) });
+    searchDocs(ix, 'hop dong');
+    addDoc(ix, DOC_B, { units: unitsWith(10, 2) });
+    const r = searchDocs(ix, 'hop dong');
+    expect(r.docs).toHaveLength(2);
+    expect(r.docs.every((d) => Number.isFinite(d.score))).toBe(true);
+  });
+
+  it('a 2-letter prefix matching 100k units: searchDocs skips the full sort (well under half of search)', () => {
+    // Real kho 06/10: "th" (typing "thời hiệu") matched 98,789 units and took 414 ms on the Mac
+    // when every match was sorted — a visible freeze on the phone. Timed RELATIVE to `search`
+    // (which must sort everything) on the same data in the same run, so a busy CPU during the
+    // parallel test run moves both numbers and the ratio holds.
+    const ix = emptyIndex();
+    for (let d = 0; d < 100; d++) {
+      addDoc(ix, { pdfUri: `uri://t${d}.pdf`, name: `T${d}`, mon: 'M' }, {
+        // Scrambled match positions and lengths, like real text: pre-sorted input would hide a sort.
+        units: Array.from({ length: 1000 }, (_, i) => {
+          const pad = 'mục '.repeat((i * 7919 + d * 104729) % 41);
+          return { label: '', page: i + 1, text: `${pad}Thời hạn ${d} thực hiện ${i}` };
+        }),
+      });
+    }
+    const best = (f: () => unknown) => {
+      f();                                      // warm the lazy caches (sorted tokens, docLen)
+      let b = Infinity;
+      for (let k = 0; k < 5; k++) { const t0 = performance.now(); f(); b = Math.min(b, performance.now() - t0); }
+      return b;
+    };
+    const tDocs = best(() => searchDocs(ix, 'th'));
+    const tSorted = best(() => search(ix, 'th'));
+    expect(tDocs).toBeLessThan(tSorted * 0.6);
+    const r = searchDocs(ix, 'th');
+    expect(r.total).toBe(100_000);
+    expect(r.docs).toHaveLength(100);
+  }, 20_000);                                   // building 100k units is slow on a busy CPU
+
+  it('empty or symbol-only query → { total: 0, docs: [] }', () => {
+    expect(searchDocs(fixture(), '')).toEqual({ total: 0, docs: [] });
+    expect(searchDocs(fixture(), '...')).toEqual({ total: 0, docs: [] });
   });
 });

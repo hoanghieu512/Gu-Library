@@ -4,11 +4,10 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonSpinn
 import { useHistory } from 'react-router-dom';
 import { searchOutline, closeCircle } from 'ionicons/icons';
 import { loadIndex, refreshIndex } from '../search/store';
-import { search, parseQuery } from '../search/invertedIndex';
-import type { Hit, SearchIndex } from '../search/invertedIndex';
-import { makeSnippet } from '../search/snippet';
-import { encodeUriParam } from '../storage/uriParam';
-import MonSwatch from '../components/MonSwatch';
+import { searchDocs, parseQuery } from '../search/invertedIndex';
+import type { DocSearchResult, SearchIndex } from '../search/invertedIndex';
+import { viewerUrl } from '../nav/viewerUrl';
+import DocResultList from '../components/DocResultList';
 
 // Màn Tìm — tra toàn văn trong kho (Phase 2, spec §7).
 //
@@ -22,7 +21,7 @@ const PAD = {
 } as CSSProperties;
 
 const DEBOUNCE_MS = 130;   // đo được: tra 1–3 ms, nên chờ chừng này chỉ để gom phím, không phải để kịp tính
-const LIMIT = 50;
+const NO_RESULT: DocSearchResult = { total: 0, docs: [] };
 
 type Phase = 'loading' | 'building' | 'ready';
 
@@ -32,7 +31,7 @@ export default function SearchPage() {
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [q, setQ] = useState('');
-  const [hits, setHits] = useState<Hit[]>([]);
+  const [result, setResult] = useState<DocSearchResult>(NO_RESULT);
   // Index để trong STATE chứ không phải ref: đọc ref lúc render là sai (không kích hoạt vẽ lại,
   // và React đồng thời có thể đọc bản cũ). Đổi index chỉ xảy ra 1–2 lần mỗi lần vào màn.
   const [ix, setIx] = useState<SearchIndex | null>(null);
@@ -72,14 +71,15 @@ export default function SearchPage() {
 
   useEffect(() => {
     // Chưa có index thì không đặt state ở đây (đặt đồng bộ trong effect gây vẽ lại dây chuyền);
-    // `hits` vốn đã rỗng và chỉ có một chiều null -> có index, không bao giờ ngược lại.
+    // `result` vốn đã rỗng và chỉ có một chiều null -> có index, không bao giờ ngược lại.
     if (!ix) return;
-    const t = setTimeout(() => setHits(q.trim() ? search(ix, q, LIMIT) : []), DEBOUNCE_MS);
+    const t = setTimeout(() => setResult(q.trim() ? searchDocs(ix, q) : NO_RESULT), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [q, ix]);
 
-  const open = (pdfUri: string, page: number) =>
-    history.push(`/viewer/${encodeUriParam(pdfUri)}?p=${page}`);
+  const openPage = (pdfUri: string, page: number) => history.push(viewerUrl(pdfUri, { page }));
+  // "Xem cả N đoạn": the document at the page being read, with its in-document search holding q.
+  const openAll = (pdfUri: string) => history.push(viewerUrl(pdfUri, { q: q.trim() }));
 
   const { seq } = parseQuery(q);
   const docCount = ix?.docs.length ?? 0;
@@ -126,12 +126,13 @@ export default function SearchPage() {
             }}>
               {refreshing && <IonSpinner name="dots" style={{ width: 18, height: 12 }} />}
               {refreshing ? 'đang cập nhật chỉ mục…'
-                : q.trim() ? `${hits.length}${hits.length >= LIMIT ? '+' : ''} đoạn khớp`
+                : q.trim()
+                  ? `${result.total.toLocaleString('vi-VN')} đoạn · ${result.docs.length.toLocaleString('vi-VN')} tài liệu`
                   : `đã đọc ${docCount} tài liệu`
                     + (imageOnly ? ` · ${imageOnly} tài liệu là ảnh, chưa tra được chữ` : '')}
             </div>
 
-            {q.trim() && hits.length === 0 && !refreshing && (
+            {q.trim() && result.docs.length === 0 && !refreshing && (
               <Empty title="Không tìm thấy đoạn nào">
                 Thử bớt chữ, hoặc gõ không dấu cũng được — “to tung” ra “Tố tụng”.
                 {imageOnly > 0 && (
@@ -150,13 +151,8 @@ export default function SearchPage() {
               </Empty>
             )}
 
-            {hits.map((h, i) => (
-              <ResultRow
-                key={`${h.doc.pdfUri}#${h.unit.page}#${i}`}
-                hit={h} seq={seq}
-                onOpen={() => open(h.doc.pdfUri, h.unit.page)}
-              />
-            ))}
+            {/* Keyed by the query: a new query starts again at the first page of cards. */}
+            <DocResultList key={q} docs={result.docs} seq={seq} onOpenPage={openPage} onOpenAll={openAll} />
           </>
         )}
       </IonContent>
@@ -202,48 +198,6 @@ function Empty({ title, children }: { title: string; children: React.ReactNode }
         {title}
       </div>
       <p style={{ color: 'var(--gu-grey)', fontSize: 13.5, lineHeight: 1.6, margin: '8px 0 0' }}>{children}</p>
-    </div>
-  );
-}
-
-function ResultRow({ hit, seq, onOpen }: {
-  hit: Hit; seq: string[]; onOpen: () => void;
-}) {
-  const { unit, doc } = hit;
-  const sn = makeSnippet(unit.text, seq);
-  const pieces: React.ReactNode[] = [];
-  let at = 0;
-  sn.marks.forEach((m, i) => {
-    if (m.start > at) pieces.push(sn.text.slice(at, m.start));
-    pieces.push(<mark key={i} style={{ background: 'rgba(231,197,110,.55)', color: 'inherit', padding: 0 }}>
-      {sn.text.slice(m.start, m.end)}
-    </mark>);
-    at = m.end;
-  });
-  if (at < sn.text.length) pieces.push(sn.text.slice(at));
-
-  return (
-    <div
-      onClick={onOpen} role="button" aria-label={`Mở ${doc.name} tại trang ${unit.page}`}
-      style={{
-        background: 'var(--gu-white)', borderRadius: 10, padding: '12px 14px', marginBottom: 8,
-        cursor: 'pointer', border: '1px solid rgba(117,66,14,.10)',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <MonSwatch name={doc.mon} size={14} />
-        <span style={{ fontSize: 12, color: 'var(--gu-grey)', flex: '0 0 auto' }}>{doc.mon}</span>
-        <span style={{
-          fontSize: 12.5, color: 'var(--gu-brown-deep)', fontWeight: 600,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{doc.name}</span>
-      </div>
-      <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--gu-brown-deep)' }}>
-        {sn.cutHead && '… '}{pieces}{sn.cutTail && ' …'}
-      </div>
-      <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gu-brown)', fontVariantNumeric: 'tabular-nums' }}>
-        {unit.label ? `${unit.label} · ` : ''}trang {unit.page}
-      </div>
     </div>
   );
 }

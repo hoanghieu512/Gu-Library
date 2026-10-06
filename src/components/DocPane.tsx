@@ -17,7 +17,7 @@ export default function DocPane({ docUri, initialPage, baseScale, onPageChange, 
   initialPage: number;
   baseScale: number;
   onPageChange?: (page: number, total: number) => void;
-  jumpTo?: number;
+  jumpTo?: { page: number };
   onErrorAction?: { label: string; onClick: () => void };
   compactError?: boolean;
 }) {

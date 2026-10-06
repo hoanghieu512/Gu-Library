@@ -12,6 +12,12 @@ vi.mock('./GuSheet', () => ({
 vi.mock('../search/docIndex', () => ({
   indexOneDoc: async (pdfUri: string) => {
     const index = emptyIndex();
+    if (pdfUri === 'uri://big.pdf') {
+      addDoc(index, { pdfUri, name: pdfUri, mon: 'Hình sự chung' }, {
+        units: Array.from({ length: 120 }, (_, i) => ({ label: '', page: i + 1, text: `Quyết định về đặc xá số ${i}.` })),
+      });
+      return { index, imageOnly: false };
+    }
     addDoc(index, { pdfUri, name: pdfUri, mon: 'Hình sự chung' }, {
       units: [
         { label: 'Khoản 2', path: ['Điều 2'], page: 37, text: 'Sửa đổi khoản 2 Điều 9 Luật Đặc xá.' },
@@ -72,5 +78,45 @@ describe('DocSearchSheet giữ câu tra (v1.40.0)', () => {
     render(sheet(true));
     await typeQuery('dac xa');
     expect(screen.getByText('Khoản 2 · Điều 2 · trang 38')).toBeInTheDocument();
+  });
+});
+
+describe('DocSearchSheet from "Xem cả N đoạn" (v1.41.0)', () => {
+  it('seeded query shows hits without typing and leaves the keyboard down', async () => {
+    render(<DocSearchSheet isOpen docUri="uri://luat-sd.pdf" docName="Luật SĐ" onClose={noop} onJump={noop}
+      seed={{ docUri: 'uri://luat-sd.pdf', q: 'dac xa', key: 'k0' }} />);
+    expect(await screen.findByText('2 đoạn khớp')).toBeInTheDocument();
+    const input = screen.getByLabelText('Tìm trong tài liệu này');
+    expect(input).toHaveValue('dac xa');
+    await new Promise((r) => setTimeout(r, 400));     // the sheet's deferred focus fires at 350 ms
+    expect(document.activeElement).not.toBe(input);
+  });
+
+  it('seed for another document does not leak into this one', async () => {
+    render(<DocSearchSheet isOpen docUri="uri://b.pdf" docName="B" onClose={noop} onJump={noop}
+      seed={{ docUri: 'uri://a.pdf', q: 'dac xa', key: 'k0' }} />);
+    expect(await screen.findByLabelText('Tìm trong tài liệu này')).toHaveValue('');
+  });
+
+  it('exact count and paging by 50: 120 → 50, 100, 120', async () => {
+    render(sheet(true, 'uri://big.pdf'));
+    const input = await screen.findByLabelText('Tìm trong tài liệu này');
+    fireEvent.change(input, { target: { value: 'dac xa' } });
+    expect(await screen.findByText('120 đoạn khớp')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Nhảy tới trang/ })).toHaveLength(50);
+    fireEvent.click(screen.getByRole('button', { name: 'Hiện thêm 50 đoạn' }));
+    expect(screen.getAllByRole('button', { name: /^Nhảy tới trang/ })).toHaveLength(100);
+    fireEvent.click(screen.getByRole('button', { name: 'Hiện thêm 20 đoạn' }));
+    expect(screen.getAllByRole('button', { name: /^Nhảy tới trang/ })).toHaveLength(120);
+    expect(screen.queryByRole('button', { name: /^Hiện thêm/ })).toBeNull();
+  });
+
+  it('a NEW seed (new key) for an already-mounted sheet replaces the query — Viewer reused from another tab', async () => {
+    const props = { isOpen: true, docUri: 'uri://luat-sd.pdf', docName: 'Luật SĐ', onClose: noop, onJump: noop };
+    const { rerender } = render(<DocSearchSheet {...props} seed={{ docUri: 'uri://luat-sd.pdf', q: 'dac xa', key: 'k1' }} />);
+    expect(await screen.findByText('2 đoạn khớp')).toBeInTheDocument();
+    rerender(<DocSearchSheet {...props} seed={{ docUri: 'uri://luat-sd.pdf', q: 'khoan 2', key: 'k2' }} />);
+    expect(await screen.findByLabelText('Tìm trong tài liệu này')).toHaveValue('khoan 2');
+    expect(await screen.findByText('1 đoạn khớp')).toBeInTheDocument();
   });
 });

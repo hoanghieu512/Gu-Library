@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { perfStart, perfEnd, perfCancel } from '../perf/perf';
+import { jumpGate } from '../viewer/jumpGate';
 
 // Worker offline (bundle, no CDN). This exact form built + ran correctly on device.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -13,7 +14,7 @@ interface Props {
   initialPage: number;            // trang khôi phục lúc mở
   baseScale?: number;             // cỡ chữ mặc định (zoom khởi tạo); pinch chồng lên base này
   onPageChange: (page: number, total: number) => void; // báo trang hiện tại để lưu
-  jumpTo?: number;                // lệnh nhảy tới trang (đổi giá trị = nhảy)
+  jumpTo?: { page: number };      // jump command — a NEW object each time, so the same page jumps again
 }
 
 const MAX_ZOOM = 4;
@@ -33,6 +34,8 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   const containerRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
   const restored = useRef(false);
+  // A jump that arrives before layout is ready is kept and replaces the resume page (v1.41.0).
+  const [gate] = useState(jumpGate);
   const zoomRef = useRef(baseScale);
   const prevZoom = useRef(baseScale);
   const curPage = useRef(initialPage);
@@ -183,13 +186,16 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   useEffect(() => {
     if (numPages > 0 && ratios.length === numPages && !restored.current) {
       restored.current = true;
-      requestAnimationFrame(() => { goToPage(initialPage); recompute(); });
+      const p = gate.open(initialPage);
+      requestAnimationFrame(() => { goToPage(p); recompute(); });
     }
   }, [numPages, ratios]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (jumpTo && jumpTo >= 1 && jumpTo <= numPages) {
-      goToPage(jumpTo);
+    if (!jumpTo) return;
+    const p = gate.request(jumpTo.page);
+    if (p != null && p >= 1 && p <= numPages) {
+      goToPage(p);
       requestAnimationFrame(recompute);
     }
   }, [jumpTo]); // eslint-disable-line react-hooks/exhaustive-deps
