@@ -75,6 +75,7 @@ export interface SearchIndex {
   chars: number;                     // tổng ký tự đã nạp — dùng để báo cáo/ước lượng
   imageOnly: number;                 // số tài liệu là ảnh scan, chưa tra được chữ nào
   sorted?: string[];                 // token đã sắp, dựng LƯỜI — để tra tiền tố bằng nhị phân
+  docLen?: number[];                 // units per doc, built lazily — document length for ranking
 }
 
 /**
@@ -202,6 +203,7 @@ export function addDoc(ix: SearchIndex, doc: IndexDoc, sidecar: Sidecar): void {
   ix.chars += sh.chars;
   if (sh.imageOnly) ix.imageOnly++;
   ix.sorted = undefined;                        // thêm token mới → cache tra tiền tố hết hạn
+  ix.docLen = undefined;                        // new doc → cached document lengths are stale
   for (const [t, locals] of sh.tokens) {
     const l = ix.postings.get(t);
     if (l) for (const i of locals) l.push(base + i);
@@ -320,6 +322,49 @@ export function search(ix: SearchIndex, query: string, limit = Infinity): Hit[] 
     const unit = ix.units[id];
     return { unit, doc: ix.docs[unit.d], matched };
   });
+}
+
+/** One document in the Search screen: how many units match, the one to show, its rank score. */
+export interface DocHit { doc: IndexDoc; count: number; best: Hit; score: number }
+export interface DocSearchResult { total: number; docs: DocHit[] }
+
+// BM25 at document level. No IDF: the whole query is one "term", so IDF is the same for every
+// document and cannot change the order. Picked over raw counts (thick reference volumes always
+// won) and over boosting name matches (pulled off-topic files up) — see
+// Docs/perf/2026-10-06-search-lech-thu-tu-kho.md.
+const BM25_K1 = 1.2;
+const BM25_B = 0.75;
+
+/**
+ * Matches grouped by document, densest first. `best` is the document's first unit in `search`
+ * order and `count` its number of matching units, so a card shows exactly the first row and the
+ * row count of the in-document sheet (`search` over that one document).
+ */
+export function searchDocs(ix: SearchIndex, query: string): DocSearchResult {
+  const matches = matchUnits(ix, query);
+  if (matches.length === 0) return { total: 0, docs: [] };
+  if (!ix.docLen) {
+    ix.docLen = new Array<number>(ix.docs.length).fill(0);
+    for (const u of ix.units) ix.docLen[u.d]++;
+  }
+  const dl = ix.docLen;
+  const avgdl = ix.units.length / ix.docs.length;
+  const matched = parseQuery(query).seq.length;
+
+  const byDoc = new Map<number, DocHit>();
+  for (const { id } of matches) {
+    const unit = ix.units[id];
+    const h = byDoc.get(unit.d);
+    if (h) h.count++;
+    else byDoc.set(unit.d, { doc: ix.docs[unit.d], count: 1, best: { unit, doc: ix.docs[unit.d], matched }, score: 0 });
+  }
+  for (const [d, h] of byDoc) {
+    h.score = (h.count * (BM25_K1 + 1)) / (h.count + BM25_K1 * (1 - BM25_B + BM25_B * dl[d] / avgdl));
+  }
+  const docs = [...byDoc.entries()]
+    .sort(([da, a], [db, b]) => (b.score - a.score) || (b.count - a.count) || (da - db))
+    .map(([, h]) => h);
+  return { total: matches.length, docs };
 }
 
 /** Số liệu để báo cáo spike. */

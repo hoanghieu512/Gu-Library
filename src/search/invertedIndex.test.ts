@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyIndex, addDoc, search, indexStats, displayLabel, indexDoc } from './invertedIndex';
+import { emptyIndex, addDoc, search, indexStats, displayLabel, indexDoc, mergeShards, searchDocs } from './invertedIndex';
+import type { Sidecar } from './invertedIndex';
 
 // Đúng câu worker ghi vào sidecar cho trang ảnh — có đuôi số trang nên phải khớp TIỀN TỐ.
 const MARK = (n: number) => `[trang ảnh scan — chưa có lớp văn bản] (trang ${n})`;
@@ -367,5 +368,86 @@ describe('n + exact phrase match, no kho-order cut (v1.41.0)', () => {
     const t0 = performance.now();
     expect(search(ix, 'd').length).toBe(50_000);
     expect(performance.now() - t0).toBeLessThan(400);
+  });
+});
+
+describe('searchDocs (v1.41.0)', () => {
+  const DOC_C = { pdfUri: 'uri://c.pdf', name: 'Bộ luật Dân sự', mon: 'Dân sự' };
+  const unitsWith = (n: number, hits: number) => Array.from({ length: n }, (_, i) => ({
+    label: '', page: i + 1, text: i < hits ? `Giao kết hợp đồng mục ${i}` : `Quy định chung mục ${i}`,
+  }));
+
+  it('groups by document with exact counts and total', () => {
+    const r = searchDocs(fixture(), 'dat');        // DOC_A: 2 units contain "đất"; DOC_B: 0
+    expect(r.total).toBe(2);
+    expect(r.docs.map((d) => [d.doc.pdfUri, d.count])).toEqual([[DOC_A.pdfUri, 2]]);
+  });
+
+  it('density beats raw count: thin doc with 5/20 hits ranks above thick doc with 10/2000', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: unitsWith(2000, 10) });
+    addDoc(ix, DOC_B, { units: unitsWith(20, 5) });
+    const r = searchDocs(ix, 'hop dong');
+    expect(r.docs.map((d) => d.doc.pdfUri)).toEqual([DOC_B.pdfUri, DOC_A.pdfUri]);
+    expect(r.docs.map((d) => d.count)).toEqual([5, 10]);
+  });
+
+  it('identical score and count → kho order (deterministic)', () => {
+    const ix = emptyIndex();
+    const sc = { units: unitsWith(30, 4) };
+    addDoc(ix, DOC_A, sc);
+    addDoc(ix, DOC_B, sc);
+    expect(searchDocs(ix, 'hop dong').docs.map((d) => d.doc.pdfUri)).toEqual([DOC_A.pdfUri, DOC_B.pdfUri]);
+  });
+
+  it('card count and snippet equal the single-doc sheet: count = search(one-doc index).length, best = its first hit', () => {
+    const sidecars: [typeof DOC_A, Sidecar][] = [
+      [DOC_A, { units: [
+        { label: 'Điều 2', page: 2, text: 'Các bên có quyền thỏa thuận về nội dung của hợp đồng lao động dài hơn.' },
+        { label: 'Điều 1', page: 1, text: 'Hợp đồng lao động là sự thỏa thuận.' },
+        { label: 'Điều 3', page: 3, text: 'Không liên quan gì.' },
+      ] }],
+      [DOC_B, { units: unitsWith(12, 7) }],
+      [DOC_C, { units: [
+        { label: 'Điều 385', page: 21, text: 'Hợp đồng là sự thỏa thuận giữa các bên.' },
+        { label: 'Điều 386', page: 21, text: 'Đề nghị giao kết hợp đồng.' },
+      ] }],
+    ];
+    const ix = mergeShards(sidecars.map(([d, sc]) => indexDoc(d, sc)));
+    const q = 'hop dong';
+    const r = searchDocs(ix, q);
+    for (const [d, sc] of sidecars) {
+      const one = mergeShards([indexDoc(d, sc)]);
+      const hit = r.docs.find((h) => h.doc.pdfUri === d.pdfUri)!;
+      expect(hit.count).toBe(search(one, q).length);
+      expect(hit.best.unit.page).toBe(search(one, q)[0].unit.page);
+      expect(hit.best.unit.text).toBe(search(one, q)[0].unit.text);
+    }
+    expect(r.total).toBe(2 + 7 + 2);
+  });
+
+  it('symbol queries group too: "35%" counts only units with 35%', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: [
+      { label: '', page: 1, text: 'Tỷ lệ 35% vốn điều lệ' },
+      { label: '', page: 2, text: '35 thành viên' },
+    ] });
+    addDoc(ix, DOC_B, { units: [{ label: '', page: 1, text: '35 ngày' }] });
+    expect(searchDocs(ix, '35%')).toMatchObject({ total: 1, docs: [{ count: 1, doc: DOC_A }] });
+  });
+
+  it('a doc added after a search still gets a real score (cached lengths refresh)', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: unitsWith(10, 2) });
+    searchDocs(ix, 'hop dong');
+    addDoc(ix, DOC_B, { units: unitsWith(10, 2) });
+    const r = searchDocs(ix, 'hop dong');
+    expect(r.docs).toHaveLength(2);
+    expect(r.docs.every((d) => Number.isFinite(d.score))).toBe(true);
+  });
+
+  it('empty or symbol-only query → { total: 0, docs: [] }', () => {
+    expect(searchDocs(fixture(), '')).toEqual({ total: 0, docs: [] });
+    expect(searchDocs(fixture(), '...')).toEqual({ total: 0, docs: [] });
   });
 });
