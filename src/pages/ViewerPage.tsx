@@ -50,7 +50,7 @@ export default function ViewerPage() {
   const name = baseName(docUri);
 
   const [initialPage, setInitialPage] = useState<number | null>(null);
-  const [jumpTo, setJumpTo] = useState<number | undefined>(undefined);
+  const [jumpTo, setJumpTo] = useState<{ page: number } | undefined>(undefined);
   const [target, setTarget] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -68,7 +68,7 @@ export default function ViewerPage() {
   // "Tìm trong tài liệu này" (v1.39.0 — góp ý của Gú). `searchFor` = pane nào đang mở sheet:
   // 'top' ở chế độ đơn, 'bottom' ở split (pane TRA CỨU, đúng chỗ Gú xin).
   const [searchFor, setSearchFor] = useState<'top' | 'bottom' | null>(seedQ ? 'top' : null);
-  const [bottomJumpTo, setBottomJumpTo] = useState<number | undefined>(undefined);
+  const [bottomJumpTo, setBottomJumpTo] = useState<{ page: number } | undefined>(undefined);
   const [frameH, setFrameH] = useState(0);
   const roRef = useRef<ResizeObserver | null>(null);
   // Callback-ref (không dùng useEffect) → gắn/gỡ theo dõi ngay khi khung mount, khỏi phụ thuộc
@@ -118,7 +118,7 @@ export default function ViewerPage() {
 
   const doJump = () => {
     const n = parseInt(target, 10);
-    if (!Number.isNaN(n)) setJumpTo(n);
+    if (!Number.isNaN(n)) setJumpTo({ page: n });
     setTarget('');
   };
 
@@ -300,7 +300,8 @@ export default function ViewerPage() {
                       onErrorAction={{ label: 'Chọn tài liệu khác', onClick: () => setBottomUri(null) }}
                     />
                   ) : (
-                    <DocPicker onPick={(u) => setBottomUri(u)} />
+                    // A new document must not inherit the previous one's last jump.
+                    <DocPicker onPick={(u) => { setBottomJumpTo(undefined); setBottomUri(u); }} />
                   )}
                 </div>
               </>
@@ -359,7 +360,7 @@ export default function ViewerPage() {
         docUri={searchFor === 'bottom' ? bottomUri : searchFor === 'top' ? docUri : null}
         docName={searchFor === 'bottom' ? baseName(bottomUri ?? '') : title}
         onClose={() => setSearchFor(null)}
-        onJump={(p) => (searchFor === 'bottom' ? setBottomJumpTo(p) : setJumpTo(p))}
+        onJump={(p) => (searchFor === 'bottom' ? setBottomJumpTo({ page: p }) : setJumpTo({ page: p }))}
         seed={seedQ ? { docUri, q: seedQ } : undefined}
       />
       {toastNode}
