@@ -22,7 +22,8 @@ const KEY = 'v1';
 // nên PHẢI dựng lại, không thể vá tại chỗ.
 // 3 (04/10, v1.40.0): unit label now carries its Điều ("Khoản 2 · Điều 2") — built at index time,
 // so stored shards hold the old labels and must be rebuilt.
-const SCHEMA = 3;
+// 4 (06/10, v1.41.0): units carry n (folded token string) for exact phrase checks — old shards lack it.
+const SCHEMA = 4;
 
 export interface StoredShard extends DocShard {
   jsonUri: string;

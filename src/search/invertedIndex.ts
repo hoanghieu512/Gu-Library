@@ -59,6 +59,13 @@ export interface IndexUnit {
   label: string;
   page: number;
   text: string;
+  /**
+   * Folded tokens joined by single spaces, with a leading space: " giao ket hop dong". A phrase
+   * check is then `n.includes(" hop dong")` — the leading space pins the word start, the single
+   * spaces make every inner word whole, and the open end keeps the last word a prefix. Measured
+   * 06/10 on the QA kho: 10 ms for the heaviest query vs 519 ms tokenizing each candidate.
+   */
+  n: string;
 }
 
 export interface SearchIndex {
@@ -83,41 +90,10 @@ export function parseQuery(q: string): Query {
   return { seq: t, exact: [...new Set(t.slice(0, -1))], prefix: t[t.length - 1] };
 }
 
-/**
- * Cụm truy vấn có xuất hiện LIỀN NHAU trong đoạn không? Trả vị trí token bắt đầu, -1 nếu không.
- *
- * Vì sao kiểm ở đây chứ không lưu vị trí token vào index: index hiện đã 24,6 MB / +130 MB heap,
- * lưu thêm vị trí từng lần xuất hiện sẽ phình mạnh. Còn ở đây chỉ chạy trên tập ỨNG VIÊN đã lọc
- * (≤ CANDIDATE_CAP đoạn, mỗi đoạn ~140 ký tự) → vài mili giây, không tốn byte nào.
- *
- * So theo TOKEN chứ không phải chuỗi con: "là, công dân" hay "là\ncông dân" vẫn phải tính là
- * liền nhau — dấu câu và xuống dòng không được phép cắt cụm.
- */
-export function phraseAt(text: string, seq: string[]): number {
-  if (seq.length === 0) return -1;
-  const toks = tokenize(text);
-  const last = seq.length - 1;
-  outer:
-  for (let i = 0; i + last < toks.length; i++) {
-    for (let k = 0; k < last; k++) if (toks[i + k] !== seq[k]) continue outer;
-    if (!toks[i + last].startsWith(seq[last])) continue;   // token cuối khớp TIỀN TỐ
-    return i;
-  }
-  return -1;
-}
-
 // Trần số token khớp tiền tố. Gõ "d" khớp hàng nghìn token; không chặn thì mỗi phím gõ là một
 // lượt gộp khổng lồ. Cắt ở đây làm kết quả KHÔNG đầy đủ cho tiền tố quá ngắn — chấp nhận, vì
 // người dùng gõ thêm một chữ là thu hẹp ngay.
 const PREFIX_CAP = 400;
-// Trần ứng viên GIỮ LẠI — chặn ca token cực phổ biến ("của", "và").
-const CANDIDATE_CAP = 600;
-// Trần số đoạn ĐEM ĐI TÁCH TỪ để kiểm cụm — đây mới là việc đắt. Đoạn bị loại bằng phép giao
-// tập token thì gần như miễn phí, quét bao nhiêu cũng được và PHẢI quét hết, nếu không kết quả
-// sẽ phụ thuộc thứ tự tài liệu chứ không phải độ liên quan.
-// Đánh đổi còn lại: truy vấn mà HÀNG NGHÌN đoạn chứa đủ các chữ nhưng rời sẽ bị cắt ở mốc này —
-// hiếm, và giống đánh đổi của PREFIX_CAP.
-const SCAN_CAP = 2500;
 
 function prefixTokens(ix: SearchIndex, p: string): string[] {
   if (!ix.sorted) ix.sorted = [...ix.postings.keys()].sort();
@@ -174,16 +150,18 @@ export function indexDoc(doc: IndexDoc, sidecar: Sidecar): DocShard {
     if (!isReadableText(u?.text)) continue;    // rỗng, hoặc marker trang-ảnh → không phải chữ
     const text = u.text as string;
     const local = units.length;
+    const toks = tokenize(text);
     units.push({
       label: displayLabel(typeof u.label === 'string' ? u.label : '', u.path),
       page: Number.isFinite(u.page) ? (u.page as number) : 1,
       text,
+      n: ' ' + toks.join(' '),
     });
     chars += text.length;
     // Một token chỉ ghi MỘT posting cho mỗi đơn vị — đơn vị dài lặp từ mà ghi nhiều lần thì phình
     // index không thêm thông tin (xếp hạng theo cụm/vị trí, không theo tần suất).
     const seen = new Set<string>();
-    for (const t of tokenize(text)) {
+    for (const t of toks) {
       if (seen.has(t)) continue;
       seen.add(t);
       const l = tokens.get(t);
@@ -237,14 +215,6 @@ export interface Hit {
   matched: number;   // số token của truy vấn khớp được
 }
 
-/**
- * Tra cứu: unit phải chứa ĐỦ mọi token nguyên vẹn, VÀ ít nhất một token khớp tiền tố cuối.
- *
- * Xếp hạng (theo thứ tự ưu tiên):
- *   1. khớp NGUYÊN CỤM (cả câu truy vấn nằm liền nhau) — gần như luôn là cái người ta muốn
- *   2. chỗ khớp xuất hiện SỚM trong đơn vị
- *   3. đơn vị NGẮN hơn (đoạn ngắn mà chứa đủ từ thì sát nghĩa hơn đoạn dài)
- */
 // Symbols that carry meaning when glued to a word/number ("35%", "15/5", "15.5", "TT-BCA").
 // Sentence marks (. , :) only count BETWEEN two alnums — "15.5" yes, "điều 5." no — so a stray
 // trailing dot or comma never narrows a query. Quotes/brackets are never meaningful.
@@ -287,23 +257,30 @@ export function literalOf(query: string): Literal | null {
   return { re: new RegExp((isTok(runs[0] ?? '') ? '(?<![a-z0-9])' : '') + src), syms };
 }
 
-export function search(ix: SearchIndex, query: string, limit = 50): Hit[] {
+/**
+ * Every unit matching the query, best first. A unit matches when it holds the whole query as one
+ * run of words (last word as a prefix — the user is still typing); a query with a meaningful
+ * symbol ("35%", "15/5") must match it literally (v1.40.1).
+ *
+ * No cap and no kho-order cut-off: until v1.40.1 candidates stopped at 600 in KHO ORDER before
+ * ranking, so a common word only ever surfaced the first subject A-Z (measured 06/10: "dieu tra"
+ * never reached the criminal procedure code). The check is cheap enough now (`n`) to run on all.
+ *
+ * Order: match position (earlier first), then shorter unit, then index order.
+ */
+function matchUnits(ix: SearchIndex, query: string): { id: number; pos: number }[] {
   const { seq, exact, prefix } = parseQuery(query);
   if (!prefix) return [];
   const lit = literalOf(query);
-  // Từ 2 chữ trở lên thì BẮT BUỘC liền nhau. Trước đây chỉ cần đoạn chứa đủ các chữ ở bất kỳ đâu
-  // nên "Lỗi kỹ thuật LÀ lỗi do sai sót… ĐÁNH máy… văn bản CÔNG chứng" lọt vào khi tra
-  // "là công dân" — Gú gặp thật. Bảng token vẫn dùng để LỌC THÔ, đây là bước xác nhận.
-  const needPhrase = seq.length >= 2;
+  const needle = ' ' + seq.join(' ');
 
   const lists: number[][] = [];
   for (const t of exact) {
     const l = ix.postings.get(t);
-    if (!l) return [];                          // thiếu một token → AND chắc chắn rỗng
+    if (!l) return [];                          // a word the kho never has → nothing can match
     lists.push(l);
   }
-
-  // Tập của tiền tố = hợp các token bắt đầu bằng nó.
+  // Units holding some word that starts with the last (prefix) token.
   const pset = new Set<number>();
   for (const t of prefixTokens(ix, prefix)) {
     const l = ix.postings.get(t);
@@ -311,38 +288,37 @@ export function search(ix: SearchIndex, query: string, limit = 50): Hit[] {
   }
   if (pset.size === 0) return [];
 
-  // Quét từ tập NGẮN NHẤT để cắt sớm: hoặc danh sách token nguyên ngắn nhất, hoặc tập tiền tố.
+  // Walk the SHORTEST set; the others only answer "is it in there".
   lists.sort((a, b) => a.length - b.length);
   const driveByExact = lists.length > 0 && lists[0].length < pset.size;
-  const driver: number[] = driveByExact ? lists[0] : [...pset];
+  const driver: Iterable<number> = driveByExact ? lists[0] : pset;
   const others = (driveByExact ? lists.slice(1) : lists).map((l) => new Set(l));
 
-  const scored: { id: number; pos: number; len: number }[] = [];
-  let scanned = 0;
+  const out: { id: number; pos: number }[] = [];
   for (const id of driver) {
-    // Chỉ phải kiểm lại tập tiền tố khi đang quét theo danh sách token nguyên.
     if (driveByExact && !pset.has(id)) continue;
-    if (!others.every((s) => s.has(id))) continue;
+    if (!others.every((x) => x.has(id))) continue;
     const u = ix.units[id];
-    // A unit missing the symbol at all is dropped BEFORE it counts toward any cap — otherwise the
-    // caps fill up with plain "35"s in kho order and a "35%" late in the kho is never reached.
-    if (lit && !lit.syms.every((c) => u.text.includes(c))) continue;
-    // Trần chỉ đếm VIỆC ĐẮT (tách từ để kiểm cụm). Đếm cả những đoạn bị loại bằng phép giao
-    // rẻ tiền là sai: trần cháy trước khi kịp xét, kết quả tụt từ 50+ xuống 7 — đã đo thật.
-    if (++scanned > SCAN_CAP) break;
-    const pos = lit ? fold(u.text).search(lit.re)
-      : needPhrase ? phraseAt(u.text, seq) : fold(u.text).indexOf(prefix);
-    if ((lit || needPhrase) && pos < 0) continue; // có đủ chữ nhưng nằm rời / sai ký hiệu → KHÔNG khớp
-    scored.push({ id, pos: pos < 0 ? 1e9 : pos, len: u.text.length });
-    if (scored.length >= CANDIDATE_CAP) break;
+    let pos: number;
+    if (lit) {
+      // Cheap raw-text pre-check first: fold() leaves symbols alone.
+      if (!lit.syms.every((c) => u.text.includes(c))) continue;
+      pos = fold(u.text).search(lit.re);
+    } else {
+      pos = u.n.indexOf(needle);
+    }
+    if (pos >= 0) out.push({ id, pos });
   }
+  out.sort((a, b) => (a.pos - b.pos)
+    || (ix.units[a.id].text.length - ix.units[b.id].text.length) || (a.id - b.id));
+  return out;
+}
 
-  // Cụm xuất hiện SỚM trong đoạn xếp trên; cùng vị trí thì đoạn NGẮN hơn sát nghĩa hơn.
-  scored.sort((a, b) => (a.pos - b.pos) || (a.len - b.len) || (a.id - b.id));
-
-  return scored.slice(0, limit).map(({ id }) => {
+export function search(ix: SearchIndex, query: string, limit = Infinity): Hit[] {
+  const matched = parseQuery(query).seq.length;
+  return matchUnits(ix, query).slice(0, limit).map(({ id }) => {
     const unit = ix.units[id];
-    return { unit, doc: ix.docs[unit.d], matched: seq.length };
+    return { unit, doc: ix.docs[unit.d], matched };
   });
 }
 

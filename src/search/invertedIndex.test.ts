@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyIndex, addDoc, search, indexStats, displayLabel } from './invertedIndex';
+import { emptyIndex, addDoc, search, indexStats, displayLabel, indexDoc } from './invertedIndex';
 
 // Đúng câu worker ghi vào sidecar cho trang ảnh — có đuôi số trang nên phải khớp TIỀN TỐ.
 const MARK = (n: number) => `[trang ảnh scan — chưa có lớp văn bản] (trang ${n})`;
@@ -228,7 +228,7 @@ describe('bắt buộc LIỀN NHAU khi tra nhiều chữ (lỗi Gú gặp ở v1
   });
 });
 
-describe('trần quét — chữ phổ biến không được làm khựng bàn phím', () => {
+describe('phrase check is cheap without any cap', () => {
   it('kho lớn toàn đoạn KHÔNG khớp cụm vẫn trả về nhanh, không quét hết', () => {
     const ix = emptyIndex();
     // 5000 đoạn đều chứa ĐỦ "là" + "công" + "dân" nhưng KHÔNG liền cụm → qua được phép giao
@@ -337,5 +337,35 @@ describe('ký hiệu dính vào chữ/số phải khớp ĐÚNG (v1.40.1 — huy
     addDoc(x, DOC, { units: [{ label: 'Khoản 2', page: 9, text: 'Sở hữu ít nhất 35% vốn điều lệ.' }] });
     const hits = search(x, '35%', 50);
     expect(hits.map((h) => h.doc.name)).toEqual(['Luật doanh nghiệp 2020']);
+  });
+});
+
+describe('n + exact phrase match, no kho-order cut (v1.41.0)', () => {
+  it('indexDoc builds n: folded tokens, one space apart, leading space', () => {
+    const sh = indexDoc(DOC_A, { units: [{ label: '', page: 1, text: 'Đất đai — 35% (Điều 5).\nHợp đồng' }] });
+    expect(sh.units[0].n).toBe(' dat dai 35 dieu 5 hop dong');
+  });
+
+  it('"phù hợp … cộng đồng" does not match "hop dong"', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: [{ label: '', page: 1, text: 'Phù hợp với cộng đồng dân cư.' }] });
+    expect(search(ix, 'hop dong')).toEqual([]);
+  });
+
+  it('no kho-order cut: 700 hits in the first doc + 1 in the last doc → all 701 returned', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: Array.from({ length: 700 }, (_, i) => ({ label: '', page: i + 1, text: `Hợp đồng số ${i}` })) });
+    addDoc(ix, DOC_B, { units: [{ label: '', page: 9, text: 'Hợp đồng cuối kho' }] });
+    const hits = search(ix, 'hop dong');
+    expect(hits).toHaveLength(701);
+    expect(hits.some((h) => h.doc.pdfUri === DOC_B.pdfUri)).toBe(true);
+  });
+
+  it('single-letter prefix over 50k units stays under 400 ms', () => {
+    const ix = emptyIndex();
+    addDoc(ix, DOC_A, { units: Array.from({ length: 50_000 }, (_, i) => ({ label: '', page: i + 1, text: `đoạn ${i} về dân sự` })) });
+    const t0 = performance.now();
+    expect(search(ix, 'd').length).toBe(50_000);
+    expect(performance.now() - t0).toBeLessThan(400);
   });
 });
