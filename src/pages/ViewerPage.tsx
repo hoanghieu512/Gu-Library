@@ -13,6 +13,7 @@ import { getResumePage, recordProgress } from '../reading/store';
 import { getBaseScale } from '../viewer/fontScale';
 import { resolveDocDisplayName } from '../storage/docRepo';
 import { decodeUriParam } from '../storage/uriParam';
+import { readViewerParams } from '../nav/viewerUrl';
 import { isPrintFlagged } from '../print/printRepo';
 import PrintFlagButton from '../components/PrintFlagButton';
 import { perfStart } from '../perf/perf';
@@ -42,8 +43,9 @@ export default function ViewerPage() {
   const { uri } = useParams<{ uri: string }>();
   // `?p=N` — mở thẳng tới trang, dùng khi vào từ kết quả tìm kiếm. Vắng thì theo trang đang đọc dở.
   // Nhớ trang vẫn ghi bình thường từ chỗ nhảy tới, không có ngoại lệ.
-  const jumpParam = Number(new URLSearchParams(useLocation().search).get('p'));
-  const fromSearch = Number.isFinite(jumpParam) && jumpParam > 0 ? jumpParam : null;
+  // `?q=…` (v1.41.0, "Xem cả N đoạn" on the Search screen) — open at the page being read, with the
+  // in-document search sheet already up and holding that query.
+  const { page: fromSearch, q: seedQ } = readViewerParams(useLocation().search);
   const docUri = decodeUriParam(uri);
   const name = baseName(docUri);
 
@@ -65,7 +67,7 @@ export default function ViewerPage() {
   const [ratio, setRatio] = useState(0.5);
   // "Tìm trong tài liệu này" (v1.39.0 — góp ý của Gú). `searchFor` = pane nào đang mở sheet:
   // 'top' ở chế độ đơn, 'bottom' ở split (pane TRA CỨU, đúng chỗ Gú xin).
-  const [searchFor, setSearchFor] = useState<'top' | 'bottom' | null>(null);
+  const [searchFor, setSearchFor] = useState<'top' | 'bottom' | null>(seedQ ? 'top' : null);
   const [bottomJumpTo, setBottomJumpTo] = useState<number | undefined>(undefined);
   const [frameH, setFrameH] = useState(0);
   const roRef = useRef<ResizeObserver | null>(null);
@@ -358,6 +360,7 @@ export default function ViewerPage() {
         docName={searchFor === 'bottom' ? baseName(bottomUri ?? '') : title}
         onClose={() => setSearchFor(null)}
         onJump={(p) => (searchFor === 'bottom' ? setBottomJumpTo(p) : setJumpTo(p))}
+        seed={seedQ ? { docUri, q: seedQ } : undefined}
       />
       {toastNode}
     </IonPage>

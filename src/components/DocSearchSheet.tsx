@@ -5,7 +5,7 @@ import GuSheet from './GuSheet';
 import { indexOneDoc } from '../search/docIndex';
 import { search, parseQuery } from '../search/invertedIndex';
 import type { Hit, SearchIndex } from '../search/invertedIndex';
-import { makeSnippet } from '../search/snippet';
+import SnippetText from './SnippetText';
 
 // "Tìm trong tài liệu này" — mở từ Viewer (v1.39.0, đến từ góp ý thật của Gú sau khi dùng
 // v1.38.1: tìm toàn kho đã tốt, nhưng đang đọc một quyển thì muốn tra ngay trong quyển đó).
@@ -15,18 +15,22 @@ import { makeSnippet } from '../search/snippet';
 // phải dò bằng mắt trên một trang luật dày là hụt. Đoạn trích chính là thứ thay cho tô sáng.
 
 const DEBOUNCE_MS = 130;
-const LIMIT = 50;
+// Rows drawn per step — a common word can match hundreds of units in one thick document.
+const PAGE = 50;
 
-export default function DocSearchSheet({ isOpen, docUri, docName, onClose, onJump }: {
+export default function DocSearchSheet({ isOpen, docUri, docName, onClose, onJump, seed }: {
   isOpen: boolean;
   docUri: string | null;
   docName: string;
   onClose: () => void;
   onJump: (page: number) => void;
+  /** A query to start with (Search screen "Xem cả N đoạn"); read once, at mount. */
+  seed?: { docUri: string; q: string };
 }) {
   // The body unmounts whenever the sheet closes (including after tapping a result), so the query
   // lives out here, per document: jump to a hit, it's the wrong one, reopen → same query, same hits.
-  const [queries, setQueries] = useState<Record<string, string>>({});
+  // A seed counts as a remembered query, so the keyboard stays down and the hits show at once.
+  const [queries, setQueries] = useState<Record<string, string>>(() => (seed ? { [seed.docUri]: seed.q } : {}));
   return (
     <GuSheet isOpen={isOpen} title="Tìm trong tài liệu này" onClose={onClose} breakpoint={0.75}>
       {/* `key` theo tài liệu: đổi tài liệu là thân sheet mount lại → ô nhập và kết quả tự tươi.
@@ -80,7 +84,7 @@ function Body({ docUri, docName, onClose, onJump, initialQ, onQueryChange }: {
 
   useEffect(() => {
     if (!ix) return;
-    const t = setTimeout(() => setHits(q.trim() ? search(ix, q, LIMIT) : []), DEBOUNCE_MS);
+    const t = setTimeout(() => setHits(q.trim() ? search(ix, q) : []), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [q, ix]);
 
@@ -120,7 +124,7 @@ function Body({ docUri, docName, onClose, onJump, initialQ, onQueryChange }: {
           {state === 'error' && 'không đọc được nội dung tài liệu này'}
           {state === 'image' && 'tài liệu này là ảnh chụp/scan — chưa tra được chữ bên trong'}
           {state === 'ready' && (q.trim()
-            ? `${hits.length}${hits.length >= LIMIT ? '+' : ''} đoạn khớp`
+            ? `${hits.length.toLocaleString('vi-VN')} đoạn khớp`
             : 'gõ để tìm — có dấu hay không dấu đều được')}
         </div>
 
@@ -130,39 +134,49 @@ function Body({ docUri, docName, onClose, onJump, initialQ, onQueryChange }: {
           </p>
         )}
 
-        {hits.map((h, i) => {
-          const sn = makeSnippet(h.unit.text, seq);
-          const parts: React.ReactNode[] = [];
-          let at = 0;
-          sn.marks.forEach((m, k) => {
-            if (m.start > at) parts.push(sn.text.slice(at, m.start));
-            parts.push(<mark key={k} style={{ background: 'rgba(231,197,110,.55)', color: 'inherit', padding: 0 }}>
-              {sn.text.slice(m.start, m.end)}
-            </mark>);
-            at = m.end;
-          });
-          if (at < sn.text.length) parts.push(sn.text.slice(at));
-          return (
-            <div
-              key={`${h.unit.page}#${i}`}
-              onClick={() => { onJump(h.unit.page); onClose(); }}
-              role="button" aria-label={`Nhảy tới trang ${h.unit.page}`}
-              style={{
-                background: 'var(--gu-white)', borderRadius: 10, padding: '11px 13px',
-                marginBottom: 8, cursor: 'pointer', border: '1px solid rgba(117,66,14,.10)',
-              }}
-            >
-              <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--gu-brown-deep)' }}>
-                {sn.cutHead && '… '}{parts}{sn.cutTail && ' …'}
-              </div>
-              <div style={{
-                marginTop: 6, fontSize: 12, color: 'var(--gu-brown)', fontVariantNumeric: 'tabular-nums',
-              }}>
-                {h.unit.label ? `${h.unit.label} · ` : ''}trang {h.unit.page}
-              </div>
-            </div>
-          );
-      })}
+        {/* Keyed by the query: a new query starts again at the first PAGE rows. */}
+        <HitRows key={q} hits={hits} seq={seq} onPick={(page) => { onJump(page); onClose(); }} />
     </div>
+  );
+}
+
+function HitRows({ hits, seq, onPick }: { hits: Hit[]; seq: string[]; onPick: (page: number) => void }) {
+  const [shown, setShown] = useState(PAGE);
+  const more = Math.min(PAGE, hits.length - shown);
+  return (
+    <>
+      {hits.slice(0, shown).map((h, i) => (
+        <div
+          key={`${h.unit.page}#${i}`}
+          onClick={() => onPick(h.unit.page)}
+          role="button" aria-label={`Nhảy tới trang ${h.unit.page}`}
+          style={{
+            background: 'var(--gu-white)', borderRadius: 10, padding: '11px 13px',
+            marginBottom: 8, cursor: 'pointer', border: '1px solid rgba(117,66,14,.10)',
+          }}
+        >
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--gu-brown-deep)' }}>
+            <SnippetText text={h.unit.text} seq={seq} />
+          </div>
+          <div style={{
+            marginTop: 6, fontSize: 12, color: 'var(--gu-brown)', fontVariantNumeric: 'tabular-nums',
+          }}>
+            {h.unit.label ? `${h.unit.label} · ` : ''}trang {h.unit.page}
+          </div>
+        </div>
+      ))}
+      {more > 0 && (
+        <button
+          type="button" onClick={() => setShown((s) => s + PAGE)}
+          style={{
+            display: 'block', margin: '4px auto 8px', padding: '10px 18px', background: 'transparent',
+            border: 'none', fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+            color: 'var(--gu-brown)', cursor: 'pointer',
+          }}
+        >
+          Hiện thêm {more} đoạn
+        </button>
+      )}
+    </>
   );
 }
