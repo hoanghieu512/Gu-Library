@@ -3,8 +3,8 @@
 ***Bản hợp nhất** — nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn
 Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
-- **App** *(Mac ghi dòng này)*: **v1.40.1 trên main** (verify UBS1 + dGen1) · **Prod (máy Gú) đang
-  chạy v1.40.1 — bắt kịp main** (huynh xác nhận 06/10) ·
+- **App** *(Mac ghi dòng này)*: **v1.41.0 trên nhánh `feat/v1.41.0-search-by-doc`** (verify UBS1;
+  dGen1 chờ; chưa merge) · main = **v1.40.1** · **Prod (máy Gú) đang chạy v1.40.1** ·
   cập nhật 2026-10-06
 
 - **Worker** *(Atomman ghi dòng này)*: v0.20.1 (OCR trang ảnh: QA + Prod đã bật, tồn đã xong) · cập nhật 2026-10-04
@@ -464,6 +464,40 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
     trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
     → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
     đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
+- **v1.41.0 — màn Tìm gom kết quả theo tài liệu (06/10).** Đo "món xếp hạng chờ khi gặp" của
+  v1.40.1 ra lỗi thật: `search()` gom tối đa 600 ứng viên (quét 2500) **theo thứ tự kho** rồi mới
+  xếp → từ phổ biến chỉ ra môn đứng đầu A→Z (kho QA: "Hình sự chung" = 63% số đoạn). 17/30 câu
+  chạm trần, 12 câu lệch nặng: "dieu tra" không tới BLTTHS, "hop dong" không tới
+  Hop_dong_Chuong_1_2_4 lẫn BLDS 2015. Số đo + cách đo: `Docs/perf/2026-10-06-search-lech-thu-tu-kho.md`.
+  - **Lõi:** mỗi đơn vị chỉ mục mang `n` = token bỏ dấu nối bằng một dấu cách (`" hop dong …"`) →
+    kiểm cụm = `n.includes(" a b")`, ~50× rẻ hơn tách từ từng đoạn → **gỡ `CANDIDATE_CAP`,
+    `SCAN_CAP`, `phraseAt`**, đếm chính xác. `SCHEMA` 3 → 4 → mọi máy dựng lại một lần.
+    `PREFIX_CAP` 400 GIỮ.
+  - **Xếp tài liệu theo BM25** (k1 1,2 · b 0,75 — mật độ so với độ dày tài liệu). Đã so 3 cách trên
+    sidecar thật: đếm thô → tập tham khảo dày luôn thắng; ưu tiên tên → kéo thứ lạc đề lên. Huynh chốt
+    mật độ.
+  - **UI:** thẻ tài liệu (môn · tên · "N đoạn" · 1 đoạn trích · "Xem cả N đoạn ›"), 20 thẻ/lượt.
+    "Xem cả" → `/viewer/<uri>?q=…` → mở ở trang đang đọc dở, sheet Tìm-trong-tài-liệu bật sẵn câu
+    tra, bàn phím không bật. Sheet đếm chính xác + 50 dòng/lượt "Hiện thêm k đoạn". Bất biến có
+    test: số trên thẻ = số dòng sheet, đoạn trên thẻ = dòng đầu sheet.
+  - **Bẫy lộ ra lúc đo (đã sửa trong beat):** bỏ trần xong, gõ dở "th" (98.789 đoạn khớp) mất
+    **414 ms trên Mac** — sắp xếp TOÀN BỘ kết quả + dò `Set`. Viết lại: một lượt duyệt giữ
+    count/best mỗi tài liệu (không sắp toàn bộ) + đánh dấu bằng `Uint8Array` → "th" 49 ms, "d" 29 ms.
+    **Bài học: bỏ trần là phải đo ca CÂU NGẮN, không chỉ ca từ phổ biến.**
+  - **UBS1 (đo cùng máy, so 1.40.1):** dựng lại chỉ mục 21,6 / 22,6 s (mốc 18,8) · câu đủ từ ≤ 37 ms
+    ("toi pham" 27–29) · gõ dở "th" 132–144 ms · bộ nhớ màn Tìm 263 → **304 MB (+41 MB)**, đỉnh tạm
+    410 MB ~20 s sau khi nạp — vượt ngưỡng +30 của spec, **huynh duyệt nâng lên ~45 MB** · cuộn thẻ
+    giật 0,41 %, p95 11 ms. Luồng: thẻ đầu đúng harness, đoạn → trang 24/38, "Xem cả" 200/287 = thẻ,
+    "Hiện thêm" hai nơi, back hai nấc, "Xem cả" A → back → B không dính A.
+  - **Bẫy đo:** (1) mẫu bộ nhớ ~10 s sau khi nạp chỉ mục là ĐỈNH TẠM (410 MB), phải chờ ~1 phút mới
+    lắng — so cùng thời điểm với mốc cũ. (2) Gboard UBS1 nuốt chữ "u" cả qua `input text` lẫn
+    `keyevent 49` → không gõ được "quy dinh"/"co quan"; dùng câu không có "u". (3) Bản release
+    KHÔNG đẩy `console.log` ra logcat — APK đo tạm phải bật `loggingBehavior: 'production'` trong
+    `capacitor.config.ts` (đã hoàn nguyên). (4) Trên UBS1 vị trí icon Tìm ở thanh nav đổi theo tab
+    đang mở (nav "bung khi active").
+  - **Còn mở:** trần 400 tiền tố làm số thẻ < số sheet ở câu 1 chữ cái / "co" / "re"; tên thẻ vẫn là
+    tên file (chưa đọc `.display.json`); một file ở hai môn ra hai thẻ.
+
 - **v1.40.1 — ký hiệu dính vào chữ/số phải khớp ĐÚNG (huynh bắt được, 05/10).** Tra "35%" trong
   Luật doanh nghiệp 2020 (PLCTKD/VBQPPL) ra toàn "35"; màn Tìm toàn kho còn không hiện file đó.
   "15/" ra số 15 trơn; "15/5" lẫn "15.5" / "15,5cm".

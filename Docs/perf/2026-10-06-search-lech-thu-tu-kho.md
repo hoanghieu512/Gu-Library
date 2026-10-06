@@ -88,3 +88,25 @@ Số trong ngoặc = [đoạn khớp / tổng đoạn của tài liệu].
 - Thời gian đo trên Mac (Node/vitest), KHÔNG phải trên T616 — ngưỡng trên máy đo lại khi làm v1.41.0.
 - Kho QA có vài tài liệu trùng ở hai môn (vd "11. HT Hình sự và TTHS" ở cả Hình sự chung lẫn Luật
   Lao Động) — dữ liệu test, không ảnh hưởng kết luận.
+
+## Kết quả v1.41.0 (cùng ngày)
+
+**Harness trên cùng sidecar (Mac), code v1.41.0:** tài liệu đầu đúng cột "Mật độ" ở mọi câu kiểm
+("hop dong" → Hop_dong_Chuong_1_2_4 · "dieu tra" → BLTTHS VBHN 104 · "vi pham hanh chinh" → Luật
+XLVPHC · "trach nhiem hinh su" → NQ hướng dẫn Đ51–52). Bất biến "số trên thẻ = số dòng sheet, đoạn
+thẻ = dòng đầu sheet": 0 lệch, trừ câu 1 chữ cái (trần 400 tiền tố).
+
+| Câu | trước tối ưu gom (Mac) | v1.41.0 (Mac) | v1.41.0 (UBS1) |
+|---|---|---|---|
+| hop dong | 19,7 ms | 11 ms | 16 ms |
+| toi pham | 28,6 ms | 17 ms | 27–29 ms |
+| quy dinh | 47,4 ms | 16 ms | — (gõ không được) |
+| th (gõ dở) | 414 ms | 49 ms | 132–144 ms |
+| d (gõ dở) | 251 ms | 29 ms | 77 ms |
+
+"Trước tối ưu gom" = bản đầu của v1.41.0 (sắp xếp toàn bộ kết quả). Bản phát hành gom một lượt,
+không sắp toàn bộ.
+
+**UBS1, so 1.40.1 cùng máy:** dựng lại chỉ mục 21,6 / 22,6 s (trước 18,8) · bộ nhớ màn Tìm
+"toi pham" 263 → 304 MB đã lắng (+41; đỉnh tạm 410 MB ~20 s sau khi nạp) · cuộn thẻ 1.221 khung,
+giật 0,41 %, p95 11 ms.
