@@ -489,6 +489,14 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
     410 MB ~20 s sau khi nạp — vượt ngưỡng +30 của spec, **huynh duyệt nâng lên ~45 MB** · cuộn thẻ
     giật 0,41 %, p95 11 ms. Luồng: thẻ đầu đúng harness, đoạn → trang 24/38, "Xem cả" 200/287 = thẻ,
     "Hiện thêm" hai nơi, back hai nấc, "Xem cả" A → back → B không dính A.
+  - **dGen1 (WebView 124, 07/10):** thẻ trên màn vuông 720×720 gọn (~2 thẻ/màn), "Xem cả 200 đoạn" →
+    sheet đúng số, bàn phím không bật, chạm dòng → đúng trang 24/38. Bộ nhớ màn Tìm "toi pham" tiến
+    trình MỚI, lắng 90 s: **347 MB** (chính 150 + renderer 206) so với 1.40.1 **269 MB** (127 + 149) —
+    mốc 1.40.1 là tiến trình đã chạy lâu vì dGen1 tránh `force-stop`, nên phần tiến trình chính (+23,
+    UBS1 chỉ +6) không so ngang; renderer +57 MB ≈ 1,5× UBS1, cùng tỉ lệ đã thấy ở v1.38. **Mẹo: cần
+    tiến trình mới trên dGen1 mà không `force-stop` → `adb install -r` lại đúng APK** (giữ chỉ mục và
+    dữ liệu). Dựng lại chỉ mục chưa có số trọn (khoảng trống giữa hai lượt chụp): 1→35/180 tài liệu
+    mất ~7 s vì các tài liệu dày nằm đầu kho.
   - **Bẫy đo:** (1) mẫu bộ nhớ ~10 s sau khi nạp chỉ mục là ĐỈNH TẠM (410 MB), phải chờ ~1 phút mới
     lắng — so cùng thời điểm với mốc cũ. (2) Gboard UBS1 nuốt chữ "u" cả qua `input text` lẫn
     `keyevent 49` → không gõ được "quy dinh"/"co quan"; dùng câu không có "u". (3) Bản release

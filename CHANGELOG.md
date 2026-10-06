@@ -14,7 +14,7 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 - **Chạm lại đúng dòng/trang vừa nhảy** (sau khi đã cuộn đi chỗ khác) giờ nhảy lại được (lỗi có từ 1.39).
 ### Notes
 - Chỉ mục `SCHEMA` 3 → 4: mỗi đoạn lưu thêm chuỗi chữ đã bỏ dấu để kiểm cụm liền nhau bằng một phép so chuỗi (nhanh ~50× cách tách từ từng đoạn) → **mọi máy tự dựng lại chỉ mục một lần** (UBS1 21,6 / 22,6 s, trước 18,8 s). Chỉ mục +~22 MB.
-- UBS1: tra câu đủ từ ≤ 37 ms ("toi pham" 27–29 ms); gõ dở hai chữ cái như "th" (~99 nghìn đoạn khớp) 132–144 ms; bộ nhớ màn Tìm 263 → 304 MB (+41 MB, huynh duyệt); cuộn danh sách giật 0,41%, p95 11 ms.
+- UBS1: tra câu đủ từ ≤ 37 ms ("toi pham" 27–29 ms); gõ dở hai chữ cái như "th" (~99 nghìn đoạn khớp) 132–144 ms; bộ nhớ màn Tìm 263 → 304 MB (+41 MB, huynh duyệt); cuộn danh sách giật 0,41%, p95 11 ms. dGen1 (WebView 124): 269 → 347 MB (renderer +57 MB — WebView cũ tốn hơn ~1,5× như từ 1.38); bố cục thẻ trên màn vuông 720×720 ổn, "Xem cả" và nhảy trang đúng.
 - Trần 400 từ cho tiền tố chỉ còn áp cho câu MỘT chữ đang gõ dở (1–2 chữ cái, ví dụ "d", "co"): ở các câu đó số trên thẻ có thể thấp hơn số trong sheet. Câu nhiều chữ như "dieu 2", "khoan 2" đếm đủ (bản đầu của nhánh còn cắt cả những câu này — review toàn nhánh bắt được, đã sửa trước khi phát hành).
 - Đánh đổi đã chọn: tên trên thẻ vẫn là tên file (tên đổi bằng "Đổi tên" chưa hiện ở màn Tìm, như từ 1.38); một file nằm ở hai môn thì ra hai thẻ.
 

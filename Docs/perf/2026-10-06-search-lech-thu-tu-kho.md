@@ -112,3 +112,6 @@ không sắp toàn bộ.
 **UBS1, so 1.40.1 cùng máy:** dựng lại chỉ mục 21,6 / 22,6 s (trước 18,8) · bộ nhớ màn Tìm
 "toi pham" 263 → 304 MB đã lắng (+41; đỉnh tạm 410 MB ~20 s sau khi nạp) · cuộn thẻ 1.221 khung,
 giật 0,41 %, p95 11 ms.
+
+**dGen1 (WebView 124), 07/10:** màn Tìm "toi pham", tiến trình mới lắng 90 s: 347 MB (chính 150 +
+renderer 206) so với 1.40.1 269 MB (127 + 149; mốc là tiến trình đã chạy lâu). Renderer +57 MB.
