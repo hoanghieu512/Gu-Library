@@ -3,9 +3,9 @@
 ***Bản hợp nhất** — nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn
 Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
-- **App** *(Mac ghi dòng này)*: **v1.41.0 trên nhánh `feat/v1.41.0-search-by-doc`** (verify UBS1;
-  dGen1 chờ; chưa merge) · main = **v1.40.1** · **Prod (máy Gú) đang chạy v1.40.1** ·
-  cập nhật 2026-10-06
+- **App** *(Mac ghi dòng này)*: **v1.41.0 trên main** (verify UBS1 + dGen1) · **Prod (máy Gú) đang
+  chạy v1.40.1 — CHƯA lên v1.41.0** (lần đầu mở màn Tìm sẽ dựng lại chỉ mục ~20 s) ·
+  cập nhật 2026-10-07
 
 - **Worker** *(Atomman ghi dòng này)*: v0.20.1 (OCR trang ảnh: QA + Prod đã bật, tồn đã xong) · cập nhật 2026-10-04
 
