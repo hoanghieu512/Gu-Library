@@ -260,65 +260,68 @@ export function literalOf(query: string): Literal | null {
 }
 
 /**
- * Every unit matching the query, best first. A unit matches when it holds the whole query as one
- * run of words (last word as a prefix — the user is still typing); a query with a meaningful
- * symbol ("35%", "15/5") must match it literally (v1.40.1).
+ * Calls `visit(id, pos)` for every unit matching the query, in no particular order. A unit matches
+ * when it holds the whole query as one run of words (last word as a prefix — the user is still
+ * typing); a query with a meaningful symbol ("35%", "15/5") must match it literally (v1.40.1).
  *
  * No cap and no kho-order cut-off: until v1.40.1 candidates stopped at 600 in KHO ORDER before
  * ranking, so a common word only ever surfaced the first subject A-Z (measured 06/10: "dieu tra"
  * never reached the criminal procedure code). The check is cheap enough now (`n`) to run on all.
- *
- * Order: match position (earlier first), then shorter unit, then index order.
+ * Membership uses byte marks over all units, not Sets: a broad prefix ("th") hits ~100k units and
+ * a Set that size cost more than the checks themselves (measured 06/10).
  */
-function matchUnits(ix: SearchIndex, query: string): { id: number; pos: number }[] {
+function eachMatch(ix: SearchIndex, query: string, visit: (id: number, pos: number) => void): void {
   const { seq, exact, prefix } = parseQuery(query);
-  if (!prefix) return [];
+  if (!prefix) return;
   const lit = literalOf(query);
   const needle = ' ' + seq.join(' ');
-
-  const lists: number[][] = [];
-  for (const t of exact) {
-    const l = ix.postings.get(t);
-    if (!l) return [];                          // a word the kho never has → nothing can match
-    lists.push(l);
-  }
-  // Units holding some word that starts with the last (prefix) token.
-  const pset = new Set<number>();
-  for (const t of prefixTokens(ix, prefix)) {
-    const l = ix.postings.get(t);
-    if (l) for (const id of l) pset.add(id);
-  }
-  if (pset.size === 0) return [];
-
-  // Walk the SHORTEST set; the others only answer "is it in there".
-  lists.sort((a, b) => a.length - b.length);
-  const driveByExact = lists.length > 0 && lists[0].length < pset.size;
-  const driver: Iterable<number> = driveByExact ? lists[0] : pset;
-  const others = (driveByExact ? lists.slice(1) : lists).map((l) => new Set(l));
-
-  const out: { id: number; pos: number }[] = [];
-  for (const id of driver) {
-    if (driveByExact && !pset.has(id)) continue;
-    if (!others.every((x) => x.has(id))) continue;
+  const check = (id: number) => {
     const u = ix.units[id];
     let pos: number;
     if (lit) {
       // Cheap raw-text pre-check first: fold() leaves symbols alone.
-      if (!lit.syms.every((c) => u.text.includes(c))) continue;
+      if (!lit.syms.every((c) => u.text.includes(c))) return;
       pos = fold(u.text).search(lit.re);
     } else {
       pos = u.n.indexOf(needle);
     }
-    if (pos >= 0) out.push({ id, pos });
+    if (pos >= 0) visit(id, pos);
+  };
+
+  const lists: number[][] = [];
+  for (const t of exact) {
+    const l = ix.postings.get(t);
+    if (!l) return;                             // a word the kho never has → nothing can match
+    lists.push(l);
   }
-  out.sort((a, b) => (a.pos - b.pos)
-    || (ix.units[a.id].text.length - ix.units[b.id].text.length) || (a.id - b.id));
-  return out;
+  const ptoks = prefixTokens(ix, prefix);
+  const mark = new Uint8Array(ix.units.length);
+  if (lists.length === 0) {
+    // One word: every unit holding a word that starts with it, each once.
+    for (const t of ptoks) for (const id of ix.postings.get(t) ?? []) if (!mark[id]) { mark[id] = 1; check(id); }
+    return;
+  }
+  // Several words: a unit needs every whole word (counted in `mark`) plus one starting with the
+  // last; walk the shortest whole-word list and test the rest by mark.
+  for (const l of lists) for (const id of l) mark[id]++;
+  const inPrefix = new Uint8Array(ix.units.length);
+  for (const t of ptoks) for (const id of ix.postings.get(t) ?? []) inPrefix[id] = 1;
+  const need = lists.length;
+  let shortest = lists[0];
+  for (const l of lists) if (l.length < shortest.length) shortest = l;
+  for (const id of shortest) if (mark[id] === need && inPrefix[id]) check(id);
 }
 
+/**
+ * Every unit matching the query, best first: match position (earlier first), then shorter unit,
+ * then index order.
+ */
 export function search(ix: SearchIndex, query: string, limit = Infinity): Hit[] {
+  const found: { id: number; pos: number; len: number }[] = [];
+  eachMatch(ix, query, (id, pos) => found.push({ id, pos, len: ix.units[id].text.length }));
+  found.sort((a, b) => (a.pos - b.pos) || (a.len - b.len) || (a.id - b.id));
   const matched = parseQuery(query).seq.length;
-  return matchUnits(ix, query).slice(0, limit).map(({ id }) => {
+  return found.slice(0, limit).map(({ id }) => {
     const unit = ix.units[id];
     return { unit, doc: ix.docs[unit.d], matched };
   });
@@ -341,30 +344,42 @@ const BM25_B = 0.75;
  * row count of the in-document sheet (`search` over that one document).
  */
 export function searchDocs(ix: SearchIndex, query: string): DocSearchResult {
-  const matches = matchUnits(ix, query);
-  if (matches.length === 0) return { total: 0, docs: [] };
   if (!ix.docLen) {
     ix.docLen = new Array<number>(ix.docs.length).fill(0);
     for (const u of ix.units) ix.docLen[u.d]++;
   }
   const dl = ix.docLen;
+  // One pass, no sort of the matches: a document only needs its count and its best unit (the
+  // same order `search` uses). Sorting ~100k matches of a broad prefix took 211 ms (06/10).
+  const count = new Int32Array(ix.docs.length);
+  const bestId = new Int32Array(ix.docs.length).fill(-1);
+  const bestPos = new Float64Array(ix.docs.length);
+  const bestLen = new Float64Array(ix.docs.length);
+  let total = 0;
+  eachMatch(ix, query, (id, pos) => {
+    const d = ix.units[id].d;
+    const len = ix.units[id].text.length;
+    total++;
+    count[d]++;
+    const b = bestId[d];
+    if (b < 0 || pos < bestPos[d] || (pos === bestPos[d] && (len < bestLen[d] || (len === bestLen[d] && id < b)))) {
+      bestId[d] = id; bestPos[d] = pos; bestLen[d] = len;
+    }
+  });
+  if (total === 0) return { total: 0, docs: [] };
+
   const avgdl = ix.units.length / ix.docs.length;
   const matched = parseQuery(query).seq.length;
-
-  const byDoc = new Map<number, DocHit>();
-  for (const { id } of matches) {
-    const unit = ix.units[id];
-    const h = byDoc.get(unit.d);
-    if (h) h.count++;
-    else byDoc.set(unit.d, { doc: ix.docs[unit.d], count: 1, best: { unit, doc: ix.docs[unit.d], matched }, score: 0 });
+  const docs: { d: number; hit: DocHit }[] = [];
+  for (let d = 0; d < ix.docs.length; d++) {
+    const c = count[d];
+    if (c === 0) continue;
+    const unit = ix.units[bestId[d]];
+    const score = (c * (BM25_K1 + 1)) / (c + BM25_K1 * (1 - BM25_B + BM25_B * dl[d] / avgdl));
+    docs.push({ d, hit: { doc: ix.docs[d], count: c, best: { unit, doc: ix.docs[d], matched }, score } });
   }
-  for (const [d, h] of byDoc) {
-    h.score = (h.count * (BM25_K1 + 1)) / (h.count + BM25_K1 * (1 - BM25_B + BM25_B * dl[d] / avgdl));
-  }
-  const docs = [...byDoc.entries()]
-    .sort(([da, a], [db, b]) => (b.score - a.score) || (b.count - a.count) || (da - db))
-    .map(([, h]) => h);
-  return { total: matches.length, docs };
+  docs.sort((a, b) => (b.hit.score - a.hit.score) || (b.hit.count - a.hit.count) || (a.d - b.d));
+  return { total, docs: docs.map((x) => x.hit) };
 }
 
 /** Số liệu để báo cáo spike. */
