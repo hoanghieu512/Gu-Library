@@ -93,16 +93,16 @@ export function parseQuery(q: string): Query {
 
 // Trần số token khớp tiền tố. Gõ "d" khớp hàng nghìn token; không chặn thì mỗi phím gõ là một
 // lượt gộp khổng lồ. Cắt ở đây làm kết quả KHÔNG đầy đủ cho tiền tố quá ngắn — chấp nhận, vì
-// người dùng gõ thêm một chữ là thu hẹp ngay.
+// người dùng gõ thêm một chữ là thu hẹp ngay. Only single-word queries are capped (v1.41.0).
 const PREFIX_CAP = 400;
 
-function prefixTokens(ix: SearchIndex, p: string): string[] {
+function prefixTokens(ix: SearchIndex, p: string, cap = PREFIX_CAP): string[] {
   if (!ix.sorted) ix.sorted = [...ix.postings.keys()].sort();
   const arr = ix.sorted;
   let lo = 0, hi = arr.length;
   while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < p) lo = m + 1; else hi = m; }
   const out: string[] = [];
-  for (let i = lo; i < arr.length && arr[i].startsWith(p) && out.length < PREFIX_CAP; i++) out.push(arr[i]);
+  for (let i = lo; i < arr.length && arr[i].startsWith(p) && out.length < cap; i++) out.push(arr[i]);
   return out;
 }
 
@@ -294,18 +294,20 @@ function eachMatch(ix: SearchIndex, query: string, visit: (id: number, pos: numb
     if (!l) return;                             // a word the kho never has → nothing can match
     lists.push(l);
   }
-  const ptoks = prefixTokens(ix, prefix);
   const mark = new Uint8Array(ix.units.length);
   if (lists.length === 0) {
-    // One word: every unit holding a word that starts with it, each once.
-    for (const t of ptoks) for (const id of ix.postings.get(t) ?? []) if (!mark[id]) { mark[id] = 1; check(id); }
+    // One word: every unit holding a word that starts with it, each once — capped at PREFIX_CAP
+    // words, which only bites a one- or two-letter prefix still being typed.
+    for (const t of prefixTokens(ix, prefix)) for (const id of ix.postings.get(t) ?? []) if (!mark[id]) { mark[id] = 1; check(id); }
     return;
   }
   // Several words: a unit needs every whole word (counted in `mark`) plus one starting with the
   // last; walk the shortest whole-word list and test the rest by mark.
   for (const l of lists) for (const id of l) mark[id]++;
+  // No prefix cap here: the whole words already narrow the set, and a cap would drop finished
+  // queries like "dieu 2" whose last word shares its first letter with 400+ other words.
   const inPrefix = new Uint8Array(ix.units.length);
-  for (const t of ptoks) for (const id of ix.postings.get(t) ?? []) inPrefix[id] = 1;
+  for (const t of prefixTokens(ix, prefix, Infinity)) for (const id of ix.postings.get(t) ?? []) inPrefix[id] = 1;
   const need = lists.length;
   let shortest = lists[0];
   for (const l of lists) if (l.length < shortest.length) shortest = l;

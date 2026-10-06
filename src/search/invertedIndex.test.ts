@@ -362,6 +362,15 @@ describe('n + exact phrase match, no kho-order cut (v1.41.0)', () => {
     expect(hits.some((h) => h.doc.pdfUri === DOC_B.pdfUri)).toBe(true);
   });
 
+  it('a multi-word query is not cut by the 400-token prefix cap ("hop d" ⊇ "hop dong")', () => {
+    const ix = emptyIndex();
+    // 401 distinct words that start with "d" and sort before "dong" fill the prefix cap.
+    addDoc(ix, DOC_A, { units: Array.from({ length: 401 }, (_, i) => ({ label: '', page: 1, text: `da${String(i).padStart(3, '0')}` })) });
+    addDoc(ix, DOC_B, { units: [{ label: '', page: 7, text: 'Giao kết hợp đồng.' }] });
+    expect(search(ix, 'hop dong')).toHaveLength(1);
+    expect(search(ix, 'hop d').map((h) => h.unit.page)).toEqual([7]);
+  });
+
   it('single-letter prefix over 50k units stays under 400 ms', () => {
     const ix = emptyIndex();
     addDoc(ix, DOC_A, { units: Array.from({ length: 50_000 }, (_, i) => ({ label: '', page: i + 1, text: `đoạn ${i} về dân sự` })) });
@@ -434,6 +443,18 @@ describe('searchDocs (v1.41.0)', () => {
     ] });
     addDoc(ix, DOC_B, { units: [{ label: '', page: 1, text: '35 ngày' }] });
     expect(searchDocs(ix, '35%')).toMatchObject({ total: 1, docs: [{ count: 1, doc: DOC_A }] });
+  });
+
+  it('card count = sheet count for a multi-word query even when its prefix has > 400 words', () => {
+    // DOC_B's 401 numbers "1000".."1400" sort before "199" and fill the kho-wide prefix cap for "1";
+    // DOC_A alone has just "199", so its one-document index never hits the cap.
+    const scA = { units: [{ label: 'Điều 199', page: 2, text: 'Điều 199. Quy định chung' }] };
+    const scB = { units: Array.from({ length: 401 }, (_, i) => ({ label: '', page: 1, text: `điều ${1000 + i}` })) };
+    const ix = mergeShards([indexDoc(DOC_A, scA), indexDoc(DOC_B, scB)]);
+    const one = mergeShards([indexDoc(DOC_A, scA)]);
+    const r = searchDocs(ix, 'dieu 1');
+    expect(r.docs.find((d) => d.doc.pdfUri === DOC_A.pdfUri)?.count).toBe(search(one, 'dieu 1').length);
+    expect(r.total).toBe(402);
   });
 
   it('a doc added after a search still gets a real score (cached lengths refresh)', () => {
