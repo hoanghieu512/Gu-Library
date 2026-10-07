@@ -90,6 +90,39 @@ cache 2/2 = 10/10 đạt**. Haiku đều 18–19 s; free dao động 18–51 s.
 - Không kiểm thứ bị Ionic ẩn khi overlay mở.
 - Bật cache `read-write` khi chạy local: lượt sau không tốn model.
 
+## Khám phá trên v1.41.0 (08/10, thử theo spec §4.8) — CỔNG KHÔNG ĐẠT
+
+Lệnh `npm --prefix e2e run explore -- "<đề bài>"` (agent `explorer` chỉ-đọc, ≤ 8 bước, UBS1, kho QA
+`/sdcard/Download/kho`). Dấu vân tay kho lấy trước/sau mỗi lượt.
+
+| Lượt | Model | Thời gian | Chi phí | Gọi model | Bước | Phát hiện | Kho |
+|---|---|---|---|---|---|---|---|
+| Đề 1 — sinh viên lần đầu, "Xem cả N đoạn" | Haiku 4.5 | 7 ph 14 s | $0,36 | 56 | 6/8 (4 đạt · 1 hết lượt · 1 chặn) | 1 cảnh báo | 376 file, không đổi |
+| Đề 2 — gõ dở, đổi ý, qua lại tab | Haiku 4.5 | 8 ph 51 s | $0,40 | 67 | 7/8 (6 đạt · 1 chặn), hết giờ | 0 | không đổi |
+| Đề 1 | `openrouter/free` | 5 ph 10 s | $0 | 13 | 2/8, bị cắt ngang | 0 | không đổi |
+
+**Phân loại phát hiện (1):** "tìm trong tài liệu ra *27 đoạn khớp* nhưng thiếu nút *Xem cả N đoạn*" →
+**báo nhầm**. "Xem cả" là nút trên thẻ ở tab Tìm; sheet tìm-trong-tài-liệu đã là danh sách mọi đoạn (vẽ
+50 dòng/lượt), agent chỉ thấy 2 dòng trong khung nhìn và không cuộn. Ảnh "bằng chứng" là Viewer đã
+đóng sheet. Đáng chú ý hơn: cả 6 bước của đề 1 đều ở tìm-trong-tài-liệu — agent **không vào tab Tìm**,
+nên chưa chạm tới tính năng v1.41.0 mà đề bài nhắm.
+
+**Cổng (cần đạt cả ba):**
+- Không vi phạm chỉ-đọc — **đạt** (3/3 lượt, mã băm kho trước = sau).
+- ≤ ~1 USD mỗi đề — **đạt** ($0,36 · $0,40).
+- Có phát hiện đáng giá HOẶC báo nhầm ≤ 50% — **không đạt** (1/1 báo nhầm, không phát hiện thật).
+
+→ **Chưa đưa khám phá vào quy trình phát hành.** Lệnh `explore` và lưới vân tay kho giữ lại để dùng tay
+khi cần (an toàn đã chứng minh); bộ 6 test khói vẫn là cổng mỗi lần phát hành.
+
+**Model free vs Haiku:** `openrouter/free` không dùng được cho agent — lượt khám phá chết ở bước 1
+("model provider failed … non-retryable"), và lượt chạy bộ test trên dGen1 cùng ngày gặp
+"gemma-4-31b-it:free is temporarily rate-limited upstream" ở mọi lần gọi. Khuyên dùng **Haiku 4.5**:
+khám phá ~$0,4/đề; bộ test khói chạy có cache chỉ còn 1 lượt gọi (assert bằng ảnh), ~$0,0034/lượt.
+
+**Nếu thử lại khám phá:** đề bài phải chỉ ĐƯỜNG tới màn cần thử ("ở tab Tìm, gõ … rồi bấm Xem cả trên
+một thẻ") — đề chỉ nêu tên nút để agent tự tìm thì nó dừng ở chỗ đầu tiên có ô tìm.
+
 ## Phụ lục — config + test dùng trong spike
 
 `package.json` (rút gọn): `"type": "module"`, dependencies `e2e@^0.18.0`, `@e2e-dev/mobile@^0.10.0`,
