@@ -3,6 +3,7 @@
 import { expect } from 'e2e';
 import type { Agent, Locator, Screen } from 'e2e';
 import { parsePageFooter, uniqueCardFrom } from '../lib/parse.ts';
+import { settleOn } from '../lib/settle.ts';
 import type { Card } from '../lib/parse.ts';
 
 const CARD_LABEL = /^(Mở .+ tại trang \d+|Xem cả .+ đoạn trong .+)$/;
@@ -104,19 +105,13 @@ export async function footer(screen: Screen): Promise<{ page: number; total: num
 }
 
 /**
- * Poll the footer until it shows `page`, and return the last reading. A Viewer first shows the
- * saved (or first) page and applies a pending jump a moment later — a single read caught the
- * saved page 25 while the jump to 24 was landing. A jump that never lands still fails: the caller
- * compares the reading after the timeout.
+ * Poll the footer until it shows `page`, hold ~2.5 s and read it again (settleOn). A Viewer first
+ * shows the saved page and applies a pending jump a moment later (one read caught the saved 25
+ * while the jump to 24 was landing), and a broken jump can land and then be pulled back by the
+ * resume — the second read returns that drift for the caller to fail on.
  */
 export async function footerAt(screen: Screen, page: number, timeoutMs = 15000): Promise<{ page: number; total: number }> {
-  const end = Date.now() + timeoutMs;
-  let f = await footer(screen);
-  while (f.page !== page && Date.now() < end) {
-    await new Promise((r) => setTimeout(r, 500));
-    f = await footer(screen);
-  }
-  return f;
+  return settleOn(() => footer(screen), (f) => f.page === page, { timeoutMs, holdMs: 2500, stepMs: 500 });
 }
 
 /** Jump the Viewer with "Tới trang…" + "Nhảy" and wait until the footer shows that page. */

@@ -473,8 +473,10 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
   `~/.bash_profile`). Lệnh: `npm run e2e` (preflight → 6 test: tìm kiếm ×4, đọc tiếp, chia đôi).
   Hướng dẫn + bẫy: `e2e/README.md`.
   - **Số (UBS1, app v1.41.0):** lần đầu chưa có cache 6/6 · 3 ph 14 s · $0,036 · lần chạy có cache
-    (Task 5) 6/6 · 1 ph 44 s · $0,0034 · **lượt cuối (Task 9) 6/6 · 1 ph 45 s · $0,0036**. Chạy từ
-    trạng thái lộn xộn (app đang chia đôi) vẫn 6/6.
+    (Task 5) 6/6 · 1 ph 44 s · $0,0034 · lượt cuối (Task 9) 6/6 · 1 ph 45 s · $0,0036 · **sau sửa
+    review (08/10) 6/6 · 2 ph 8 s · $0,0034** (chân trang giờ chờ ổn định ~2,5 s). Test "tài liệu
+    đang mở ở tab khác" đã được chứng minh bắt được lỗi v1.41.0: APK tạm bỏ bản sửa
+    `useIonViewWillEnter` → test đỏ (bản test cũ vẫn xanh = rỗng), APK thật → xanh.
   - **Chỉ UBS1.** dGen1 0/6: engine force-stop app mỗi test → màn đen WebView (bẫy v1.38.0 verify,
     reboot mới hết). `openrouter/free` không chạy nổi agent (lỗi nhà cung cấp/giới hạn lượt).
   - **Khám phá (`npm --prefix e2e run explore -- "<đề>"`, chỉ-đọc + dấu vân tay kho):** thử 08/10

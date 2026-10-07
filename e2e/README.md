@@ -43,7 +43,7 @@ npm run e2e
 - Gỡ lỗi: thêm `--video on --debug`.
 
 Số đo (UBS1, v1.41.0): lần đầu, chưa có cache ~3 ph 15 s, ~$0,036 · các lần sau, phát lại từ
-cache ~1 ph 45 s, ~$0,0034 (chỉ còn bước assert bằng ảnh của test chia đôi gọi model).
+cache ~2 ph 10 s, ~$0,0034 (chỉ còn bước assert bằng ảnh của test chia đôi gọi model).
 
 ## Đọc kết quả
 
@@ -70,8 +70,16 @@ npm --prefix e2e run explore -- "<đề bài>"
 ```
 
 Agent `explorer` chỉ đọc (cấm Xóa / Đổi tên / Chuyển tới / Đi in / Thêm / Cài đặt kho…), tối đa 8 bước.
-Script lấy **dấu vân tay kho** (`E2E_KHO`, mặc định `/sdcard/Download/kho`) trước và sau; kho đổi
-→ in `VI PHẠM CHỈ-ĐỌC` + danh sách file, exit 4. Đề bài mẫu: `charters/v1.41.0.md`.
+Script lấy **dấu vân tay kho** (`E2E_KHO`, mặc định `/sdcard/Download/kho`: đường dẫn + cỡ + mtime
+từng file) trước và sau — cả khi bấm Ctrl-C giữa chừng. Đề bài mẫu: `charters/v1.41.0.md`.
+
+| Exit | Nghĩa |
+|---|---|
+| 10 | **VI PHẠM CHỈ-ĐỌC** — kho đổi; in file thêm (`+`) / mất (`-`) / đổi (`~`). Có thể do Syncthing hay worker vừa ghi vào kho QA giữa lượt — xem tên file rồi kiểm tay. |
+| 11 | **Không kiểm được kho sau khám phá** (adb rớt…) — kiểm tay kho trên máy. |
+| khác | Kho không đổi; mã của chính `e2e explore` (0 xong · 4 lỗi runner · 130 bị ngắt…). |
+
+Exit 0 chưa chắc là đi trọn: xem dòng `Steps` (lượt bị cắt ngang vẫn có thể ghi "no findings").
 
 Thử trên v1.41.0 (08/10): an toàn (kho không đổi ở cả 3 lượt) và rẻ (~$0,4/đề), nhưng phát hiện
 duy nhất là **báo nhầm**, và agent không tự tới được màn cần thử → **cổng không đạt**, nên chưa
@@ -99,7 +107,9 @@ hạn lượt).
 - **Bàn phím che nửa dưới**; `press('Enter')` không cất nó → `search()` chạm tiêu đề để cất.
 - **Thẻ dưới cùng nằm dưới thanh tab** nhưng vẫn "visible" với engine → `revealAboveTabBar` kéo
   chậm lên trước khi bấm.
-- **Viewer hiện trang đã lưu trước rồi mới nhảy** → đọc chân trang bằng `footerAt` (chờ tới trang
-  cần) chứ đừng đọc một lần.
+- **Viewer hiện trang đã lưu trước rồi mới nhảy** → đọc chân trang bằng `footerAt`: chờ tới trang
+  cần, giữ ~2,5 s rồi đọc lại (cú nhảy hỏng có thể tới nơi rồi bị kéo về trang đã lưu).
+- **`toTab` bấm back tới gốc tab** → đừng dùng nó khi cần một Viewer còn sống ở tab kia (test "tài
+  liệu đang mở ở tab khác" bấm thẳng tab).
 - **Telemetry** tắt sẵn (`E2E_TELEMETRY_DISABLED=1` trong script `test`/`explore`).
 - Không dùng `app.clearState()`, `setPermission`, `installApp`, `--test-ime`.

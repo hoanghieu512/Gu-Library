@@ -12,7 +12,9 @@ test('Xem cả opens the in-doc sheet with the card count and first row', async 
   const card = await readUniqueCard(screen);
   await screen.getByRole('button', { name: exact(xemCaLabel(card)) }).tap();
   await expect(screen.getByText(exact(`${vi(card.count)} đoạn khớp`))).toBeVisible();
-  await expect(screen.getByRole('button', { name: exact(`Nhảy tới trang ${card.page}`) }).first()).toBeVisible();
+  await expect(screen.getByRole('button', { name: /^Nhảy tới trang \d+$/ }).first()).toBeVisible();
+  const rows = await screen.getByRole('button', { name: /^Nhảy tới trang \d+$/ }).allTextContents();
+  expect(rows[0]).toBe(`Nhảy tới trang ${card.page}`);
 });
 
 test('Xem cả into a document already open in another tab still opens the sheet', async ({ app, agent, screen }) => {
@@ -31,7 +33,9 @@ test('Xem cả into a document already open in another tab still opens the sheet
   await expect(screen.getByText(exact(card.name)).first()).toBeVisible();
   await tapCentre(screen, screen.getByText(exact(card.name)).first());
   await footer(screen);
-  await toTab(screen, agent, 'Tìm');
+  // Straight to the tab, NOT toTab: its back loop would close X's Viewer, and the case under test
+  // is X still alive in the Home tab when the Search tab links to it.
+  await screen.getByRole('tab', { name: exact('Tìm') }).tap();
   await screen.getByRole('button', { name: exact(xemCaLabel(card)) }).tap();
   await expect(screen.getByText(exact(`${vi(card.count)} đoạn khớp`))).toBeVisible();
 });
@@ -41,6 +45,11 @@ test('tapping a sheet row before the PDF is ready lands on that page', async ({ 
   await toTab(screen, agent, 'Tìm');
   await search(screen, QUERY);
   const card = await readUniqueCard(screen);
+  // Leave X saved on another page, so the Viewer opens away from P and only the jump brings it there.
+  await screen.getByRole('button', { name: exact(openAtLabel(card)) }).tap();
+  const f = await footerAt(screen, card.page);
+  await gotoPage(screen, f.page < f.total ? f.page + 1 : f.page - 1);
+  await screen.getByRole('button', { name: exact('back') }).tap();
   await screen.getByRole('button', { name: exact(xemCaLabel(card)) }).tap();
   // No wait for the PDF: tap the first row as soon as the sheet lists it.
   await screen.getByRole('button', { name: exact(`Nhảy tới trang ${card.page}`) }).first().tap();

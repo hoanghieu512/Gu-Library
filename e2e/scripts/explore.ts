@@ -1,8 +1,10 @@
 // `npm run explore -- "<đề bài>"`: one read-only exploration with the `explorer` agent, fenced by a
-// fingerprint of the QA kho before and after. A changed kho is a read-only violation (exit 4).
+// fingerprint of the QA kho before and after. A changed kho is a read-only violation (exit 10); a
+// kho that cannot be read afterwards is reported as unchecked (exit 11), never as a pass.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { diffListing, hashListing, parseFindListing } from '../lib/fingerprint.ts';
+import { LISTING_CMD, diffListing, guardExit, hashListing, parseFindListing } from '../lib/fingerprint.ts';
+import type { FileStamp } from '../lib/fingerprint.ts';
 import { parseAdbDevices } from '../lib/preflight.ts';
 
 const adb = process.env.ANDROID_HOME ? join(process.env.ANDROID_HOME, 'platform-tools', 'adb') : 'adb';
@@ -23,8 +25,8 @@ if (!serial) {
 }
 
 /** Throws rather than return an empty listing: two empty listings would hash equal and hide a change. */
-function listing(): Map<string, number> {
-  const out = execFileSync(adb, ['-s', serial!, 'shell', `cd '${kho}' && find . -type f -exec stat -c '%s %n' {} +`], {
+function listing(): Map<string, FileStamp> {
+  const out = execFileSync(adb, ['-s', serial!, 'shell', `cd '${kho}' && ${LISTING_CMD}`], {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
   });
@@ -37,20 +39,33 @@ const before = listing();
 const hash = hashListing(before);
 console.log(`kho ${kho}: ${before.size} file · ${hash.slice(0, 12)}`);
 
+// Ctrl-C reaches the whole process group: `e2e explore` stops, and this process must live on to
+// take the AFTER fingerprint — without a handler Node exits at once and the kho goes unchecked.
+process.on('SIGINT', () => {});
+process.on('SIGTERM', () => {});
+
 const run = spawnSync(
   'e2e',
   ['explore', '--agent', 'explorer', '--max-steps', '8', '--reporter', 'list,markdown', charter],
   { stdio: 'inherit', env: { ...process.env, E2E_TELEMETRY_DISABLED: '1' } },
 );
+if (run.error) console.error(`✗ Không chạy được e2e explore: ${run.error.message}`);
+else if (run.signal) console.error(`e2e explore dừng giữa chừng (${run.signal}) — vẫn kiểm kho.`);
 
-const after = listing();
+let after: Map<string, FileStamp>;
+try {
+  after = listing();
+} catch (e) {
+  console.error(`KHÔNG KIỂM ĐƯỢC KHO SAU KHÁM PHÁ — kiểm tay ${kho} trên ${deviceName}: ${(e as Error).message}`);
+  process.exit(guardExit(run.status, 'unchecked'));
+}
 if (hashListing(after) !== hash) {
   const d = diffListing(before, after);
-  console.error('VI PHẠM CHỈ-ĐỌC — kho đổi trong lúc khám phá:');
+  console.error('VI PHẠM CHỈ-ĐỌC — kho đổi trong lúc khám phá (hoặc Syncthing/worker vừa ghi vào kho):');
   for (const p of d.added) console.error(`  + ${p}`);
   for (const p of d.removed) console.error(`  - ${p}`);
-  for (const p of d.resized) console.error(`  ~ ${p}`);
-  process.exit(4);
+  for (const p of d.changed) console.error(`  ~ ${p}`);
+  process.exit(guardExit(run.status, 'changed'));
 }
 console.log(`kho không đổi ✓ (${after.size} file)`);
-process.exit(run.status ?? 1);
+process.exit(guardExit(run.status, 'same'));
