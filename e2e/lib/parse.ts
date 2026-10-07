@@ -26,12 +26,33 @@ export function parsePageFooter(text: string): { page: number; total: number } |
  * "Xem cả N đoạn trong X" for the same X. A card with one match has no "Xem cả" and is skipped.
  */
 export function readCardFrom(labels: string[], index = 0): Card {
+  const cards = cardsFrom(labels);
+  if (cards.length <= index) throw new Error(NO_CARD);
+  return cards[index];
+}
+
+/**
+ * The first card at or after `fromIndex` whose "Xem cả" label is unique on screen. The same file
+ * filed under two subjects gives two identical labels, and agent-device refuses an ambiguous tap
+ * (AMBIGUOUS_MATCH) — `.first()` does not resolve it at the engine level.
+ */
+export function uniqueCardFrom(labels: string[], fromIndex = 0): Card {
+  const cards = cardsFrom(labels);
+  for (let i = fromIndex; i < cards.length; i++) {
+    const label = `Xem cả ${cards[i].count.toLocaleString('vi-VN')} đoạn trong ${cards[i].name}`;
+    if (labels.filter((l) => l === label).length === 1) return cards[i];
+  }
+  throw new Error(NO_CARD);
+}
+
+const NO_CARD = 'câu tra mẫu không còn kết quả — đổi câu tra trong tests';
+
+function cardsFrom(labels: string[]): Card[] {
   const cards: Card[] = [];
   for (let i = 0; i < labels.length - 1; i++) {
     const open = parseOpenAtPage(labels[i]);
     const all = parseXemCa(labels[i + 1]);
     if (open && all && open.name === all.name) cards.push({ name: open.name, page: open.page, count: all.count });
   }
-  if (cards.length <= index) throw new Error('câu tra mẫu không còn kết quả — đổi câu tra trong tests');
-  return cards[index];
+  return cards;
 }
