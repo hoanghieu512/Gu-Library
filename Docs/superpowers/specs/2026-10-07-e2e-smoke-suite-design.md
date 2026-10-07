@@ -20,6 +20,8 @@ Một lệnh chạy bộ test khói trên máy QA, bắt hồi quy ở ba luồn
 3. Kho QA thêm/bớt tài liệu → test vẫn chạy (không cứng số/tên).
 4. Chi phí ≤ ~0,05 USD/lượt với model mặc định.
 5. Đệ chạy được trong bước verify mỗi beat; huynh chạy được theo `e2e/README.md`.
+6. Có lệnh khám phá (`e2e explore`) dùng chung hạ tầng, đã thử 2 đề bài trên v1.41.0 và có quyết định
+   đưa / không đưa vào quy trình phát hành theo cổng §4.8.
 
 ## 3. Quyết định đã chốt (với huynh, 07/10)
 
@@ -31,6 +33,7 @@ Một lệnh chạy bộ test khói trên máy QA, bắt hồi quy ở ba luồn
 | Đặt ở đâu | Gói riêng `e2e/` trong repo app | devDependencies gốc · repo riêng |
 | Sửa app? | Không — thiếu nhãn thì dùng chữ hiển thị | Gắn nhãn thẻ "Đang đọc dở" ngay (để beat sau) |
 | Model | `anthropic/claude-haiku-4.5` qua OpenRouter; dự phòng `openrouter/free` | Model free cụ thể (5/6 hỏng ở spike) |
+| Khám phá (`e2e explore`) | Thêm vào spec này + THỬ 2 đề bài trên v1.41.0 trước khi vào quy trình (§4.8) | Spec riêng sau · đưa thẳng vào quy trình chưa thử |
 
 ## 4. Thiết kế
 
@@ -47,13 +50,17 @@ e2e/
   tests/search.e2e.ts
   tests/reading.e2e.ts
   tests/split.e2e.ts
+  charters/           đề bài khám phá theo phiên bản (vd v1.41.0.md), có commit
+  scripts/kho-fingerprint.mjs
 ```
 
 - Phụ thuộc ghim: `e2e@0.18.0`, `@e2e-dev/mobile@0.10.0`, `agent-device@0.21.23` +
   `"overrides": { "agent-device": "$agent-device" }` (bẫy lệch phiên bản ở spike),
   `@openrouter/ai-sdk-provider@3.1.0` (bản đã chạy ở spike).
 - Script trong `e2e/package.json`: `test` = preflight rồi `e2e run` với `E2E_TELEMETRY_DISABLED=1`;
-  `doctor` = `agent-device doctor`. Gốc repo thêm `"e2e": "npm --prefix e2e test"`.
+  `doctor` = `agent-device doctor`; `explore` = preflight + dấu vân tay kho TRƯỚC → `e2e explore
+  --agent explorer --max-steps 8 --reporter list,markdown "<đề bài>"` → dấu vân tay kho SAU, so hai
+  bản (§4.8). Gốc repo thêm `"e2e": "npm --prefix e2e test"`.
 - `.gitignore` gốc thêm `e2e/node_modules/` và `e2e/.e2e/` (cache + ảnh + bản chụp chữ kho QA —
   repo CÔNG KHAI, không commit).
 - App không đổi: `vitest` chỉ bắt `*.test.*`, `tsc` chỉ đọc `src/`. Lint gốc vẫn quét `e2e/**/*.ts`
@@ -65,6 +72,11 @@ e2e/
   (chọn máy bằng TÊN), `app: { bundleId: 'com.gulibrary.app' }`.
 - Agent `default`: `openrouter(process.env.E2E_MODEL ?? 'anthropic/claude-haiku-4.5')`,
   `maxSteps` 10, `maxModelCalls` 10.
+- Agent `explorer` (chỉ dùng cho `e2e explore`): cùng model, kèm `system` CHỈ-ĐỌC — không bấm
+  Xóa / Đổi tên / Chuyển tới / Đi in / Gom / Xong / Thêm / Tạo môn / Tạo thư mục / Đổi màu, không
+  nhấn-giữ hàng hay gáy môn, không vào Cài đặt → Folder kho / Đồng bộ / Dựng lại chỉ mục, không chia
+  sẻ/nhập file; được tìm, mở, cuộn, nhảy trang, chia đôi, mở/đóng sheet, đổi tab, back. `context`:
+  app đọc tài liệu luật tiếng Việt, kho QA, người dùng là sinh viên luật.
 - `workers: 1` · `retries: 0` · `cache: 'read-write'` · `timeout` 300 000 ms · `actionTimeout`
   60 000 · `assertionTimeout` 15 000.
 
@@ -123,6 +135,35 @@ trang vẫn `Trang k`.
 - KHÔNG chạy trên máy Gú / kho Prod. Nội dung màn hình kho QA gửi lên OpenRouter/Anthropic — chấp nhận.
 - Key chỉ ở biến môi trường (repo công khai).
 
+### 4.8 Khám phá mỗi lần phát hành tính năng (THỬ trước, rồi mới vào quy trình)
+
+**Quy trình đề xuất (sau khi thử đạt):** code tính năng xong, trước khi merge →
+1. Đệ viết 2–4 đề bài vào `e2e/charters/vX.Y.Z.md` từ spec tính năng: mỗi đề = một câu mục tiêu +
+   một vai (sinh viên lần đầu dùng · người gõ dở/đổi ý · ca biên: tài liệu ảnh, tên rất dài, kết quả
+   rỗng, 1 chữ cái…). Chỉ đề bài trên màn chỉ-đọc.
+2. Chạy lần lượt `npm --prefix e2e run explore -- "<đề bài>"` trên UBS1.
+3. Đệ phân loại từng phát hiện: **lỗi thật** → sửa (test đỏ trước) + thêm thành test e2e hồi quy ·
+   **cố ý thiết kế** → ghi chú · **báo nhầm** → bỏ.
+4. Ghi vào ops doc §8.1 (phần verify): đề bài, số phát hiện theo loại, chi phí, thời gian.
+
+**Lưới an toàn dữ liệu:** `scripts/kho-fingerprint.mjs` lấy danh sách file kho QA trên máy (`adb shell
+find` trong thư mục kho, bỏ `_reading-*`, `.stversions`, `.stfolder`, `_worker.log*`) kèm kích thước
+→ một mã băm. Lệnh `explore` so mã TRƯỚC/SAU; khác nhau → in rõ file nào đổi và coi lần khám phá là
+**vi phạm chỉ-đọc** (lưới cuối: phiên bản lưu của Syncthing ở Atomman ~30 ngày). Đường dẫn kho
+lấy từ `E2E_KHO` (mặc định `/sdcard/Download/kho` — kho QA trên UBS1).
+
+**Thử trên v1.41.0 (task cuối của plan) — 2 đề bài:**
+1. "Dùng tìm kiếm và nút 'Xem cả N đoạn' như một sinh viên luật lần đầu dùng app; báo chỗ khó hiểu,
+   số không khớp, hoặc bấm mà không có phản hồi."
+2. "Gõ dở rồi đổi câu tra, xoá câu tra, chuyển qua lại giữa tab Tìm và Trang chủ, mở rồi đóng tài
+   liệu; tìm trạng thái sai hoặc kẹt."
+
+**Cổng đưa vào quy trình** — đạt CẢ BA mới ghi quy trình vào `e2e/README.md` và ops doc:
+- Không vi phạm chỉ-đọc (dấu vân tay kho trước = sau) ở cả hai đề bài.
+- Chi phí ≤ ~1 USD mỗi đề bài.
+- Có ít nhất một phát hiện đáng giá HOẶC tỉ lệ báo nhầm ≤ 50% (nếu toàn báo nhầm thì không đáng tiền).
+Không đạt → báo huynh kèm số, không đưa vào quy trình.
+
 ## 5. Việc cần kiểm trước khi viết test (task đầu của plan)
 
 1. Chụp bản chụp chữ (`agent-device snapshot`) các màn: Viewer + chân trang + ô "Tới trang" +
@@ -130,11 +171,13 @@ trang vẫn `Trang k`.
    thiếu thì chỉnh thiết kế test (không sửa app).
 2. Locator đọc được tên/nhãn (`getAttribute`/`textContent`) trên mobile không — quyết dùng
    `readFirstCard` bằng locator hay `agent.extract`.
-3. dGen1: chạy cả bộ MỘT lượt bằng `openrouter/free`, theo dõi màn đen/force-stop. Ổn → ghi
+3. `e2e explore` chạy được với engine mobile (tài liệu không nói rõ) và tôn trọng `--agent`.
+4. dGen1: chạy cả bộ MỘT lượt bằng `openrouter/free`, theo dõi màn đen/force-stop. Ổn → ghi
    `E2E_DEVICE=<tên dGen1>` vào README; không ổn → ghi "chỉ UBS1".
 
 ## 6. Ngoài phạm vi
 
-Thao tác ghi xuống kho (in, đổi tên, chuyển, xoá, nhập) · CI · máy Gú/Prod · iOS · gắn nhãn
+Thao tác ghi xuống kho (in, đổi tên, chuyển, xoá, nhập) — cả trong test lẫn khám phá · bug bash
+nhiều agent + "automated proofs" (cần nhiều máy/phiên song song — xem lại sau khi khám phá đơn qua cổng) · CI · máy Gú/Prod · iOS · gắn nhãn
 `aria-label` mới cho app (beat sau, vd thẻ "Đang đọc dở") · nâng phiên bản e2e · đổi phiên bản app
 (bộ test không đổi app).
