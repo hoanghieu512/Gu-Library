@@ -1,5 +1,5 @@
 import { test, expect } from 'e2e';
-import { footer, gotoPage, tapCentre, toTab } from './helpers.ts';
+import { footer, footerAt, gotoPage, tapCentre, toTab } from './helpers.ts';
 
 // Resume is checked by page AND total: the Viewer title has no role to read the name by, and the
 // agent opens any document (see ledger, Task 2).
@@ -17,5 +17,5 @@ test('jump to page, leave, resume from Đang đọc dở on the same page', asyn
   const resume = screen.getByText(new RegExp(`^Trang ${k} / ${T} · chạm để đọc tiếp$`)).first();
   await expect(resume).toBeVisible();
   await tapCentre(screen, resume);
-  expect(await footer(screen)).toEqual({ page: k, total: T });
+  expect(await footerAt(screen, k)).toEqual({ page: k, total: T });
 });

@@ -1,5 +1,5 @@
 import { test, expect } from 'e2e';
-import { exact, footer, gotoPage, openAtLabel, readUniqueCard, revealAboveTabBar, search, tapCentre, toTab, vi, waitIndexReady, xemCaLabel } from './helpers.ts';
+import { exact, footer, footerAt, gotoPage, openAtLabel, readUniqueCard, revealAboveTabBar, search, tapCentre, toTab, vi, waitIndexReady, xemCaLabel } from './helpers.ts';
 
 // Any query with results across several documents; no letter "u" (Gboard on UBS1 drops it).
 const QUERY = 'hop dong';
@@ -44,7 +44,7 @@ test('tapping a sheet row before the PDF is ready lands on that page', async ({ 
   await screen.getByRole('button', { name: exact(xemCaLabel(card)) }).tap();
   // No wait for the PDF: tap the first row as soon as the sheet lists it.
   await screen.getByRole('button', { name: exact(`Nhảy tới trang ${card.page}`) }).first().tap();
-  expect((await footer(screen)).page).toBe(card.page);
+  expect((await footerAt(screen, card.page)).page).toBe(card.page);
 });
 
 test('a lower card Xem cả is reachable with the keyboard dismissed', async ({ app, agent, screen }) => {

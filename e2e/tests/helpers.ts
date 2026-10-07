@@ -103,13 +103,25 @@ export async function footer(screen: Screen): Promise<{ page: number; total: num
   throw new Error(`không đọc được chân trang Viewer: "${parts.join(' ')}"`);
 }
 
+/**
+ * Poll the footer until it shows `page`, and return the last reading. A Viewer first shows the
+ * saved (or first) page and applies a pending jump a moment later — a single read caught the
+ * saved page 25 while the jump to 24 was landing. A jump that never lands still fails: the caller
+ * compares the reading after the timeout.
+ */
+export async function footerAt(screen: Screen, page: number, timeoutMs = 15000): Promise<{ page: number; total: number }> {
+  const end = Date.now() + timeoutMs;
+  let f = await footer(screen);
+  while (f.page !== page && Date.now() < end) {
+    await new Promise((r) => setTimeout(r, 500));
+    f = await footer(screen);
+  }
+  return f;
+}
+
 /** Jump the Viewer with "Tới trang…" + "Nhảy" and wait until the footer shows that page. */
 export async function gotoPage(screen: Screen, page: number): Promise<void> {
   await screen.getByRole('textbox').fill(String(page));
   await screen.getByRole('button', { name: exact('Nhảy') }).tap();
-  for (let i = 0; i < 30; i++) {
-    if ((await footer(screen)).page === page) return;
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error(`Viewer không tới được trang ${page}`);
+  if ((await footerAt(screen, page)).page !== page) throw new Error(`Viewer không tới được trang ${page}`);
 }
