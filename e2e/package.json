@@ -1,0 +1,26 @@
+{
+  "name": "gu-library-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "unit": "node --test 'unit/*.unit.ts'",
+    "typecheck": "tsc -p .",
+    "preflight": "node scripts/preflight.ts",
+    "test": "npm run preflight && E2E_TELEMETRY_DISABLED=1 e2e run",
+    "explore": "npm run preflight && node scripts/explore.ts",
+    "doctor": "agent-device doctor"
+  },
+  "dependencies": {
+    "@e2e-dev/mobile": "0.10.0",
+    "@openrouter/ai-sdk-provider": "3.1.0",
+    "agent-device": "0.21.23",
+    "e2e": "0.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.2",
+    "typescript": "6.0.3"
+  },
+  "overrides": {
+    "agent-device": "$agent-device"
+  }
+}

@@ -32,3 +32,7 @@ fixture-kho/
 *.njsproj
 *.sln
 *.sw?
+
+# e2e suite: installs, cache, screenshots and screen text of the QA library (public repo)
+e2e/node_modules/
+e2e/.e2e/
