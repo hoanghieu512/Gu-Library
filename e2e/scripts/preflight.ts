@@ -1,7 +1,7 @@
 // Runs before every e2e run: fail fast, in Vietnamese, when the run could only fail for setup reasons.
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { APP_ID, parseAdbDevices, parseVersionName, preflightErrors } from '../lib/preflight.ts';
+import { APP_ID, DEFAULT_MODEL, parseAdbDevices, parseVersionName, preflightErrors } from '../lib/preflight.ts';
 
 const adb = process.env.ANDROID_HOME ? join(process.env.ANDROID_HOME, 'platform-tools', 'adb') : 'adb';
 // null = adb itself could not be run (ENOENT); '' = adb ran and failed.
@@ -24,4 +24,4 @@ if (errors.length > 0) {
   for (const e of errors) console.error(`✗ ${e}`);
   process.exit(1);
 }
-console.log(`✓ app v${versionName} trên ${deviceName} · model ${process.env.E2E_MODEL ?? 'anthropic/claude-haiku-4.5'}`);
+console.log(`✓ app v${versionName} trên ${deviceName} · model ${process.env.E2E_MODEL ?? DEFAULT_MODEL}`);

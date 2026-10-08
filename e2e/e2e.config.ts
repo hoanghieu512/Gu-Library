@@ -1,10 +1,11 @@
 import type { E2EConfig } from 'e2e';
 import { mobile } from '@e2e-dev/mobile';
 import { openrouter } from '@openrouter/ai-sdk-provider';
+import { DEFAULT_MODEL } from './lib/preflight.ts';
 
 // Device by NAME (adb model), model by OpenRouter id — both overridable per run.
 const DEVICE = process.env.E2E_DEVICE ?? 'UBS1';
-const MODEL = process.env.E2E_MODEL ?? 'anthropic/claude-haiku-4.5';
+const MODEL = process.env.E2E_MODEL ?? DEFAULT_MODEL;
 
 // Both agents run on the QA library, which is real data: the smoke tests' agent.act steps
 // (open a document, pick one for split view, back to the tabs) get the same rules as the explorer.

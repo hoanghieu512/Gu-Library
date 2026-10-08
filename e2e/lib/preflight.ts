@@ -5,6 +5,9 @@ export interface AdbDevice { serial: string; model: string; state: string }
 
 export const APP_ID = 'com.gulibrary.app';
 
+/** OpenRouter id used when E2E_MODEL is unset — pinned, never a "-latest" alias. */
+export const DEFAULT_MODEL = 'anthropic/claude-haiku-5.5';
+
 /** `adb devices -l` → devices with their model (agent-device names a device by its model). */
 export function parseAdbDevices(out: string): AdbDevice[] {
   const devices: AdbDevice[] = [];

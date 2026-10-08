@@ -1,7 +1,7 @@
 # Bộ test khói e2e — Gú's Library
 
 6 test chạy trên **máy Android thật** (UBS1, kho QA), lái app bằng
-[tester-army/e2e](https://github.com/tester-army/e2e) + agent-device. Model AI (Haiku 4.5 qua
+[tester-army/e2e](https://github.com/tester-army/e2e) + agent-device. Model AI (Haiku 5.5 qua
 OpenRouter) chỉ lo phần điều hướng mơ hồ; gõ, bấm và phép kiểm đi bằng nhãn chính xác, không nhờ
 model phán — **trừ một bước** ở test chia đôi: nút trên thanh chia không có trong cây trợ năng, nên
 thanh chia được kiểm bằng ảnh (`agent.assert` với `vision: 'only'`).
@@ -40,15 +40,18 @@ cách sửa, và in
 `✓ app vX trên UBS1 · model …`.
 
 - Đổi máy: `E2E_DEVICE=<model adb>` (tên trong `adb devices -l`, ví dụ `UBS1`).
-- Đổi model: `E2E_MODEL=<id OpenRouter>` (mặc định `anthropic/claude-haiku-4.5`).
+- Đổi model: `E2E_MODEL=<id OpenRouter>` (mặc định `anthropic/claude-haiku-5.5`, hằng `DEFAULT_MODEL` trong
+  `lib/preflight.ts`; ghim đúng mã, không dùng bí danh `-latest`).
 - Một file / một test: `npm --prefix e2e test -- tests/search.e2e.ts --grep "first row"`.
 - Gỡ lỗi: thêm `--video on --debug`.
 - Truyền cờ cho `e2e run` từ thư mục gốc phải qua **hai** `--`: `npm run e2e -- -- --no-cache`.
   Chỉ một `--` thì npm nuốt cờ làm cấu hình của chính nó (`npm warn invalid config cache=false`) và
   lượt chạy vẫn dùng cache. Từ `e2e/`: `npm --prefix e2e test -- --no-cache`.
 
-Số đo (UBS1, v1.41.0): lần đầu, chưa có cache ~3 ph 14 s, ~$0,036 · các lần sau, phát lại từ
-cache ~2 ph 10 s, ~$0,0034 (chỉ còn bước assert bằng ảnh của test chia đôi gọi model).
+Số đo (UBS1, v1.41.0): **Haiku 5.5 (từ 08/10)** phát lại từ cache 6/6 · ~2 ph 8 s · ~$0,0003
+(chỉ còn bước assert bằng ảnh của test chia đôi gọi model; giá 5.5 rẻ ~10× 4.5) · lượt lạnh
+~$0,002–0,003 nhưng hiện 4/6, xem "Bẫy đã biết". Haiku 4.5 trước đó: lạnh ~3 ph 14 s, ~$0,036 ·
+cache ~2 ph 10 s, ~$0,0034.
 
 ## Đọc kết quả
 
@@ -129,11 +132,20 @@ hạn lượt).
 - **`toTab` bấm back tới gốc tab** → đừng dùng nó khi cần một Viewer còn sống ở tab kia (test "tài
   liệu đang mở ở tab khác" bấm thẳng tab).
 - **Bước chọn tài liệu của test chia đôi chập chờn khi chạy LẠNH** (08/10: 6 lượt lạnh chỉ có
-  test này, có hay không có luật chỉ-đọc đều 1/3 đạt). Dòng trong bộ chọn (`DocPicker`) là `div`
-  không role → agent nhầm tên môn là tài liệu, chạm rồi tự báo đạt. Lượt thường phát lại bản ghi tốt
-  từ cache nên ổn; sau `act` có locator kiểm "Chọn tài liệu để tra cứu" đã biến mất, nên lượt hỏng
-  trượt ngay với lý do rõ. Engine chỉ giữ bản ghi khi một phép kiểm SAU nó đạt, test trượt thì bản
+  test này với Haiku 4.5, có hay không có luật chỉ-đọc đều 1/3 đạt; Haiku 5.5 cũng nhầm). Dòng trong
+  bộ chọn (`DocPicker`) là `div` không role → agent nhầm tên môn là tài liệu, chạm rồi tự báo đạt.
+  Lượt thường phát lại bản ghi tốt từ cache nên ổn; sau `act` có locator kiểm bộ chọn đã bị gỡ
+  (không còn tiêu đề "Chọn tài liệu để tra cứu" lẫn nút "Lên trên" — trong một môn, nút này thay
+  chỗ tiêu đề), nên lượt hỏng trượt ngay với lý do rõ. Engine chỉ giữ bản ghi khi một phép kiểm SAU nó đạt, test trượt thì bản
   ghi bị xoá → nếu bước này mất cache, chạy lại tới khi ra một lượt đạt. Gốc rễ: a11y của `DocPicker`
   (backlog app).
+- **Lượt lạnh với Haiku 5.5: test đọc tiếp trượt vì LỖI THẬT của app.** Agent 5.5 luôn mở
+  "Hình sự chung / Slide / 0. GIỚI THIỆU MÔN HỌC" (slide 4:3, 8 trang). Với trang thấp cỡ nửa khung
+  nhìn, mỗi vòng rời đi rồi mở lại **trôi thêm một trang** (3 → 4 → 5 → 6, tái hiện bằng locator
+  08/10): `PdfView` cuộn mép trên trang p lên đầu khung nhìn nhưng lưu trang ở GIỮA khung nhìn. Bản
+  ghi cache (Haiku 4.5) mở tài liệu dọc nên lượt thường vẫn đạt; nếu cache của test này bị xoá,
+  test sẽ đỏ cho tới khi app sửa lỗi — đó là đúng.
+- **`textContent()` không chờ** node xuất hiện → đọc chữ một thẻ nạp bất đồng bộ (thẻ "Đang đọc dở"
+  ở Trang chủ) phải `expect(...).toBeVisible()` trước.
 - **Telemetry** tắt sẵn (`E2E_TELEMETRY_DISABLED=1` trong script `test`/`explore`).
 - Không dùng `app.clearState()`, `setPermission`, `installApp`, `--test-ime`.
