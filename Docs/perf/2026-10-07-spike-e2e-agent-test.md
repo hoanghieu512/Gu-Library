@@ -98,8 +98,11 @@ Lệnh `npm --prefix e2e run explore -- "<đề bài>"` (agent `explorer` chỉ-
 | Lượt | Model | Thời gian | Chi phí | Gọi model | Bước | Phát hiện | Kho |
 |---|---|---|---|---|---|---|---|
 | Đề 1 — sinh viên lần đầu, "Xem cả N đoạn" | Haiku 4.5 | 7 ph 14 s | $0,36 | 56 | 6/8 (4 đạt · 1 hết lượt · 1 chặn) | 1 cảnh báo | 376 file, không đổi |
-| Đề 2 — gõ dở, đổi ý, qua lại tab | Haiku 4.5 | 8 ph 51 s | $0,40 | 67 | 7/8 (6 đạt · 1 chặn), hết giờ | 0 | không đổi |
-| Đề 1 | `openrouter/free` | 5 ph 10 s | $0 | 13 | 2/8, bị cắt ngang | 0 | không đổi |
+| Đề 2 — gõ dở, đổi ý, qua lại tab | Haiku 4.5 | 8 ph 51 s | $0,40 | 67 | 7/8 (6 đạt · 1 chặn), hết ngân sách thời gian của engine¹ | 0 | không đổi |
+| Đề 1 | `openrouter/free` | 5 ph 10 s | $0 | 13 | 2/8 (bước 1 lỗi nhà cung cấp · bước 2 hết lượt), bị cắt ngang | 0 | không đổi |
+
+¹ Summary của engine ghi "the time budget ran out" (exit 0): engine tự dừng lượt khám phá theo
+ngân sách thời gian của nó, chứ lệnh không bị timeout.
 
 **Phân loại phát hiện (1):** "tìm trong tài liệu ra *27 đoạn khớp* nhưng thiếu nút *Xem cả N đoạn*" →
 **báo nhầm**. "Xem cả" là nút trên thẻ ở tab Tìm; sheet tìm-trong-tài-liệu đã là danh sách mọi đoạn (vẽ
@@ -115,8 +118,9 @@ nên chưa chạm tới tính năng v1.41.0 mà đề bài nhắm.
 → **Chưa đưa khám phá vào quy trình phát hành.** Lệnh `explore` và lưới vân tay kho giữ lại để dùng tay
 khi cần (an toàn đã chứng minh); bộ 6 test khói vẫn là cổng mỗi lần phát hành.
 
-**Model free vs Haiku:** `openrouter/free` không dùng được cho agent — lượt khám phá chết ở bước 1
-("model provider failed … non-retryable"), và lượt chạy bộ test trên dGen1 cùng ngày gặp
+**Model free vs Haiku:** `openrouter/free` không dùng được cho agent — bước 1 của lượt khám phá
+hỏng ("model provider failed … non-retryable"), bước 2 hết lượt, lượt bị cắt ngang ở 2/8; lượt
+chạy bộ test trên dGen1 cùng ngày gặp
 "gemma-4-31b-it:free is temporarily rate-limited upstream" ở mọi lần gọi. Khuyên dùng **Haiku 4.5**:
 khám phá ~$0,4/đề; bộ test khói chạy có cache chỉ còn 1 lượt gọi (assert bằng ảnh), ~$0,0034/lượt.
 

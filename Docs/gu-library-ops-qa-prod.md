@@ -479,6 +479,14 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
     `useIonViewWillEnter` → test đỏ (bản test cũ vẫn xanh = rỗng), APK thật → xanh.
   - **Chỉ UBS1.** dGen1 0/6: engine force-stop app mỗi test → màn đen WebView (bẫy v1.38.0 verify,
     reboot mới hết). `openrouter/free` không chạy nổi agent (lỗi nhà cung cấp/giới hạn lượt).
+    **Thử lại 08/10 tối từ dGen1 vừa reboot (Haiku): vẫn đỏ** — chỉ MỘT force-stop của `app.open()`
+    ở test đầu là renderer bị từ chối (`process is bad`) → màn đen; `adb install -r` không gỡ được,
+    reboot mới gỡ. Chạy được trên dGen1 phải bỏ relaunch (mất "mỗi test bắt đầu sạch") → giữ chỉ
+    UBS1. Chi tiết + cách gỡ: `e2e/README.md` mục "Máy hỗ trợ".
+  - **Beat dọn sau review (08/10 tối, nhánh `chore/e2e-cleanup`):** preflight phân biệt thiếu adb với
+    không thấy máy; thông báo hết thẻ nói đúng lý do (không kết quả / thẻ 1 đoạn / nhãn trùng);
+    `toTab` bấm back tới khi hết (tối đa 12); mọi `search()` chờ dựng chỉ mục; agent `default` mang
+    luật chỉ-đọc như `explorer`; sửa câu chữ + số lệch trong README/perf doc; unit dùng serial giả.
   - **Khám phá (`npm --prefix e2e run explore -- "<đề>"`, chỉ-đọc + dấu vân tay kho):** thử 08/10
     trên v1.41.0 — kho không đổi 3/3 lượt, ~$0,4/đề, nhưng phát hiện duy nhất là báo nhầm → **cổng
     không đạt, CHƯA vào quy trình**; giữ để dùng tay. Chi tiết: `Docs/perf/2026-10-07-spike-e2e-agent-test.md`.
@@ -760,6 +768,11 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
     **`am force-stop com.android.webview` KHÔNG cứu được. REBOOT máy thì hết.** Chỉ xuất hiện sau
     chuỗi force-stop liên tiếp do adb — người dùng thật không gặp. Gặp lại thì reboot, đừng đi
     tìm bug trong JS.
+    *Sửa 08/10 (e2e thử lại từ dGen1 vừa reboot):* **một** lần `am force-stop` khi renderer đang
+    chạy đã đủ — app mở lại 0,7 s sau thì `ActivityManager` từ chối dựng renderer (`Unable to launch
+    app … SandboxedProcessService0:0: process is bad`). `adb install -r` lại đúng APK cũng **không**
+    gỡ được. Nên "người dùng thật không gặp" chưa chắc: bấm "Buộc dừng" trong Cài đặt dGen1 nhiều
+    khả năng gây y hệt (chưa thử tay). Lỗi nền tảng (ethOS/WebView 124), không phải lỗi app.
   - **BẪY 2 — tên gói WebView KHÁC THEO MÁY.** UBS1 là `com.google.android.webview`, dGen1 là
     `com.android.webview`. Script đo bộ nhớ hard-code tên gói của UBS1 nên trên dGen1 nó không
     tìm được renderer (may là có guard nên nó DỪNG chứ không báo số thiếu). Khớp theo `*webview*`.

@@ -2,8 +2,9 @@
 
 6 test chạy trên **máy Android thật** (UBS1, kho QA), lái app bằng
 [tester-army/e2e](https://github.com/tester-army/e2e) + agent-device. Model AI (Haiku 4.5 qua
-OpenRouter) chỉ lo phần điều hướng mơ hồ; gõ, bấm và **mọi phép kiểm** đều đi bằng nhãn chính xác,
-không nhờ model phán.
+OpenRouter) chỉ lo phần điều hướng mơ hồ; gõ, bấm và phép kiểm đi bằng nhãn chính xác, không nhờ
+model phán — **trừ một bước** ở test chia đôi: nút trên thanh chia không có trong cây trợ năng, nên
+thanh chia được kiểm bằng ảnh (`agent.assert` với `vision: 'only'`).
 
 | File | Test |
 |---|---|
@@ -34,15 +35,19 @@ npm --prefix e2e install
 npm run e2e
 ```
 
-`preflight` chạy trước: thiếu key, không thấy máy, chưa cài app → dừng ngay kèm cách sửa, và in
+`preflight` chạy trước: thiếu key, không chạy được adb, không thấy máy, chưa cài app → dừng ngay kèm
+cách sửa, và in
 `✓ app vX trên UBS1 · model …`.
 
 - Đổi máy: `E2E_DEVICE=<model adb>` (tên trong `adb devices -l`, ví dụ `UBS1`).
 - Đổi model: `E2E_MODEL=<id OpenRouter>` (mặc định `anthropic/claude-haiku-4.5`).
 - Một file / một test: `npm --prefix e2e test -- tests/search.e2e.ts --grep "first row"`.
 - Gỡ lỗi: thêm `--video on --debug`.
+- Truyền cờ cho `e2e run` từ thư mục gốc phải qua **hai** `--`: `npm run e2e -- -- --no-cache`.
+  Chỉ một `--` thì npm nuốt cờ làm cấu hình của chính nó (`npm warn invalid config cache=false`) và
+  lượt chạy vẫn dùng cache. Từ `e2e/`: `npm --prefix e2e test -- --no-cache`.
 
-Số đo (UBS1, v1.41.0): lần đầu, chưa có cache ~3 ph 15 s, ~$0,036 · các lần sau, phát lại từ
+Số đo (UBS1, v1.41.0): lần đầu, chưa có cache ~3 ph 14 s, ~$0,036 · các lần sau, phát lại từ
 cache ~2 ph 10 s, ~$0,0034 (chỉ còn bước assert bằng ảnh của test chia đôi gọi model).
 
 ## Đọc kết quả
@@ -70,6 +75,7 @@ npm --prefix e2e run explore -- "<đề bài>"
 ```
 
 Agent `explorer` chỉ đọc (cấm Xóa / Đổi tên / Chuyển tới / Đi in / Thêm / Cài đặt kho…), tối đa 8 bước.
+(Agent `default` của bộ test khói mang cùng luật chỉ-đọc, nhưng không có lưới vân tay kho.)
 Script lấy **dấu vân tay kho** (`E2E_KHO`, mặc định `/sdcard/Download/kho`: đường dẫn + cỡ + mtime
 từng file) trước và sau — cả khi bấm Ctrl-C giữa chừng. Đề bài mẫu: `charters/v1.41.0.md`.
 
@@ -90,9 +96,19 @@ hạn lượt).
 ## Máy hỗ trợ
 
 - **Chỉ UBS1.**
-- **dGen1 (`k6789v1_64`) không dùng được:** engine force-stop app ở mỗi test, và sau chuỗi force-stop
-  WebView trên dGen1 không bind được tiến trình con → **màn đen** ngay từ test đầu (bẫy đã biết, ops
-  doc mục verify v1.38.0). Chỉ **reboot máy** mới hết. Thử 08/10: 0/6.
+- **dGen1 (`k6789v1_64`) không dùng được — đã thử lại từ máy vừa reboot (08/10 tối), vẫn đỏ.**
+  `app.open()` force-stop app ở đầu mỗi test. Trên dGen1 (ethOS, WebView 124) chỉ **một** lần
+  force-stop khi renderer đang chạy là đủ: app mở lại thì hệ thống từ chối dựng renderer
+  (logcat: `ActivityManager: Unable to launch app com.gulibrary.app/… for service
+  …SandboxedProcessService0:0: process is bad`, rồi `cr_ChildProcessConn: Failed to establish the
+  service connection`) → **màn đen** ngay test đầu, agent báo `APP_UNREACHABLE`. Lượt thử: 1 đỏ,
+  1 ngắt, 4 bỏ qua, $0,032.
+- **Gỡ màn đen trên dGen1: chỉ reboot.** `adb install -r` lại đúng APK **không** gỡ được (tiến trình
+  app mới vẫn bị từ chối renderer). Sau reboot, mở app bằng launcher hoặc
+  `adb shell monkey -p com.gulibrary.app -c android.intent.category.LAUNCHER 1` — **không**
+  `am force-stop`. Máy không đặt PIN: `input keyevent 82` mở khoá.
+- Muốn chạy được trên dGen1 phải bỏ relaunch (`openApp(…, { relaunch: false })`), tức là mất bảo
+  đảm "mỗi test bắt đầu sạch" → chưa làm; dGen1 chỉ để kiểm tay.
 
 ## Bẫy đã biết
 
@@ -100,7 +116,8 @@ hạn lượt).
 - **Lần chụp đầu của WebView rỗng** (chỉ có một node `webview`) — cây trợ năng nạp lười; engine tự
   chụp lại.
 - **Ionic ẩn nền bằng aria khi sheet mở**, và trang bị che vẫn có thể trả lời locator → `toTab`
-  đóng sheet, thoát chia đôi, bấm back cho tới gốc tab rồi mới bấm tab.
+  đóng sheet, thoát chia đôi, bấm back cho tới gốc tab (tối đa 12 lần, quá thì báo lỗi rõ) rồi mới
+  bấm tab. Trạng thái test TRƯỚC để lại thì không cần `toTab`: `app.open()` đã mở lại app từ đầu.
 - **Bấm locator vào nút chữ thường** (tiêu đề, tên trên thẻ) đi qua lối bấm theo ref của
   agent-device và **trúng phần tử khác** (đã gặp: chạm tiêu đề "Tìm" mở thẻ kết quả đầu) → dùng
   `tapCentre` (chạm theo toạ độ). Nút/tab có role thì `tap()` bình thường.
