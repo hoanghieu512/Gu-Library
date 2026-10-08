@@ -22,16 +22,6 @@ export function parsePageFooter(text: string): { page: number; total: number } |
 }
 
 /**
- * Result cards from button labels in screen order: each "Mở X tại trang P" followed by
- * "Xem cả N đoạn trong X" for the same X. A card with one match has no "Xem cả" and is skipped.
- */
-export function readCardFrom(labels: string[], index = 0): Card {
-  const cards = cardsFrom(labels);
-  if (cards.length <= index) throw new Error(NO_CARD);
-  return cards[index];
-}
-
-/**
  * The first card at or after `fromIndex` whose "Xem cả" label is unique on screen. The same file
  * filed under two subjects gives two identical labels, and agent-device refuses an ambiguous tap
  * (AMBIGUOUS_MATCH) — `.first()` does not resolve it at the engine level.
@@ -42,11 +32,18 @@ export function uniqueCardFrom(labels: string[], fromIndex = 0): Card {
     const label = `Xem cả ${cards[i].count.toLocaleString('vi-VN')} đoạn trong ${cards[i].name}`;
     if (labels.filter((l) => l === label).length === 1) return cards[i];
   }
-  throw new Error(NO_CARD);
+  const fix = ' — đổi câu tra trong tests';
+  if (!labels.some((l) => parseOpenAtPage(l))) throw new Error(`câu tra mẫu không còn kết quả${fix}`);
+  if (cards.length <= fromIndex) {
+    throw new Error(`câu tra mẫu chỉ còn ${cards.length} thẻ có nút "Xem cả" (thẻ 1 đoạn không có nút này), test cần thẻ thứ ${fromIndex + 1}${fix}`);
+  }
+  throw new Error(`mọi thẻ có "Xem cả" từ thẻ thứ ${fromIndex + 1} đều trùng nhãn (cùng một file ở hai môn)${fix}`);
 }
 
-const NO_CARD = 'câu tra mẫu không còn kết quả — đổi câu tra trong tests';
-
+/**
+ * Result cards from button labels in screen order: each "Mở X tại trang P" followed by
+ * "Xem cả N đoạn trong X" for the same X. A card with one match has no "Xem cả" and is skipped.
+ */
 function cardsFrom(labels: string[]): Card[] {
   const cards: Card[] = [];
   for (let i = 0; i < labels.length - 1; i++) {

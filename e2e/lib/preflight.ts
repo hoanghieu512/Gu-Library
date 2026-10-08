@@ -5,6 +5,9 @@ export interface AdbDevice { serial: string; model: string; state: string }
 
 export const APP_ID = 'com.gulibrary.app';
 
+/** OpenRouter id used when E2E_MODEL is unset — pinned, never a "-latest" alias. */
+export const DEFAULT_MODEL = 'anthropic/claude-haiku-5.5';
+
 /** `adb devices -l` → devices with their model (agent-device names a device by its model). */
 export function parseAdbDevices(out: string): AdbDevice[] {
   const devices: AdbDevice[] = [];
@@ -24,13 +27,18 @@ export function parseVersionName(dumpsys: string): string | null {
 
 export function preflightErrors(i: {
   env: Record<string, string | undefined>;
-  devices: AdbDevice[];
+  /** null when adb itself could not be run (not installed / not on PATH). */
+  devices: AdbDevice[] | null;
   deviceName: string;
   versionName: string | null;
 }): string[] {
   const errors: string[] = [];
   if (!i.env.OPENROUTER_API_KEY) {
     errors.push('Thiếu OPENROUTER_API_KEY — thêm `export OPENROUTER_API_KEY=…` vào ~/.bash_profile rồi mở shell mới (e2e không đọc .env).');
+  }
+  if (!i.devices) {
+    errors.push('Không chạy được adb — cài Android platform-tools, hoặc đặt ANDROID_HOME trỏ tới Android SDK.');
+    return errors;
   }
   const device = i.devices.find((d) => d.model === i.deviceName);
   if (!device) {
