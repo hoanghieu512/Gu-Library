@@ -1,5 +1,5 @@
 import { test, expect } from 'e2e';
-import { exact, footer, footerAt, gotoPage, openAtLabel, readUniqueCard, revealAboveTabBar, search, tapCentre, toTab, vi, waitIndexReady, xemCaLabel } from './helpers.ts';
+import { exact, footer, footerAt, gotoPage, openAtLabel, readUniqueCard, revealAboveTabBar, search, tapCentre, toTab, vi, xemCaLabel } from './helpers.ts';
 
 // Any query with results across several documents; no letter "u" (Gboard on UBS1 drops it).
 const QUERY = 'hop dong';
@@ -7,7 +7,6 @@ const QUERY = 'hop dong';
 test('Xem cả opens the in-doc sheet with the card count and first row', async ({ app, agent, screen }) => {
   await app.open();
   await toTab(screen, agent, 'Tìm');
-  await waitIndexReady(screen);
   await search(screen, QUERY);
   const card = await readUniqueCard(screen);
   await screen.getByRole('button', { name: exact(xemCaLabel(card)) }).tap();

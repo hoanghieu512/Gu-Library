@@ -1,5 +1,6 @@
 // Shared steps for the smoke tests. Rule: the agent only does fuzzy navigation; typing, tapping and
-// every check go through exact locators (no model call, no judgement).
+// checks go through exact locators (no model call, no judgement). One exception: the split test
+// checks the divider by vision, because its buttons are not in the accessibility tree.
 import { expect } from 'e2e';
 import type { Agent, Locator, Screen } from 'e2e';
 import { parsePageFooter, uniqueCardFrom } from '../lib/parse.ts';
@@ -47,7 +48,13 @@ export async function revealAboveTabBar(screen: Screen, node: Locator): Promise<
   throw new Error('không kéo được nút lên khỏi thanh tab');
 }
 
-/** Get to a tab from wherever a previous test left the app (open sheet, split view, Viewer). */
+const MAX_BACKS = 12;
+
+/**
+ * Get to a tab's root from wherever the test got to (open sheet, split view, a Viewer or folders
+ * pushed on the tab). What an earlier test left behind is not its job: `app.open()` relaunches
+ * the app at the start of every test.
+ */
 export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 'Tìm'): Promise<void> {
   const close = screen.getByRole('button', { name: exact('Đóng') });
   if (await close.isVisible()) await close.tap();
@@ -55,9 +62,10 @@ export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 
   if (await exitSplit.isVisible()) await exitSplit.tap();
   // Tapping the current tab does not pop a pushed Viewer; back out to the tab's root first.
   // (Otherwise the hidden page underneath still answers locators — seen: the Viewer's "Tới trang"
-  // box filled as if it were the Search box.)
+  // box filled as if it were the Search box.) Folders can nest deep: go until no back is left.
   const back = screen.getByRole('button', { name: exact('back') });
-  for (let i = 0; i < 4 && (await back.isVisible()); i++) {
+  for (let i = 0; await back.isVisible(); i++) {
+    if (i === MAX_BACKS) throw new Error(`vẫn còn nút back sau ${MAX_BACKS} lần bấm — không về được gốc tab "${name}"`);
     await back.tap();
     await new Promise((r) => setTimeout(r, 600));
   }
@@ -74,12 +82,14 @@ export async function waitIndexReady(screen: Screen): Promise<void> {
 }
 
 /**
- * Fill the Search box, wait for the "N đoạn · M tài liệu" line, then put the keyboard away by
+ * Wait out a first-visit index build (any test may be the first Search visit after a SCHEMA bump),
+ * fill the Search box, wait for the "N đoạn · M tài liệu" line, then put the keyboard away by
  * tapping the page title (fixed at the top, no handler). Gboard covers the lower half: cards
  * under it drop out of the screen and a tap there lands on the keyboard. `press('Enter')` leaves
  * it up.
  */
 export async function search(screen: Screen, query: string): Promise<void> {
+  await waitIndexReady(screen);
   await screen.getByRole('textbox').fill(query);
   await expect(screen.getByText(/ đoạn · .* tài liệu$/)).toBeVisible();
   await tapCentre(screen, screen.getByText(exact('Tìm')).first());

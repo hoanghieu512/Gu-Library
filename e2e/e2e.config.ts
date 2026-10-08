@@ -6,7 +6,9 @@ import { openrouter } from '@openrouter/ai-sdk-provider';
 const DEVICE = process.env.E2E_DEVICE ?? 'UBS1';
 const MODEL = process.env.E2E_MODEL ?? 'anthropic/claude-haiku-4.5';
 
-const EXPLORER_RULES = `READ-ONLY. The library in this app is real data: never change it.
+// Both agents run on the QA library, which is real data: the smoke tests' agent.act steps
+// (open a document, pick one for split view, back to the tabs) get the same rules as the explorer.
+const READ_ONLY_RULES = `READ-ONLY. The library in this app is real data: never change it.
 Never tap "Xóa", "Đổi tên", "Chuyển tới…", "Đi in", "Gom để in", "Xong", "Thêm" (button or tab), "Tạo môn mới", "Tạo thư mục mới" or "Đổi màu".
 Never long-press a document row or a subject's spine on the shelf.
 In "Cài đặt", never open "Folder kho", "Đồng bộ (Syncthing)" or "Dựng lại chỉ mục tìm kiếm".
@@ -23,15 +25,14 @@ export default {
     },
   ],
   agents: {
-    default: { model: openrouter(MODEL), maxSteps: 10, maxModelCalls: 10 },
-    // Only for `npm run explore`: the library on the device is real data, so the explorer reads and
-    // never edits. scripts/explore.ts checks the kho before and after as the last net.
+    default: { model: openrouter(MODEL), maxSteps: 10, maxModelCalls: 10, system: READ_ONLY_RULES },
+    // Only for `npm run explore`; scripts/explore.ts also checks the kho before and after as the last net.
     explorer: {
       model: openrouter(MODEL),
       maxSteps: 10,
       maxModelCalls: 10,
       context: 'Vietnamese law-document reader app on a QA library; the user is a law student.',
-      system: EXPLORER_RULES,
+      system: READ_ONLY_RULES,
     },
   },
   workers: 1,
