@@ -486,13 +486,19 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
   - **Beat dọn sau review (08/10 tối, nhánh `chore/e2e-cleanup`):** preflight phân biệt thiếu adb với
     không thấy máy; thông báo hết thẻ nói đúng lý do (không kết quả / thẻ 1 đoạn / nhãn trùng);
     `toTab` bấm back tới khi hết (tối đa 12); mọi `search()` chờ dựng chỉ mục; agent `default` mang
-    luật chỉ-đọc như `explorer`; sửa câu chữ + số lệch trong README/perf doc; unit dùng serial giả.
+    luật chỉ-đọc như `explorer`; sửa câu chữ + số lệch trong README/perf doc; unit dùng serial giả;
+    test chia đôi kiểm bằng locator rằng bộ chọn đã biến mất sau bước `act`. Verify UBS1 app 1.41.0:
+    **e2e 6/6 · 2 ph 12–15 s · $0,0034 · Haiku 4.5** (có cache, 2 lượt). Lượt lạnh 5/6: trượt ở bước chọn tài
+    liệu của test chia đôi — lỗi có sẵn, không do beat này (6 lượt lạnh riêng test đó: có/không luật
+    chỉ-đọc đều 1/3 đạt).
   - **Khám phá (`npm --prefix e2e run explore -- "<đề>"`, chỉ-đọc + dấu vân tay kho):** thử 08/10
     trên v1.41.0 — kho không đổi 3/3 lượt, ~$0,4/đề, nhưng phát hiện duy nhất là báo nhầm → **cổng
     không đạt, CHƯA vào quy trình**; giữ để dùng tay. Chi tiết: `Docs/perf/2026-10-07-spike-e2e-agent-test.md`.
   - **Lỗi app lộ ra (backlog, chưa sửa):** thanh chia đôi là `role="separator"` → nút "Tìm"/"Đổi"
     trên thanh không có trong cây trợ năng (trình đọc màn hình cũng không tới được); cùng một file
-    nằm ở hai môn cho hai nhãn "Xem cả" giống hệt; thẻ "Đang đọc dở" không có role/nhãn.
+    nằm ở hai môn cho hai nhãn "Xem cả" giống hệt; thẻ "Đang đọc dở" không có role/nhãn; dòng của
+    bộ chọn tài liệu khi chia đôi (`DocPicker`) là `div onClick` không role/nhãn → agent không phân
+    biệt môn / thư mục / tài liệu (bước chọn tài liệu chạy lạnh chỉ ~1/3 đạt, 08/10).
 - **v1.41.0 — màn Tìm gom kết quả theo tài liệu (06/10).** Đo "món xếp hạng chờ khi gặp" của
   v1.40.1 ra lỗi thật: `search()` gom tối đa 600 ứng viên (quét 2500) **theo thứ tự kho** rồi mới
   xếp → từ phổ biến chỉ ra môn đứng đầu A→Z (kho QA: "Hình sự chung" = 63% số đoạn). 17/30 câu

@@ -16,6 +16,10 @@ test('split: pick, exit keeps the top page', async ({ app, agent, screen }) => {
   await screen.getByRole('button', { name: exact('Chia đôi màn hình') }).tap();
   await expect(screen.getByText(exact('Chọn tài liệu để tra cứu'))).toBeVisible();
   await agent.act('Chọn một tài liệu bất kỳ trong danh sách để mở ở khung dưới');
+  // The act's own "passed" is not proof: on a cold run Haiku has tapped a subject name, taken it for
+  // a document and reported success (the picker rows are plain divs, no role to tell them apart).
+  // A document in the lower pane replaces the picker, so its title must be gone.
+  await expect(screen.getByText(exact('Chọn tài liệu để tra cứu'))).toBeHidden();
   await agent.assert('Màn hình có hai khung tài liệu, một trên một dưới; giữa hai khung là một thanh màu nâu, và trên chính thanh đó có hai chữ "Tìm" và "Đổi" nằm cạnh nhau', { vision: 'only' });
   await screen.getByRole('button', { name: exact('Thoát chia đôi') }).tap();
   expect(await footerAt(screen, top.page)).toEqual(top);

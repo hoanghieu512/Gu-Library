@@ -128,5 +128,12 @@ hạn lượt).
   cần, giữ ~2,5 s rồi đọc lại (cú nhảy hỏng có thể tới nơi rồi bị kéo về trang đã lưu).
 - **`toTab` bấm back tới gốc tab** → đừng dùng nó khi cần một Viewer còn sống ở tab kia (test "tài
   liệu đang mở ở tab khác" bấm thẳng tab).
+- **Bước chọn tài liệu của test chia đôi chập chờn khi chạy LẠNH** (08/10: 6 lượt lạnh chỉ có
+  test này, có hay không có luật chỉ-đọc đều 1/3 đạt). Dòng trong bộ chọn (`DocPicker`) là `div`
+  không role → agent nhầm tên môn là tài liệu, chạm rồi tự báo đạt. Lượt thường phát lại bản ghi tốt
+  từ cache nên ổn; sau `act` có locator kiểm "Chọn tài liệu để tra cứu" đã biến mất, nên lượt hỏng
+  trượt ngay với lý do rõ. Engine chỉ giữ bản ghi khi một phép kiểm SAU nó đạt, test trượt thì bản
+  ghi bị xoá → nếu bước này mất cache, chạy lại tới khi ra một lượt đạt. Gốc rễ: a11y của `DocPicker`
+  (backlog app).
 - **Telemetry** tắt sẵn (`E2E_TELEMETRY_DISABLED=1` trong script `test`/`explore`).
 - Không dùng `app.clearState()`, `setPermission`, `installApp`, `--test-ime`.
