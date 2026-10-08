@@ -24,13 +24,18 @@ export function parseVersionName(dumpsys: string): string | null {
 
 export function preflightErrors(i: {
   env: Record<string, string | undefined>;
-  devices: AdbDevice[];
+  /** null when adb itself could not be run (not installed / not on PATH). */
+  devices: AdbDevice[] | null;
   deviceName: string;
   versionName: string | null;
 }): string[] {
   const errors: string[] = [];
   if (!i.env.OPENROUTER_API_KEY) {
     errors.push('Thiếu OPENROUTER_API_KEY — thêm `export OPENROUTER_API_KEY=…` vào ~/.bash_profile rồi mở shell mới (e2e không đọc .env).');
+  }
+  if (!i.devices) {
+    errors.push('Không chạy được adb — cài Android platform-tools, hoặc đặt ANDROID_HOME trỏ tới Android SDK.');
+    return errors;
   }
   const device = i.devices.find((d) => d.model === i.deviceName);
   if (!device) {

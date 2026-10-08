@@ -4,14 +4,20 @@ import { join } from 'node:path';
 import { APP_ID, parseAdbDevices, parseVersionName, preflightErrors } from '../lib/preflight.ts';
 
 const adb = process.env.ANDROID_HOME ? join(process.env.ANDROID_HOME, 'platform-tools', 'adb') : 'adb';
-const run = (args: string[]): string => {
-  try { return execFileSync(adb, args, { encoding: 'utf8' }); } catch { return ''; }
+// null = adb itself could not be run (ENOENT); '' = adb ran and failed.
+const run = (args: string[]): string | null => {
+  try {
+    return execFileSync(adb, args, { encoding: 'utf8' });
+  } catch (e) {
+    return (e as NodeJS.ErrnoException).code === 'ENOENT' ? null : '';
+  }
 };
 
 const deviceName = process.env.E2E_DEVICE ?? 'UBS1';
-const devices = parseAdbDevices(run(['devices', '-l']));
-const device = devices.find((d) => d.model === deviceName && d.state === 'device');
-const versionName = device ? parseVersionName(run(['-s', device.serial, 'shell', 'dumpsys', 'package', APP_ID])) : null;
+const listed = run(['devices', '-l']);
+const devices = listed === null ? null : parseAdbDevices(listed);
+const device = devices?.find((d) => d.model === deviceName && d.state === 'device');
+const versionName = device ? parseVersionName(run(['-s', device.serial, 'shell', 'dumpsys', 'package', APP_ID]) ?? '') : null;
 
 const errors = preflightErrors({ env: process.env, devices, deviceName, versionName });
 if (errors.length > 0) {
