@@ -37,6 +37,8 @@ export default function SearchPage() {
   const [ix, setIx] = useState<SearchIndex | null>(null);
   // Dấu vân tay của lượt dựng gần nhất — để làm mới đối chiếu mà khỏi đọc lại IndexedDB.
   const stamps = useRef<Map<string, string> | null>(null);
+  // Renamed documents (pdfUri → name), fresh from every refresh; cards fall back to the file name.
+  const [names, setNames] = useState<Map<string, string>>(() => new Map());
   const alive = useRef(true);
 
   useEffect(() => {
@@ -52,6 +54,7 @@ export default function SearchPage() {
         setRefreshing(true);
         try {
           const r = await refreshIndex(stamps.current ?? undefined);
+          if (alive.current) setNames(r.names);
           if (alive.current && r.changed && r.index) { setIx(r.index); stamps.current = r.stamps ?? null; }
         } catch { /* giữ index cũ — tìm trên bản cũ vẫn hơn không tìm được */ }
         if (alive.current) setRefreshing(false);
@@ -61,6 +64,7 @@ export default function SearchPage() {
         try {
           const r = await refreshIndex(undefined, (p) => alive.current && setProgress(p));
           if (!alive.current) return;
+          setNames(r.names);
           if (r.index) { setIx(r.index); stamps.current = r.stamps ?? null; }
         } catch { /* để ready với index rỗng → hiện "chưa tra được", không treo màn */ }
         if (alive.current) setPhase('ready');
@@ -152,7 +156,7 @@ export default function SearchPage() {
             )}
 
             {/* Keyed by the query: a new query starts again at the first page of cards. */}
-            <DocResultList key={q} docs={result.docs} seq={seq} onOpenPage={openPage} onOpenAll={openAll} />
+            <DocResultList key={q} docs={result.docs} seq={seq} names={names} onOpenPage={openPage} onOpenAll={openAll} />
           </>
         )}
       </IonContent>

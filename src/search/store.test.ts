@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { stampOf } from './store';
+import { displayNameMap, stampOf } from './store';
+import type { KhoFolder } from '../storage/khoSnapshot';
+import type { Document, Mon } from '../storage/types';
 import { indexDoc, mergeShards, search } from './invertedIndex';
 
 const DOC_A = { pdfUri: 'uri://a.pdf', name: 'Luật Đất đai', mon: 'Đất Đai' };
@@ -66,5 +68,23 @@ describe('mergeShards — gộp mảnh không tách từ lại', () => {
     }), shB]);
     expect(merged.postings.size).toBe(one.postings.size);
     expect(merged.units.length).toBe(one.units.length);
+  });
+});
+
+describe('displayNameMap — renamed documents for the Search cards (v1.41.1)', () => {
+  const doc = (base: string): Document =>
+    ({ name: base, fileBase: base, pdfUri: `u:${base}.pdf`, jsonUri: `u:${base}.json`, printFlagged: false });
+  const folder = (name: string, docs: Document[], children: KhoFolder[], names: [string, string][]): KhoFolder => ({
+    name, uri: `u:${name}`, entries: [],
+    listing: { documents: docs, folders: children.map((c) => ({ name: c.name, uri: c.uri })), pending: [], hasPending: false },
+    children, displayNames: new Map(names),
+  });
+
+  it('maps pdfUri → new name for every renamed document in every subject tree, nothing else', () => {
+    const sub = folder('Slide', [doc('c')], [], [['c', 'Slide chương 1']]);
+    const mon = folder('Đất Đai', [doc('a'), doc('b')], [sub], [['a', 'Luật Đất đai 2024']]);
+    const m: Mon = { name: 'Đất Đai', uri: mon.uri, meta: {} as Mon['meta'] };
+    expect(displayNameMap({ mons: [m], monFolders: new Map([[m.uri, mon]]) })).toEqual(
+      new Map([['u:a.pdf', 'Luật Đất đai 2024'], ['u:c.pdf', 'Slide chương 1']]));
   });
 });
