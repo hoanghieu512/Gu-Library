@@ -96,7 +96,11 @@ export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 
     await new Promise((r) => setTimeout(r, 600));
   }
   const tab = screen.getByRole('tab', { name: exact(name) });
-  if (!(await tab.isVisible())) {
+  // Right after app.open() the WebView's first accessibility snapshot is often empty (lazy tree):
+  // wait for the tab bar before handing the job to the agent, which costs model calls (seen on the
+  // 1.41.1 slide test's cold run: 2 calls just to "find" a tab bar that was loading).
+  const shown = await tab.waitFor({ timeout: 10000 }).then(() => true, () => false);
+  if (!shown) {
     await agent.act('Quay về màn có thanh tab dưới cùng (đóng bảng đang mở, thoát chia đôi, quay lại)');
   }
   await tab.tap();
