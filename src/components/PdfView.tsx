@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { perfStart, perfEnd, perfCancel } from '../perf/perf';
 import { jumpGate } from '../viewer/jumpGate';
+import { mostVisiblePage, pageAfterScroll, type Pin } from '../viewer/currentPage';
 
 // Worker offline (bundle, no CDN). This exact form built + ran correctly on device.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -38,7 +39,8 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   const [gate] = useState(jumpGate);
   const zoomRef = useRef(baseScale);
   const prevZoom = useRef(baseScale);
-  const curPage = useRef(initialPage);
+  // The page the last jump went to, held until the user scrolls (v1.41.1 — see viewer/currentPage).
+  const pin = useRef<Pin | null>(null);
   // neo lúc đổi zoom: dọc (trang + frac + vpY) + ngang (pageX page-relative + vpX)
   const pendingAnchor = useRef<{ page: number; frac: number; vpY: number; pageX: number; vpX: number } | null>(null);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
@@ -143,15 +145,17 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
 
   const goToPage = (n: number) => {
     const el = containerRef.current; if (!el || numPages === 0) return;
-    el.scrollTop = offsets[Math.max(1, Math.min(n, numPages)) - 1];
+    const page = Math.max(1, Math.min(n, numPages));
+    el.scrollTop = offsets[page - 1];
+    pin.current = { page, top: el.scrollTop };  // read back: the browser clamps near the end
   };
 
   const recompute = () => {
     const el = containerRef.current; if (!el || numPages === 0) return;
     const top = el.scrollTop, vh = el.clientHeight;
-    const center = pageAtY(offsets, numPages, top + vh / 2);
-    curPage.current = center;
-    onPageChange(center, numPages);
+    const r = pageAfterScroll(pin.current, top, mostVisiblePage(offsets, numPages, top, vh));
+    pin.current = r.pin;
+    onPageChange(r.page, numPages);
     setWin([Math.max(1, pageAtY(offsets, numPages, top) - BUFFER),
             Math.min(numPages, pageAtY(offsets, numPages, top + vh) + BUFFER)]);
   };
