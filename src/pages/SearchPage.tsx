@@ -4,6 +4,7 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonSpinn
 import { useHistory } from 'react-router-dom';
 import { searchOutline, closeCircle } from 'ionicons/icons';
 import { loadIndex, refreshIndex } from '../search/store';
+import { useDisplayNames } from '../search/useDisplayNames';
 import { searchDocs, parseQuery } from '../search/invertedIndex';
 import type { DocSearchResult, SearchIndex } from '../search/invertedIndex';
 import { viewerUrl } from '../nav/viewerUrl';
@@ -37,8 +38,9 @@ export default function SearchPage() {
   const [ix, setIx] = useState<SearchIndex | null>(null);
   // Dấu vân tay của lượt dựng gần nhất — để làm mới đối chiếu mà khỏi đọc lại IndexedDB.
   const stamps = useRef<Map<string, string> | null>(null);
-  // Renamed documents (pdfUri → name), fresh from every refresh; cards fall back to the file name.
-  const [names, setNames] = useState<Map<string, string>>(() => new Map());
+  // Renamed documents (pdfUri → name), fresh from every refresh and every rename (khoChanged);
+  // cards fall back to the file name.
+  const [names, setNames] = useDisplayNames();
   const alive = useRef(true);
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function SearchPage() {
       }
     })();
     return () => { alive.current = false; };
-  }, []);
+  }, [setNames]); // a useState setter — stable, so this still runs once on mount
 
   useEffect(() => {
     // Chưa có index thì không đặt state ở đây (đặt đồng bộ trong effect gây vẽ lại dây chuyền);
