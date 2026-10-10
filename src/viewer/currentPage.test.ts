@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mostVisiblePage, pageAfterScroll } from './currentPage';
+import { mostVisiblePage, pageHold } from './currentPage';
 
 // PdfView's offsets: offsets[0] = 0, offsets[n] = top of page n+1 (slot heights incl. GAP).
 const offs = (heights: number[]): number[] => heights.reduce((a, h) => [...a, a[a.length - 1] + h], [0]);
@@ -31,13 +31,27 @@ describe('mostVisiblePage — the page taking the most of the screen (v1.41.1)',
   });
 });
 
-describe('pageAfterScroll — a jump holds its page until the user scrolls', () => {
-  it('pin holds while scrollTop stays within 1 px (bottom-clamped jump to the last page)', () =>
-    expect(pageAfterScroll({ page: 8, top: 1628 }, 1628.5, 7)).toEqual({ page: 8, pin: { page: 8, top: 1628 } }));
+describe('pageHold — a jump holds its page until the user drags (v1.41.1)', () => {
+  it('no jump → the most visible page', () =>
+    expect(pageHold().current(4)).toBe(4));
 
-  it('a move of more than 1 px (user scroll, zoom re-anchor) drops the pin', () =>
-    expect(pageAfterScroll({ page: 8, top: 1628 }, 1640, 7)).toEqual({ page: 7, pin: null }));
+  it('a jump holds its page whatever the scroll does on its own (keyboard closing clamps the scroll at the end)', () => {
+    const h = pageHold();
+    h.jump(8);
+    expect(h.current(7)).toBe(8);   // bottom of a slide deck: 7 and 8 fully visible, 7 is "most visible"
+    expect(h.current(7)).toBe(8);   // still 8 after another scroll event the user did not cause
+  });
 
-  it('no pin → the visible page', () =>
-    expect(pageAfterScroll(null, 500, 4)).toEqual({ page: 4, pin: null }));
+  it('the user dragging (or a zoom re-anchor) releases it', () => {
+    const h = pageHold();
+    h.jump(8);
+    h.release();
+    expect(h.current(7)).toBe(7);
+  });
+
+  it('a new jump replaces the old one', () => {
+    const h = pageHold();
+    h.jump(8); h.jump(3);
+    expect(h.current(4)).toBe(3);
+  });
 });

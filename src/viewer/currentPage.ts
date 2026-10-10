@@ -22,15 +22,22 @@ export function mostVisiblePage(offsets: number[], numPages: number, top: number
   return best;
 }
 
-/** The page a jump went to, and the scrollTop it really landed on (read back after setting it). */
-export interface Pin { page: number; top: number }
-
 /**
- * A jump holds its page while scrollTop stays where the jump left it: near the end of a document
- * the browser clamps the scroll, so the target cannot reach the top and the most visible page may
- * be an earlier one. Any move of more than 1 px — the user scrolling, a zoom re-anchor — drops it.
+ * A jump (resume, "Tới trang", a sheet row) holds its page until the USER moves the page — a drag
+ * or a zoom. Not until scrollTop moves: the scroll also moves on its own, and the first 1.41.1 build
+ * lost the page that way — typing in "Tới trang" leaves the keyboard up, the jump lands in the
+ * shorter viewport, the keyboard closes, the browser clamps the scroll at the end of the document,
+ * and the last page read as the one before it (UBS1: jump to 8 → 7 / 8). Near the end the target
+ * cannot reach the top either, so the most visible page may be an earlier one; the hold covers both.
  */
-export function pageAfterScroll(pin: Pin | null, scrollTop: number, visible: number): { page: number; pin: Pin | null } {
-  if (pin && Math.abs(scrollTop - pin.top) <= 1) return { page: pin.page, pin };
-  return { page: visible, pin: null };
+export function pageHold() {
+  let held: number | null = null;
+  return {
+    /** A jump scrolled to `page`. */
+    jump(page: number): void { held = page; },
+    /** The user dragged or zoomed: the page is whatever the screen now shows. */
+    release(): void { held = null; },
+    /** The current page, given the most visible one. */
+    current(visible: number): number { return held ?? visible; },
+  };
 }

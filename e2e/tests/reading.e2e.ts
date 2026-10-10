@@ -40,3 +40,22 @@ test('a slide deck resumes on the same page, three times', async ({ app, agent, 
     expect(await footerAt(screen, 3)).toEqual({ page: 3, total });
   }
 });
+
+// Typing the page in "Tới trang" leaves the keyboard up when "Nhảy" is tapped: the jump lands in a
+// shorter viewport, then the keyboard closes and the browser clamps the scroll. The last page must
+// still read as the last page (the first 1.41.1 build showed 7 / 8 here). Reaching the last page
+// means "done": the app drops the document from "Đang đọc dở" by design, so the resume half uses the
+// page before it — also clamped at the bottom of a slide deck.
+test('jump near the end with the keyboard up, then resume', async ({ app, agent, screen }) => {
+  await app.open();
+  await toTab(screen, agent, 'Trang chủ');
+  await openByPath(screen, SLIDE, HERE);
+  const { total } = await footer(screen);
+  await gotoPage(screen, total);        // fills "Tới trang" (keyboard up), taps "Nhảy", holds ~2.5 s
+  await gotoPage(screen, total - 1);
+  await toTab(screen, agent, 'Trang chủ');
+  const resume = resumeButton(screen, SLIDE.doc);
+  await expect(resume).toBeVisible();
+  await resume.tap();
+  expect(await footerAt(screen, total - 1)).toEqual({ page: total - 1, total });
+});
