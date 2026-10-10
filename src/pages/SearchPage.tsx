@@ -20,7 +20,7 @@ const PAD = {
   '--padding-top': '12px', '--padding-bottom': '16px',
 } as CSSProperties;
 
-const DEBOUNCE_MS = 130;   // đo được: tra 1–3 ms, nên chờ chừng này chỉ để gom phím, không phải để kịp tính
+const DEBOUNCE_MS = 130;   // batches keystrokes, not waiting on the search — UBS1 v1.41.0: whole words ≤ 37 ms, half-typed "th" 132–144 ms
 const NO_RESULT: DocSearchResult = { total: 0, docs: [] };
 
 type Phase = 'loading' | 'building' | 'ready';
