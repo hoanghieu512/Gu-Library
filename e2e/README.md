@@ -2,9 +2,11 @@
 
 7 test chạy trên **máy Android thật** (UBS1, kho QA), lái app bằng
 [tester-army/e2e](https://github.com/tester-army/e2e) + agent-device. Model AI (Haiku 5.5 qua
-OpenRouter) chỉ lo phần điều hướng mơ hồ (mở "một tài liệu bất kỳ" ở test đọc tiếp, quay về thanh
-tab khi lạc); gõ, bấm và **mọi phép kiểm** đều đi bằng nhãn chính xác, không nhờ model phán. Từ
-app 1.41.1 test chia đôi và test slide không gọi model lần nào.
+OpenRouter) giờ chỉ còn là **lưới dự phòng** trong `toTab` (quay về thanh tab khi lạc); gõ, bấm và
+**mọi phép kiểm** đều đi bằng nhãn chính xác, không nhờ model phán. Từ app 1.41.1 cả 7 test chạy
+không gọi model lần nào — lượt lạnh và lượt có cache như nhau, $0. Hai test đọc tiếp mở tài liệu
+mẫu cố định của kho QA theo nhãn (`openByPath`, hằng `PORTRAIT`/`SLIDE` trong `tests/reading.e2e.ts`
+— kho QA đổi thì sửa hằng).
 
 | File | Test |
 |---|---|
@@ -139,11 +141,14 @@ hạn lượt).
   cần, giữ ~2,5 s rồi đọc lại (cú nhảy hỏng có thể tới nơi rồi bị kéo về trang đã lưu).
 - **`toTab` bấm back tới gốc tab** → đừng dùng nó khi cần một Viewer còn sống ở tab kia (test "tài
   liệu đang mở ở tab khác" bấm thẳng tab).
-- **Trước 1.41.1, cả hai chuyện sau làm lượt LẠNH đỏ** (ghi lại để hiểu lịch sử cache): bước chọn
-  tài liệu của test chia đôi do agent làm chỉ đạt ~1/3 (dòng của `DocPicker` là `div` không role —
-  agent nhầm tên môn là tài liệu rồi tự báo đạt); và agent của test đọc tiếp mở slide "0. GIỚI THIỆU
-  MÔN HỌC", nơi app 1.41.0 trôi một trang mỗi vòng đọc tiếp. 1.41.1 sửa cả hai: test chia đôi chọn
-  bằng nhãn, lỗi trôi trang được sửa và có test slide riêng.
+- **Trước 1.41.1, các bước do agent làm khiến lượt LẠNH đỏ** (ghi lại để hiểu lịch sử): chọn tài
+  liệu ở test chia đôi chỉ đạt ~1/3 (dòng của `DocPicker` là `div` không role — agent nhầm tên môn là
+  tài liệu rồi tự báo đạt); agent của test đọc tiếp mở slide "0. GIỚI THIỆU MÔN HỌC" (app 1.41.0 trôi
+  một trang mỗi vòng đọc tiếp), rồi mở bản scan 1 trang "Báo giấy / 1_4_2026" — tài liệu 1 trang
+  không bao giờ vào "Đang đọc dở" vì Viewer chỉ ghi khi đổi trang. 1.41.1: mọi bước đó chuyển sang
+  nhãn; lỗi trôi trang được sửa và có test slide riêng.
+- **`toTab` ngay sau `app.open()`**: lần chụp đầu thường rỗng → phải `waitFor` thanh tab (tối đa
+  10 s) trước khi nhờ agent, nếu không agent bị gọi oan (đã gặp: 2 lượt gọi model).
 - **Engine chỉ giữ bản ghi `agent.act` khi một phép kiểm SAU nó đạt**; test trượt thì bản ghi bị xoá
   và lượt sau chạy lạnh. Khoá cache theo câu lệnh + tham số, KHÔNG theo `system` của agent hay model.
 - **`textContent()` không chờ** node xuất hiện → đọc chữ một thẻ nạp bất đồng bộ (thẻ "Đang đọc dở"

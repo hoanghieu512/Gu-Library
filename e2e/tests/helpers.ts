@@ -25,6 +25,23 @@ export function resumeButton(screen: Screen, name?: string): Locator {
   return screen.getByRole('button', { name: new RegExp(`^Đọc tiếp ${who}, trang \\d+ \\/ \\d+$`) }).first();
 }
 
+/** A document in the QA kho reached by labels: subject button, folder button, document button. */
+export interface DocPath { mon: RegExp; folder: RegExp; doc: string }
+
+/**
+ * Open a known QA-kho document from Home by labels only (no model). A missing first step means
+ * the kho changed — say which constant to update instead of failing on a bare locator.
+ */
+export async function openByPath(screen: Screen, path: DocPath, where: string): Promise<void> {
+  const mon = screen.getByRole('button', { name: path.mon });
+  await mon.waitFor({ timeout: 15000 }).catch(() => {
+    throw new Error(`kho QA thiếu tài liệu mẫu ${path.doc} — sửa hằng trong ${where}`);
+  });
+  await mon.tap();
+  await screen.getByRole('button', { name: path.folder }).tap();
+  await screen.getByRole('button', { name: exact(path.doc) }).tap();
+}
+
 /**
  * Pick a document in the split view's picker by labels only: the first subject, then the first
  * folder at each level until a level lists a document (1.41.1 made the rows labelled buttons).
