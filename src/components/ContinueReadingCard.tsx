@@ -45,6 +45,7 @@ export default function ContinueReadingCard({ item, color, peekColors = [] }: {
 
       <div
         onClick={(e) => { e.stopPropagation(); history.push(`/viewer/${encodeUriParam(item.uri)}`); }}
+        role="button" aria-label={`Đọc tiếp ${item.name}, trang ${item.page} / ${item.total}`}
         style={{
           position: 'relative', zIndex: 2,
           background: leatherBg(base), color: 'var(--gu-cream)', borderRadius: 16,

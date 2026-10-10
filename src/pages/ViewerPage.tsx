@@ -174,15 +174,16 @@ export default function ViewerPage() {
   useEffect(() => () => { if (raf.current != null) cancelAnimationFrame(raf.current); }, []);
 
   // Tay-nắm: B4a CỐ Ý chưa vẽ (chưa kéo được thì vẽ là hứa suông). B4c mới vẽ.
+  // The separator role lives on the grip, not the bar (v1.41.1): children of a separator are
+  // presentational, so on the bar it hid the "Tìm"/"Đổi" buttons from screen readers and e2e.
   const grip = (
-    <div aria-hidden style={{
+    <div role="separator" aria-label="Kéo để đổi tỉ lệ hai khung" style={{
       position: 'absolute', top: 3, left: '50%', transform: 'translateX(-50%)',
       width: 42, height: 4, borderRadius: 2, background: 'rgba(233,229,205,.55)',
     }} />
   );
   const dragProps = {
     onTouchStart: onDragStart, onTouchMove: onDragMove, onTouchEnd: onDragEnd, onTouchCancel: onDragEnd,
-    role: 'separator' as const, 'aria-label': 'Kéo để đổi tỉ lệ hai khung',
     style: { touchAction: 'none' as const },
   };
   const ready = initialPage != null && baseScale != null;
