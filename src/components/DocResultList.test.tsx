@@ -13,10 +13,10 @@ function resultOf(docs: [IndexDoc, SidecarUnit[]][]) {
   return searchDocs(ix, 'hop dong').docs;
 }
 
-function renderList(docs: [IndexDoc, SidecarUnit[]][]) {
+function renderList(docs: [IndexDoc, SidecarUnit[]][], names?: Map<string, string>) {
   const onOpenPage = vi.fn();
   const onOpenAll = vi.fn();
-  const view = render(<DocResultList docs={resultOf(docs)} seq={SEQ} onOpenPage={onOpenPage} onOpenAll={onOpenAll} />);
+  const view = render(<DocResultList docs={resultOf(docs)} seq={SEQ} names={names} onOpenPage={onOpenPage} onOpenAll={onOpenAll} />);
   return { ...view, onOpenPage, onOpenAll };
 }
 
@@ -31,9 +31,9 @@ describe('DocResultList (v1.41.0)', () => {
     ]]]);
     expect(screen.getByText('3 đoạn')).toBeInTheDocument();
     expect(screen.getByText('Điều 385 · trang 21')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Mở Luật Đất đai tại trang 21' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mở Luật Đất đai (môn Đất Đai) tại trang 21' }));
     expect(onOpenPage).toHaveBeenCalledWith(DOC_A.pdfUri, 21);
-    fireEvent.click(screen.getByRole('button', { name: 'Xem cả 3 đoạn trong Luật Đất đai' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xem cả 3 đoạn trong Luật Đất đai (môn Đất Đai)' }));
     expect(onOpenAll).toHaveBeenCalledWith(DOC_A.pdfUri);
   });
 
@@ -65,8 +65,21 @@ describe('DocResultList (v1.41.0)', () => {
     ]);
     const cards = screen.getAllByRole('button', { name: /^Mở Luật DN 2020/ });
     expect(cards).toHaveLength(2);
+    // v1.41.1: the labels name the subject, so a screen reader (and agent-device) can tell them apart.
+    expect(new Set(cards.map((c) => c.getAttribute('aria-label'))).size).toBe(2);
     fireEvent.click(cards[1]);
     expect(onOpenPage).toHaveBeenCalledWith('uri://mon2/x.pdf', 3);
+  });
+
+  it('renamed document: card text and labels use the new name (v1.41.1)', () => {
+    renderList([[DOC_A, [
+      { label: '', page: 21, text: 'Hợp đồng là sự thỏa thuận.' },
+      { label: '', page: 22, text: 'Giao kết hợp đồng.' },
+      { label: '', page: 30, text: 'Hủy bỏ hợp đồng.' },
+    ]]], new Map([['uri://a.pdf', 'BLDS 2015']]));
+    expect(screen.getByText('BLDS 2015')).toBeInTheDocument();
+    expect(screen.queryByText('Luật Đất đai')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Xem cả 3 đoạn trong BLDS 2015 (môn Đất Đai)' })).toBeInTheDocument();
   });
 
   it('snippet highlights the phrase', () => {

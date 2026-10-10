@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { perfStart, perfEnd, perfCancel } from '../perf/perf';
 import { jumpGate } from '../viewer/jumpGate';
+import { mostVisiblePage, pageHold } from '../viewer/currentPage';
 
 // Worker offline (bundle, no CDN). This exact form built + ran correctly on device.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -20,6 +21,7 @@ interface Props {
 const MAX_ZOOM = 4;
 const BUFFER = 2;                 // số trang đệm mỗi phía quanh vùng nhìn (windowing)
 const GAP = 12;                   // khoảng cách giữa các trang (px)
+const DRAG_PX = 8;                // finger travel that counts as the user scrolling (a tap jitters less)
 const DEFAULT_RATIO = 1.414;      // h/w mặc định (A4 dọc) trước khi đo xong
 
 // Windowing + slot CỐ ĐỊNH chiều cao: chỉ render <Page> quanh khung nhìn (bộ nhớ có trần,
@@ -38,7 +40,8 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   const [gate] = useState(jumpGate);
   const zoomRef = useRef(baseScale);
   const prevZoom = useRef(baseScale);
-  const curPage = useRef(initialPage);
+  // The page the last jump went to, held until the user drags or zooms (v1.41.1 — see viewer/currentPage).
+  const [hold] = useState(pageHold);
   // neo lúc đổi zoom: dọc (trang + frac + vpY) + ngang (pageX page-relative + vpX)
   const pendingAnchor = useRef<{ page: number; frac: number; vpY: number; pageX: number; vpX: number } | null>(null);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
@@ -143,15 +146,15 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
 
   const goToPage = (n: number) => {
     const el = containerRef.current; if (!el || numPages === 0) return;
-    el.scrollTop = offsets[Math.max(1, Math.min(n, numPages)) - 1];
+    const page = Math.max(1, Math.min(n, numPages));
+    el.scrollTop = offsets[page - 1];
+    hold.jump(page);
   };
 
   const recompute = () => {
     const el = containerRef.current; if (!el || numPages === 0) return;
     const top = el.scrollTop, vh = el.clientHeight;
-    const center = pageAtY(offsets, numPages, top + vh / 2);
-    curPage.current = center;
-    onPageChange(center, numPages);
+    onPageChange(hold.current(mostVisiblePage(offsets, numPages, top, vh)), numPages);
     setWin([Math.max(1, pageAtY(offsets, numPages, top) - BUFFER),
             Math.min(numPages, pageAtY(offsets, numPages, top + vh) + BUFFER)]);
   };
@@ -205,6 +208,7 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (el && pendingAnchor.current) {
+      hold.release();                             // a zoom moves the page: the screen decides now
       const { page, frac, vpY, pageX, vpX } = pendingAnchor.current;
       el.scrollTop = offsets[page - 1] + frac * (offsets[page] - offsets[page - 1]) - vpY;
       // ngang: page-relative X scale theo r rồi đưa về đúng vị trí dưới ngón tay (clamp trong vùng pan)
@@ -232,6 +236,7 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
     const el = containerRef.current;
     if (!el) return;
     let pinching = false, startDist = 0, startZoom = 1, live = 1, lastTap = 0, originSet = false;
+    let touchY = 0;                // a drag past DRAG_PX releases the held page; a tap does not
     let focalVpY = 0, focalPageX = 0, focalVpX = 0;
     const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
     const mid = (t: TouchList) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
@@ -246,12 +251,14 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
     };
 
     const onStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) touchY = e.touches[0].clientY;
       if (e.touches.length === 2) {
         pinching = true; originSet = false;
         startDist = dist(e.touches); startZoom = zoomRef.current; live = zoomRef.current;
       }
     };
     const onMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 || Math.abs(e.touches[0].clientY - touchY) > DRAG_PX) hold.release();
       if (!pinching || e.touches.length !== 2) return;
       e.preventDefault(); // chặn cuộn/zoom-trình-duyệt trong lúc pinch
       live = Math.max(1, Math.min(MAX_ZOOM, startZoom * (dist(e.touches) / startDist)));

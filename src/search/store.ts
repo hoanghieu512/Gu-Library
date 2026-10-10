@@ -10,7 +10,7 @@
 import { Saf } from '../plugins/saf';
 import type { SafEntry } from '../plugins/saf';
 import { getKhoSnapshot } from '../storage/khoSnapshot';
-import type { KhoFolder } from '../storage/khoSnapshot';
+import type { KhoFolder, KhoSnapshot } from '../storage/khoSnapshot';
 import { indexDoc, mergeShards } from './invertedIndex';
 import type { DocShard, IndexDoc, SearchIndex, Sidecar } from './invertedIndex';
 
@@ -104,6 +104,27 @@ function collect(f: KhoFolder, mon: string, out: Wanted[]): void {
   for (const c of f.children) collect(c, mon, out);
 }
 
+/**
+ * pdfUri → the name a document was renamed to (`.display.json`), for every renamed document in every
+ * subject. The index keeps file names (its stamps only follow the sidecars, so a rename would never
+ * reach it); the Search cards look names up here instead, fresh on every refresh (v1.41.1).
+ */
+export function displayNameMap(snap: Pick<KhoSnapshot, 'mons' | 'monFolders'>): Map<string, string> {
+  const out = new Map<string, string>();
+  const walk = (f: KhoFolder) => {
+    for (const d of f.listing.documents) {
+      const n = f.displayNames.get(d.fileBase ?? d.name);
+      if (n) out.set(d.pdfUri, n);
+    }
+    for (const c of f.children) walk(c);
+  };
+  for (const m of snap.mons) {
+    const f = snap.monFolders.get(m.uri);
+    if (f) walk(f);
+  }
+  return out;
+}
+
 export interface RefreshProgress {
   done: number;
   total: number;
@@ -114,6 +135,7 @@ export interface RefreshResult {
   changed: boolean;        // false = kho y nguyên → KHÔNG dựng lại gì, index đang giữ vẫn đúng
   index?: SearchIndex;     // chỉ có khi changed
   stamps?: Map<string, string>;
+  names: Map<string, string>;  // displayNameMap of the kho as read now — on every path, changed or not
   read: number;            // số tài liệu phải đọc lại lần này
   reused: number;
   total: number;
@@ -137,6 +159,7 @@ export async function refreshIndex(
 ): Promise<RefreshResult> {
   const t0 = Date.now();
   const snap = await getKhoSnapshot(true);
+  const names = displayNameMap(snap);
   const wanted: Wanted[] = [];
   for (const m of snap.mons) {
     const f = snap.monFolders.get(m.uri);
@@ -148,7 +171,7 @@ export async function refreshIndex(
   // Đo được: bỏ qua được lối này thì đỉnh bộ nhớ vọt 304 → 568 MB vì hai bản index cùng tồn tại.
   if (known && known.size === wanted.length
       && wanted.every((w) => w.stamp !== '' && known.get(w.jsonUri) === w.stamp)) {
-    return { changed: false, read: 0, reused: wanted.length, total: wanted.length, ms: Date.now() - t0 };
+    return { changed: false, names, read: 0, reused: wanted.length, total: wanted.length, ms: Date.now() - t0 };
   }
 
   const stored = await readStored();
@@ -183,6 +206,7 @@ export async function refreshIndex(
     changed: true,
     index: mergeShards(shards),
     stamps: new Map(shards.map((sh) => [sh.jsonUri, sh.stamp])),
+    names,
     read, reused, total: wanted.length, ms: Date.now() - t0,
   };
 }

@@ -1,22 +1,65 @@
 // Shared steps for the smoke tests. Rule: the agent only does fuzzy navigation; typing, tapping and
-// checks go through exact locators (no model call, no judgement). One exception: the split test
-// checks the divider by vision, because its buttons are not in the accessibility tree.
+// every check go through exact locators (no model call, no judgement).
 import { expect } from 'e2e';
 import type { Agent, Locator, Screen } from 'e2e';
 import { parsePageFooter, uniqueCardFrom } from '../lib/parse.ts';
 import { settleOn } from '../lib/settle.ts';
 import type { Card } from '../lib/parse.ts';
 
-const CARD_LABEL = /^(Mở .+ tại trang \d+|Xem cả .+ đoạn trong .+)$/;
+const CARD_LABEL = /^(Mở .+ \(môn [^()]+\) tại trang \d+|Xem cả .+ đoạn trong .+ \(môn [^()]+\))$/;
+
+const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Exact, anchored match for a label (locator name matching is otherwise loose). */
-export const exact = (s: string): RegExp => new RegExp(`^${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+export const exact = (s: string): RegExp => new RegExp(`^${esc(s)}$`);
 
 /** Numbers as the app renders them ("1.489"). */
 export const vi = (n: number): string => n.toLocaleString('vi-VN');
 
-export const xemCaLabel = (c: Card): string => `Xem cả ${vi(c.count)} đoạn trong ${c.name}`;
-export const openAtLabel = (c: Card): string => `Mở ${c.name} tại trang ${c.page}`;
+export const xemCaLabel = (c: Card): string => `Xem cả ${vi(c.count)} đoạn trong ${c.name} (môn ${c.mon})`;
+export const openAtLabel = (c: Card): string => `Mở ${c.name} (môn ${c.mon}) tại trang ${c.page}`;
+
+/** The Home "Đang đọc dở" card (a button since 1.41.1: "Đọc tiếp X, trang k / T"), optionally for X. */
+export function resumeButton(screen: Screen, name?: string): Locator {
+  const who = name === undefined ? '.+' : esc(name);
+  return screen.getByRole('button', { name: new RegExp(`^Đọc tiếp ${who}, trang \\d+ \\/ \\d+$`) }).first();
+}
+
+/** A document in the QA kho reached by labels: subject button, folder button, document button. */
+export interface DocPath { mon: RegExp; folder: RegExp; doc: string }
+
+/**
+ * Open a known QA-kho document from Home by labels only (no model). A missing first step means
+ * the kho changed — say which constant to update instead of failing on a bare locator.
+ */
+export async function openByPath(screen: Screen, path: DocPath, where: string): Promise<void> {
+  const mon = screen.getByRole('button', { name: path.mon });
+  await mon.waitFor({ timeout: 15000 }).catch(() => {
+    throw new Error(`kho QA thiếu tài liệu mẫu ${path.doc} — sửa hằng trong ${where}`);
+  });
+  await mon.tap();
+  await screen.getByRole('button', { name: path.folder }).tap();
+  await screen.getByRole('button', { name: exact(path.doc) }).tap();
+}
+
+/**
+ * Pick a document in the split view's picker by labels only: the first subject, then the first
+ * folder at each level until a level lists a document (1.41.1 made the rows labelled buttons).
+ */
+export async function pickInPicker(screen: Screen): Promise<void> {
+  const up = screen.getByRole('button', { name: exact('Lên trên') });
+  await screen.getByRole('button', { name: /^Mở môn [^()]+$/ }).first().tap();
+  for (let level = 0; level < 6; level++) {
+    await expect(up).toBeVisible();   // the level's list is on screen before it is read
+    const doc = screen.getByRole('button', { name: / ở khung dưới$/ }).first();
+    if (await doc.isVisible()) { await doc.tap(); return; }
+    const folder = screen.getByRole('button', { name: /^Mở thư mục / }).first();
+    if (!(await folder.isVisible())) throw new Error('bộ chọn: thư mục không có tài liệu nào');
+    await folder.tap();
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  throw new Error('bộ chọn: quá 6 tầng thư mục mà chưa gặp tài liệu');
+}
 
 /**
  * Tap a plain text node (a title, a name on a card) at the centre of its bounds. A locator tap
@@ -70,7 +113,11 @@ export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 
     await new Promise((r) => setTimeout(r, 600));
   }
   const tab = screen.getByRole('tab', { name: exact(name) });
-  if (!(await tab.isVisible())) {
+  // Right after app.open() the WebView's first accessibility snapshot is often empty (lazy tree):
+  // wait for the tab bar before handing the job to the agent, which costs model calls (seen on the
+  // 1.41.1 slide test's cold run: 2 calls just to "find" a tab bar that was loading).
+  const shown = await tab.waitFor({ timeout: 10000 }).then(() => true, () => false);
+  if (!shown) {
     await agent.act('Quay về màn có thanh tab dưới cùng (đóng bảng đang mở, thoát chia đôi, quay lại)');
   }
   await tab.tap();

@@ -21,9 +21,13 @@ export default function DocPicker({ onPick }: { onPick: (uri: string) => void })
   }
 
   const cur = path[path.length - 1] ?? null;
+  // Rows are <button>s (v1.41.1): a screen reader, and the e2e suite, can tell a subject from a
+  // folder from a document only by role + label. The reset keeps them looking like the old rows.
   const rowStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', width: '100%',
+    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none',
     borderBottom: '1px solid var(--gu-paper-2)', cursor: 'pointer',
+    textAlign: 'left', font: 'inherit', color: 'inherit',
   };
   const displayOf = (folder: KhoFolder, fileBase: string) => folder.displayNames.get(fileBase) ?? fileBase;
 
@@ -49,11 +53,11 @@ export default function DocPicker({ onPick }: { onPick: (uri: string) => void })
         const folder = snap.monFolders.get(m.uri);
         if (!folder) return null;
         return (
-          <div key={m.uri} style={rowStyle} onClick={() => setPath([folder])}>
+          <button type="button" key={m.uri} style={rowStyle} onClick={() => setPath([folder])} aria-label={`Mở môn ${m.name}`}>
             {m.name === UNFILED ? <UnfiledSwatch /> : <MonSwatch name={m.name} color={m.meta.color} />}
             <span style={{ flex: 1, fontFamily: 'var(--gu-serif)', fontWeight: 700, color: 'var(--gu-brown-deep)' }}>{m.name}</span>
             <IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)' }} />
-          </div>
+          </button>
         );
       })}
 
@@ -61,17 +65,18 @@ export default function DocPicker({ onPick }: { onPick: (uri: string) => void })
       {cur && (
         <>
           {cur.children.map((c) => (
-            <div key={c.uri} style={rowStyle} onClick={() => setPath([...path, c])}>
+            <button type="button" key={c.uri} style={rowStyle} onClick={() => setPath([...path, c])} aria-label={`Mở thư mục ${c.name}`}>
               <IonIcon icon={folderOutline} style={{ fontSize: 22, color: 'var(--gu-brown)' }} />
               <span style={{ flex: 1, color: 'var(--gu-brown-deep)' }}>{c.name}</span>
               <IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)' }} />
-            </div>
+            </button>
           ))}
           {cur.listing.documents.map((d) => (
-            <div key={d.pdfUri} style={rowStyle} onClick={() => onPick(d.pdfUri)}>
+            <button type="button" key={d.pdfUri} style={rowStyle} onClick={() => onPick(d.pdfUri)}
+              aria-label={`Mở ${displayOf(cur, d.fileBase ?? d.name)} ở khung dưới`}>
               <IonIcon icon={documentTextOutline} style={{ fontSize: 22, color: 'var(--gu-grey)' }} />
               <span style={{ flex: 1, color: 'var(--gu-brown-deep)' }}>{displayOf(cur, d.fileBase ?? d.name)}</span>
-            </div>
+            </button>
           ))}
           {cur.children.length === 0 && cur.listing.documents.length === 0 && (
             <p style={{ padding: 16, color: 'var(--gu-grey)', fontSize: 13 }}>Thư mục trống.</p>

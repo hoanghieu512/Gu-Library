@@ -294,7 +294,9 @@ function eachMatch(ix: SearchIndex, query: string, visit: (id: number, pos: numb
     if (!l) return;                             // a word the kho never has → nothing can match
     lists.push(l);
   }
-  const mark = new Uint8Array(ix.units.length);
+  // Uint16: `mark` counts whole words per unit, and a pasted paragraph can hold 256+ distinct words —
+  // a Uint8 count wrapped to 0 there and nothing matched (v1.41.1).
+  const mark = new Uint16Array(ix.units.length);
   if (lists.length === 0) {
     // One word: every unit holding a word that starts with it, each once — capped at PREFIX_CAP
     // words, which only bites a one- or two-letter prefix still being typed.
@@ -370,7 +372,11 @@ export function searchDocs(ix: SearchIndex, query: string): DocSearchResult {
   });
   if (total === 0) return { total: 0, docs: [] };
 
-  const avgdl = ix.units.length / ix.docs.length;
+  // Only documents with text: an image-only one (0 units) never matches, and counting it pulled avgdl
+  // down, which over-penalised long documents — enough to swap two cards (v1.41.1).
+  let withText = 0;
+  for (const n of dl) if (n > 0) withText++;
+  const avgdl = ix.units.length / Math.max(1, withText);
   const matched = parseQuery(query).seq.length;
   const docs: { d: number; hit: DocHit }[] = [];
   for (let d = 0; d < ix.docs.length; d++) {

@@ -4,6 +4,7 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonSpinn
 import { useHistory } from 'react-router-dom';
 import { searchOutline, closeCircle } from 'ionicons/icons';
 import { loadIndex, refreshIndex } from '../search/store';
+import { useDisplayNames } from '../search/useDisplayNames';
 import { searchDocs, parseQuery } from '../search/invertedIndex';
 import type { DocSearchResult, SearchIndex } from '../search/invertedIndex';
 import { viewerUrl } from '../nav/viewerUrl';
@@ -20,7 +21,7 @@ const PAD = {
   '--padding-top': '12px', '--padding-bottom': '16px',
 } as CSSProperties;
 
-const DEBOUNCE_MS = 130;   // đo được: tra 1–3 ms, nên chờ chừng này chỉ để gom phím, không phải để kịp tính
+const DEBOUNCE_MS = 130;   // batches keystrokes, not waiting on the search — UBS1 v1.41.0: whole words ≤ 37 ms, half-typed "th" 132–144 ms
 const NO_RESULT: DocSearchResult = { total: 0, docs: [] };
 
 type Phase = 'loading' | 'building' | 'ready';
@@ -37,6 +38,9 @@ export default function SearchPage() {
   const [ix, setIx] = useState<SearchIndex | null>(null);
   // Dấu vân tay của lượt dựng gần nhất — để làm mới đối chiếu mà khỏi đọc lại IndexedDB.
   const stamps = useRef<Map<string, string> | null>(null);
+  // Renamed documents (pdfUri → name), fresh from every refresh and every rename (khoChanged);
+  // cards fall back to the file name.
+  const [names, setNames] = useDisplayNames();
   const alive = useRef(true);
 
   useEffect(() => {
@@ -52,6 +56,7 @@ export default function SearchPage() {
         setRefreshing(true);
         try {
           const r = await refreshIndex(stamps.current ?? undefined);
+          if (alive.current) setNames(r.names);
           if (alive.current && r.changed && r.index) { setIx(r.index); stamps.current = r.stamps ?? null; }
         } catch { /* giữ index cũ — tìm trên bản cũ vẫn hơn không tìm được */ }
         if (alive.current) setRefreshing(false);
@@ -61,13 +66,14 @@ export default function SearchPage() {
         try {
           const r = await refreshIndex(undefined, (p) => alive.current && setProgress(p));
           if (!alive.current) return;
+          setNames(r.names);
           if (r.index) { setIx(r.index); stamps.current = r.stamps ?? null; }
         } catch { /* để ready với index rỗng → hiện "chưa tra được", không treo màn */ }
         if (alive.current) setPhase('ready');
       }
     })();
     return () => { alive.current = false; };
-  }, []);
+  }, [setNames]); // a useState setter — stable, so this still runs once on mount
 
   useEffect(() => {
     // Chưa có index thì không đặt state ở đây (đặt đồng bộ trong effect gây vẽ lại dây chuyền);
@@ -152,7 +158,7 @@ export default function SearchPage() {
             )}
 
             {/* Keyed by the query: a new query starts again at the first page of cards. */}
-            <DocResultList key={q} docs={result.docs} seq={seq} onOpenPage={openPage} onOpenAll={openAll} />
+            <DocResultList key={q} docs={result.docs} seq={seq} names={names} onOpenPage={openPage} onOpenAll={openAll} />
           </>
         )}
       </IonContent>

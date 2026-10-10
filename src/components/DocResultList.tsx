@@ -7,9 +7,10 @@ const PAGE = 20;
 
 // Cards in rank order, PAGE at a time. The caller keys this by the query so a new query starts
 // back at PAGE without resetting state inside an effect.
-export default function DocResultList({ docs, seq, onOpenPage, onOpenAll }: {
+export default function DocResultList({ docs, seq, names, onOpenPage, onOpenAll }: {
   docs: DocHit[];
   seq: string[];
+  names?: Map<string, string>;  // pdfUri → renamed name (refreshIndex); missing → file name
   onOpenPage: (pdfUri: string, page: number) => void;
   onOpenAll: (pdfUri: string) => void;
 }) {
@@ -18,7 +19,7 @@ export default function DocResultList({ docs, seq, onOpenPage, onOpenAll }: {
     <>
       {docs.slice(0, shown).map((h) => (
         <DocResultCard
-          key={h.doc.pdfUri} hit={h} seq={seq}
+          key={h.doc.pdfUri} hit={h} seq={seq} name={names?.get(h.doc.pdfUri) ?? h.doc.name}
           onOpenPage={(page) => onOpenPage(h.doc.pdfUri, page)}
           onOpenAll={() => onOpenAll(h.doc.pdfUri)}
         />

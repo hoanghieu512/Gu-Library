@@ -1,5 +1,5 @@
 import { test, expect } from 'e2e';
-import { exact, footer, footerAt, gotoPage, openAtLabel, readUniqueCard, revealAboveTabBar, search, tapCentre, toTab, vi, xemCaLabel } from './helpers.ts';
+import { exact, footer, footerAt, gotoPage, openAtLabel, readUniqueCard, resumeButton, revealAboveTabBar, search, toTab, vi, xemCaLabel } from './helpers.ts';
 
 // Any query with results across several documents; no letter "u" (Gboard on UBS1 drops it).
 const QUERY = 'hop dong';
@@ -29,8 +29,9 @@ test('Xem cả into a document already open in another tab still opens the sheet
   await gotoPage(screen, f.page < f.total ? f.page + 1 : f.page - 1);
   await screen.getByRole('button', { name: exact('back') }).tap();
   await toTab(screen, agent, 'Trang chủ');
-  await expect(screen.getByText(exact(card.name)).first()).toBeVisible();
-  await tapCentre(screen, screen.getByText(exact(card.name)).first());
+  const resume = resumeButton(screen, card.name);
+  await expect(resume).toBeVisible();
+  await resume.tap();
   await footer(screen);
   // Straight to the tab, NOT toTab: its back loop would close X's Viewer, and the case under test
   // is X still alive in the Home tab when the Search tab links to it.

@@ -501,3 +501,26 @@ describe('searchDocs (v1.41.0)', () => {
     expect(searchDocs(fixture(), '...')).toEqual({ total: 0, docs: [] });
   });
 });
+
+describe('v1.41.1 — leftovers of v1.41.0', () => {
+  it('a query of 300 distinct words present in one unit still matches (no Uint8 wrap at 256)', () => {
+    const words = Array.from({ length: 300 }, (_, i) => `tu${i}`);
+    const ix = emptyIndex();
+    addDoc(ix, { pdfUri: 'u:a', name: 'A', mon: 'M' }, { units: [{ label: '', page: 1, text: words.join(' ') }] });
+    expect(search(ix, words.join(' '))).toHaveLength(1);
+  });
+
+  it('an image-only document (0 units) does not change scores or order', () => {
+    const a = { pdfUri: 'u:a', name: 'A', mon: 'M' }, b = { pdfUri: 'u:b', name: 'B', mon: 'M' };
+    const img = { pdfUri: 'u:img', name: 'Scan', mon: 'M' };
+    const long = Array.from({ length: 10 }, (_, i) => ({ label: '', page: i + 1, text: i < 3 ? 'hợp đồng' : 'khác' }));
+    const short = [{ label: '', page: 1, text: 'hợp đồng' }, { label: '', page: 2, text: 'khác' }];
+    const build = (withImg: boolean) => {
+      const ix = emptyIndex();
+      addDoc(ix, a, { units: long }); addDoc(ix, b, { units: short });
+      if (withImg) addDoc(ix, img, { units: [{ label: '', page: 1, text: '' }] });
+      return searchDocs(ix, 'hop dong').docs.map((d) => [d.doc.name, d.score]);
+    };
+    expect(build(true)).toEqual(build(false));
+  });
+});
