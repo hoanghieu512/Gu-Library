@@ -1,16 +1,16 @@
 # Bộ test khói e2e — Gú's Library
 
-6 test chạy trên **máy Android thật** (UBS1, kho QA), lái app bằng
+7 test chạy trên **máy Android thật** (UBS1, kho QA), lái app bằng
 [tester-army/e2e](https://github.com/tester-army/e2e) + agent-device. Model AI (Haiku 5.5 qua
-OpenRouter) chỉ lo phần điều hướng mơ hồ; gõ, bấm và phép kiểm đi bằng nhãn chính xác, không nhờ
-model phán — **trừ một bước** ở test chia đôi: nút trên thanh chia không có trong cây trợ năng, nên
-thanh chia được kiểm bằng ảnh (`agent.assert` với `vision: 'only'`).
+OpenRouter) chỉ lo phần điều hướng mơ hồ (mở "một tài liệu bất kỳ" ở test đọc tiếp, quay về thanh
+tab khi lạc); gõ, bấm và **mọi phép kiểm** đều đi bằng nhãn chính xác, không nhờ model phán. Từ
+app 1.41.1 test chia đôi và test slide không gọi model lần nào.
 
 | File | Test |
 |---|---|
 | `tests/search.e2e.ts` | Xem cả → sheet đúng số + dòng đầu · Xem cả vào tài liệu đang mở ở tab khác · bấm dòng sheet trước khi PDF sẵn sàng → đúng trang · thẻ dưới vẫn bấm được khi đã cất bàn phím |
-| `tests/reading.e2e.ts` | Nhảy trang → rời đi → "Đang đọc dở" mở lại đúng trang |
-| `tests/split.e2e.ts` | Chia đôi → chọn tài liệu dưới → thoát → trang trên giữ nguyên |
+| `tests/reading.e2e.ts` | Nhảy trang → rời đi → "Đang đọc dở" mở lại đúng trang · slide (trang thấp hơn nửa màn hình) đọc tiếp 3 vòng vẫn đúng trang 3 |
+| `tests/split.e2e.ts` | Chia đôi → chọn tài liệu dưới → "Tìm"/"Đổi" trên thanh chia → Đổi → chọn lại → thoát → trang trên giữ nguyên |
 
 Spec: `Docs/superpowers/specs/2026-10-07-e2e-smoke-suite-design.md` · số đo và bẫy:
 `Docs/perf/2026-10-07-spike-e2e-agent-test.md`.
@@ -48,10 +48,10 @@ cách sửa, và in
   Chỉ một `--` thì npm nuốt cờ làm cấu hình của chính nó (`npm warn invalid config cache=false`) và
   lượt chạy vẫn dùng cache. Từ `e2e/`: `npm --prefix e2e test -- --no-cache`.
 
-Số đo (UBS1, v1.41.0): **Haiku 5.5 (từ 08/10)** phát lại từ cache 6/6 · ~2 ph 8 s · ~$0,0003
-(chỉ còn bước assert bằng ảnh của test chia đôi gọi model; giá 5.5 rẻ ~10× 4.5) · lượt lạnh
-~$0,002–0,003 nhưng hiện 4/6, xem "Bẫy đã biết". Haiku 4.5 trước đó: lạnh ~3 ph 14 s, ~$0,036 ·
-cache ~2 ph 10 s, ~$0,0034.
+Số đo trên app v1.41.0 (6 test, UBS1): **Haiku 5.5 (từ 08/10)** phát lại từ cache ~2 ph 8 s ·
+~$0,0003 (chỉ còn bước assert bằng ảnh của test chia đôi gọi model; giá 5.5 rẻ ~10× 4.5). Haiku 4.5
+trước đó: lạnh ~3 ph 14 s, ~$0,036 · cache ~2 ph 10 s, ~$0,0034. Số của 1.41.1 (7 test, không còn
+assert bằng ảnh): ops doc §8.1.
 
 ## Đọc kết quả
 
@@ -66,10 +66,18 @@ cache ~2 ph 10 s, ~$0,0034.
 
 ## Quy ước cho nút mới trong app
 
-Test bấm và kiểm theo **`aria-label` giàu nghĩa** ("Xem cả 200 đoạn trong X", "Nhảy tới trang 24",
-"Thoát chia đôi"). Nút mới nên có nhãn nói rõ việc nó làm + đối tượng, đừng chỉ "Mở"/"Xem". Tránh
-đặt nút bên trong phần tử `role="separator"` — con của nó bị ẩn khỏi cây trợ năng (thanh chia đôi
-hiện đang dính lỗi này, nên test chưa bấm được "Tìm"/"Đổi" trên thanh).
+Test bấm và kiểm theo **`aria-label` giàu nghĩa**. Nhãn đang dùng (app 1.41.1):
+
+- thẻ kết quả: `Mở X (môn M) tại trang P` · `Xem cả N đoạn trong X (môn M)` — có tên môn để một
+  file nằm ở hai môn không ra hai nhãn trùng nhau; X là tên đã đổi nếu có;
+- thẻ "Đang đọc dở": `Đọc tiếp X, trang k / T` (là nút, nên chữ bên trong không còn là node riêng);
+- bộ chọn khi chia đôi: `Mở môn M` · `Mở thư mục F` · `Mở X ở khung dưới` · `Lên trên`;
+- thanh chia: `Tìm trong tài liệu tra cứu` · `Đổi tài liệu tra cứu`; dòng sheet `Nhảy tới trang P`;
+  `Chia đôi màn hình` / `Thoát chia đôi`.
+
+Nút mới nên có nhãn nói rõ việc nó làm + đối tượng, đừng chỉ "Mở"/"Xem". Đừng đặt nút bên trong
+phần tử `role="separator"` — con của nó bị ẩn khỏi cây trợ năng (thanh chia đôi dính lỗi này tới
+1.41.0; từ 1.41.1 `separator` chỉ còn trên tay-nắm).
 
 ## Khám phá (dùng tay, CHƯA vào quy trình phát hành)
 
@@ -131,20 +139,13 @@ hạn lượt).
   cần, giữ ~2,5 s rồi đọc lại (cú nhảy hỏng có thể tới nơi rồi bị kéo về trang đã lưu).
 - **`toTab` bấm back tới gốc tab** → đừng dùng nó khi cần một Viewer còn sống ở tab kia (test "tài
   liệu đang mở ở tab khác" bấm thẳng tab).
-- **Bước chọn tài liệu của test chia đôi chập chờn khi chạy LẠNH** (08/10: 6 lượt lạnh chỉ có
-  test này với Haiku 4.5, có hay không có luật chỉ-đọc đều 1/3 đạt; Haiku 5.5 cũng nhầm). Dòng trong
-  bộ chọn (`DocPicker`) là `div` không role → agent nhầm tên môn là tài liệu, chạm rồi tự báo đạt.
-  Lượt thường phát lại bản ghi tốt từ cache nên ổn; sau `act` có locator kiểm bộ chọn đã bị gỡ
-  (không còn tiêu đề "Chọn tài liệu để tra cứu" lẫn nút "Lên trên" — trong một môn, nút này thay
-  chỗ tiêu đề), nên lượt hỏng trượt ngay với lý do rõ. Engine chỉ giữ bản ghi khi một phép kiểm SAU nó đạt, test trượt thì bản
-  ghi bị xoá → nếu bước này mất cache, chạy lại tới khi ra một lượt đạt. Gốc rễ: a11y của `DocPicker`
-  (backlog app).
-- **Lượt lạnh với Haiku 5.5: test đọc tiếp trượt vì LỖI THẬT của app.** Agent 5.5 luôn mở
-  "Hình sự chung / Slide / 0. GIỚI THIỆU MÔN HỌC" (slide 4:3, 8 trang). Với trang thấp cỡ nửa khung
-  nhìn, mỗi vòng rời đi rồi mở lại **trôi thêm một trang** (3 → 4 → 5 → 6, tái hiện bằng locator
-  08/10): `PdfView` cuộn mép trên trang p lên đầu khung nhìn nhưng lưu trang ở GIỮA khung nhìn. Bản
-  ghi cache (Haiku 4.5) mở tài liệu dọc nên lượt thường vẫn đạt; nếu cache của test này bị xoá,
-  test sẽ đỏ cho tới khi app sửa lỗi — đó là đúng.
+- **Trước 1.41.1, cả hai chuyện sau làm lượt LẠNH đỏ** (ghi lại để hiểu lịch sử cache): bước chọn
+  tài liệu của test chia đôi do agent làm chỉ đạt ~1/3 (dòng của `DocPicker` là `div` không role —
+  agent nhầm tên môn là tài liệu rồi tự báo đạt); và agent của test đọc tiếp mở slide "0. GIỚI THIỆU
+  MÔN HỌC", nơi app 1.41.0 trôi một trang mỗi vòng đọc tiếp. 1.41.1 sửa cả hai: test chia đôi chọn
+  bằng nhãn, lỗi trôi trang được sửa và có test slide riêng.
+- **Engine chỉ giữ bản ghi `agent.act` khi một phép kiểm SAU nó đạt**; test trượt thì bản ghi bị xoá
+  và lượt sau chạy lạnh. Khoá cache theo câu lệnh + tham số, KHÔNG theo `system` của agent hay model.
 - **`textContent()` không chờ** node xuất hiện → đọc chữ một thẻ nạp bất đồng bộ (thẻ "Đang đọc dở"
   ở Trang chủ) phải `expect(...).toBeVisible()` trước.
 - **Telemetry** tắt sẵn (`E2E_TELEMETRY_DISABLED=1` trong script `test`/`explore`).
