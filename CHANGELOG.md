@@ -4,8 +4,8 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 
 ## [1.41.1] — 2026-10-10 — Đọc tiếp không còn trôi trang (slide) · trợ năng · lỗi nhỏ của 1.41.0
 ### Fixed
-- **Slide trôi trang khi đọc tiếp.** Với tài liệu có trang thấp hơn nửa màn hình (slide 4:3, 16:9), mỗi lần rời đi rồi mở lại từ "Đang đọc dở" tài liệu nhảy thêm một trang (UBS1: 3 → 4 → 5 → 6). Nguyên nhân: Viewer đặt mép trên trang ở đầu màn hình nhưng lại lấy trang nằm ở GIỮA màn hình làm trang đang đọc và lưu nó. Nay trang đang đọc là **trang chiếm nhiều màn hình nhất** (bằng nhau thì trang trên), và sau khi nhảy/mở lại thì giữ đúng trang đó tới khi cuộn tay. Tài liệu khổ dọc (A4) đọc như cũ. Máy dính lỗi: màn dài như UBS1 và S20 FE; màn vuông dGen1 không dính.
-- **Nhảy tới trang cuối** (Tới trang, dòng trong sheet tìm-trong-tài-liệu) giờ ghi đúng số trang đó ở chân trang, kể cả khi trang cuối không cuộn lên được đầu màn hình.
+- **Slide trôi trang khi đọc tiếp.** Với tài liệu có trang thấp hơn nửa màn hình (slide 4:3, 16:9), mỗi lần rời đi rồi mở lại từ "Đang đọc dở" tài liệu nhảy thêm một trang (UBS1: 3 → 4 → 5 → 6). Nguyên nhân: Viewer đặt mép trên trang ở đầu màn hình nhưng lại lấy trang nằm ở GIỮA màn hình làm trang đang đọc và lưu nó. Nay trang đang đọc là **trang chiếm nhiều màn hình nhất** (bằng nhau thì trang trên), và sau khi nhảy/mở lại thì giữ đúng trang đó tới khi cuộn tay. Tài liệu khổ dọc (A4) đọc như cũ. Máy dính lỗi: màn dài như UBS1 (đo được) và — theo ước tính kích thước màn — S20 FE; màn vuông dGen1 không dính.
+- **Nhảy tới trang cuối** (Tới trang, dòng trong sheet tìm-trong-tài-liệu) giờ ghi đúng số trang đó ở chân trang, kể cả khi trang cuối không cuộn lên được đầu màn hình, và kể cả khi bấm "Nhảy" lúc bàn phím còn mở (bản thử đầu của 1.41.1 ra "7 / 8" ở ca này — bắt được khi kiểm trên máy).
 - **Dán một đoạn ≥ 256 chữ khác nhau** vào ô tìm không còn ra rỗng.
 - **Xếp hạng màn Tìm** không còn bị tài liệu ảnh chưa OCR làm lệch (độ dài trung bình tính cả tài liệu không có chữ → tài liệu dày bị phạt quá tay, đủ để đảo hai thẻ).
 ### Changed
@@ -13,7 +13,7 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 - **Trợ năng** (trình đọc màn hình): dòng môn / thư mục / tài liệu trong bộ chọn khi chia đôi thành nút có nhãn ("Mở môn …", "Mở thư mục …", "Mở … ở khung dưới"); nút "Tìm"/"Đổi" trên thanh chia đôi hết bị giấu; thẻ "Đang đọc dở" thành nút "Đọc tiếp …, trang k / T"; nhãn thẻ kết quả có tên môn nên một file nằm ở hai môn không ra hai nhãn giống hệt. Nhìn bằng mắt không đổi gì.
 ### Notes
 - Không đổi chỉ mục, không đổi dữ liệu đọc dở → **không máy nào phải dựng lại chỉ mục** vì bản này. (Máy đi từ 1.40.1 lên vẫn dựng lại một lần do 1.41.0.)
-- Bộ e2e: 7 test; test chia đôi và test slide mới không gọi model.
+- Bộ e2e: 8 test (thêm test slide đọc tiếp và test nhảy trang cuối khi bàn phím mở), tất cả đi bằng nhãn — không gọi model, lượt lạnh cũng $0.
 
 ## [1.41.0] — 2026-10-06 — Tìm kiếm: gom kết quả theo tài liệu (hết lệch theo thứ tự môn)
 ### Changed

@@ -1,9 +1,9 @@
 # Bộ test khói e2e — Gú's Library
 
-7 test chạy trên **máy Android thật** (UBS1, kho QA), lái app bằng
+8 test chạy trên **máy Android thật** (UBS1, kho QA), lái app bằng
 [tester-army/e2e](https://github.com/tester-army/e2e) + agent-device. Model AI (Haiku 5.5 qua
 OpenRouter) giờ chỉ còn là **lưới dự phòng** trong `toTab` (quay về thanh tab khi lạc); gõ, bấm và
-**mọi phép kiểm** đều đi bằng nhãn chính xác, không nhờ model phán. Từ app 1.41.1 cả 7 test chạy
+**mọi phép kiểm** đều đi bằng nhãn chính xác, không nhờ model phán. Từ app 1.41.1 cả 8 test chạy
 không gọi model lần nào — lượt lạnh và lượt có cache như nhau, $0. Hai test đọc tiếp mở tài liệu
 mẫu cố định của kho QA theo nhãn (`openByPath`, hằng `PORTRAIT`/`SLIDE` trong `tests/reading.e2e.ts`
 — kho QA đổi thì sửa hằng).
@@ -11,7 +11,7 @@ mẫu cố định của kho QA theo nhãn (`openByPath`, hằng `PORTRAIT`/`SLI
 | File | Test |
 |---|---|
 | `tests/search.e2e.ts` | Xem cả → sheet đúng số + dòng đầu · Xem cả vào tài liệu đang mở ở tab khác · bấm dòng sheet trước khi PDF sẵn sàng → đúng trang · thẻ dưới vẫn bấm được khi đã cất bàn phím |
-| `tests/reading.e2e.ts` | Nhảy trang → rời đi → "Đang đọc dở" mở lại đúng trang · slide (trang thấp hơn nửa màn hình) đọc tiếp 3 vòng vẫn đúng trang 3 |
+| `tests/reading.e2e.ts` | Nhảy trang → rời đi → "Đang đọc dở" mở lại đúng trang · slide (trang thấp hơn nửa màn hình) đọc tiếp 3 vòng vẫn đúng trang 3 · nhảy tới trang cuối khi bàn phím còn mở → chân trang ghi trang cuối, rồi trang áp chót → đọc tiếp đúng trang |
 | `tests/split.e2e.ts` | Chia đôi → chọn tài liệu dưới → "Tìm"/"Đổi" trên thanh chia → Đổi → chọn lại → thoát → trang trên giữ nguyên |
 
 Spec: `Docs/superpowers/specs/2026-10-07-e2e-smoke-suite-design.md` · số đo và bẫy:
@@ -52,8 +52,8 @@ cách sửa, và in
 
 Số đo trên app v1.41.0 (6 test, UBS1): **Haiku 5.5 (từ 08/10)** phát lại từ cache ~2 ph 8 s ·
 ~$0,0003 (chỉ còn bước assert bằng ảnh của test chia đôi gọi model; giá 5.5 rẻ ~10× 4.5). Haiku 4.5
-trước đó: lạnh ~3 ph 14 s, ~$0,036 · cache ~2 ph 10 s, ~$0,0034. Số của 1.41.1 (7 test, không còn
-assert bằng ảnh): ops doc §8.1.
+trước đó: lạnh ~3 ph 14 s, ~$0,036 · cache ~2 ph 10 s, ~$0,0034. Trên app v1.41.1 (8 test, không
+gọi model): lạnh 3 ph 14 s · có cache 3 ph 12 s · $0 — chi tiết ops doc §8.1.
 
 ## Đọc kết quả
 
