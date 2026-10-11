@@ -27,6 +27,13 @@ describe('WhatsNewSheet — "Có gì mới" (v1.42.0)', () => {
     expect(screen.getByText('Cải thiện')).toBeInTheDocument();
   });
 
+  it('leaves scrolling to the sheet (no nested scroll area that defeats swipe-to-close protection)', () => {
+    const { container } = render(<WhatsNewSheet isOpen notes={NOTES} onClose={() => {}} />);
+    const scrollers = [...container.querySelectorAll<HTMLElement>('*')]
+      .filter((el) => ['auto', 'scroll'].includes(el.style.overflowY) || ['auto', 'scroll'].includes(el.style.overflow));
+    expect(scrollers).toHaveLength(0);
+  });
+
   it('acknowledge → "Đã hiểu" closes it', () => {
     const onClose = vi.fn();
     render(<WhatsNewSheet isOpen notes={NOTES} onClose={onClose} acknowledge />);

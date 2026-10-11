@@ -5,11 +5,23 @@ import { Preferences } from '@capacitor/preferences';
 import WhatsNewNotice from './WhatsNewNotice';
 
 vi.mock('@capacitor/preferences', () => ({ Preferences: { get: vi.fn(), set: vi.fn() } }));
-// IonModal does not run in jsdom; the shell shows children when open and has the header "Đóng".
-vi.mock('./GuSheet', () => ({
-  default: ({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: ReactNode }) =>
-    (isOpen ? <div><button type="button" onClick={onClose}>Đóng</button>{children}</div> : null),
-}));
+// IonModal does not run in jsdom. The stand-in behaves like it where it matters: it stays mounted
+// when closed (data-open), shows the header "Đóng" and children only while open, and calls onClose
+// again when it goes from open to closed — Ionic's onDidDismiss after a dismiss.
+vi.mock('./GuSheet', async () => {
+  const { useEffect, useRef } = await vi.importActual<typeof import('react')>('react');
+  return {
+    default: function Sheet({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: ReactNode }) {
+      const was = useRef(isOpen);
+      useEffect(() => { if (was.current && !isOpen) onClose(); was.current = isOpen; }, [isOpen, onClose]);
+      return (
+        <div data-testid="sheet" data-open={String(isOpen)}>
+          {isOpen && <><button type="button" onClick={onClose}>Đóng</button>{children}</>}
+        </div>
+      );
+    },
+  };
+});
 
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 const heading = (v: string) => new RegExp(`^Phiên bản ${v.replace(/\./g, '\\.')} · `);
@@ -29,6 +41,18 @@ describe('WhatsNewNotice — once after an update (v1.42.0)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Đã hiểu' }));
     await waitFor(() => expect(Preferences.set).toHaveBeenCalledWith({ key: 'whats_new_seen', value: __APP_VERSION__ }));
     expect(screen.queryByText(heading('1.42.0'))).toBeNull();
+  });
+
+  it('closing keeps the sheet mounted so Ionic can dismiss it, and records seen exactly once', async () => {
+    // Unmounting an open IonModal skips its dismiss: aria-hidden stayed on the router outlet and
+    // Home vanished from the accessibility tree (UBS1, 11/10 — review Critical #1).
+    vi.mocked(Preferences.get).mockResolvedValue({ value: '1.41.1' });
+    render(<WhatsNewNotice />);
+    await screen.findByText(heading('1.42.0'));
+    fireEvent.click(screen.getByRole('button', { name: 'Đã hiểu' }));
+    await waitFor(() => expect(screen.getByTestId('sheet')).toHaveAttribute('data-open', 'false'));
+    await settle();
+    expect(Preferences.set).toHaveBeenCalledTimes(1);
   });
 
   it('closing it another way ("Đóng") also counts as seen', async () => {

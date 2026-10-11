@@ -25,7 +25,9 @@ export default function WhatsNewSheet({ isOpen, notes, onClose, acknowledge = fa
 }) {
   return (
     <GuSheet isOpen={isOpen} title="Có gì mới" onClose={onClose} breakpoint={0.75}>
-      <div style={{ padding: '4px 16px 20px', overflowY: 'auto', height: '100%' }}>
+      {/* No scroll area of its own: GuSheet's IonContent scrolls, which keeps Ionic's "do not
+          swipe the sheet closed while the content is scrolled" check working. */}
+      <div style={{ padding: '4px 0 8px' }}>
         {notes.map((n) => (
           <section key={n.version} style={{ marginBottom: 18 }}>
             <h3 style={{
