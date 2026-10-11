@@ -151,6 +151,9 @@ hạn lượt).
   10 s) trước khi nhờ agent, nếu không agent bị gọi oan (đã gặp: 2 lượt gọi model).
 - **Engine chỉ giữ bản ghi `agent.act` khi một phép kiểm SAU nó đạt**; test trượt thì bản ghi bị xoá
   và lượt sau chạy lạnh. Khoá cache theo câu lệnh + tham số, KHÔNG theo `system` của agent hay model.
+- **Bảng "Có gì mới" (app ≥ 1.42.0)** tự mở ở lần mở app đầu tiên sau khi cài bản mới — tức lượt
+  e2e đầu tiên sau khi cài APK cần kiểm — và che Trang chủ. `toTab` (lần gọi đầu mỗi file) chờ tối đa
+  4 s, thấy "Đã hiểu" thì bấm; bấm rồi app nhớ là đã xem, các lần sau không hiện nữa.
 - **`textContent()` không chờ** node xuất hiện → đọc chữ một thẻ nạp bất đồng bộ (thẻ "Đang đọc dở"
   ở Trang chủ) phải `expect(...).toBeVisible()` trước.
 - **Telemetry** tắt sẵn (`E2E_TELEMETRY_DISABLED=1` trong script `test`/`explore`).

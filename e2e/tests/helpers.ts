@@ -93,12 +93,26 @@ export async function revealAboveTabBar(screen: Screen, node: Locator): Promise<
 
 const MAX_BACKS = 12;
 
+// Since 1.42.0 the app opens "Có gì mới" by itself on the first launch after an install — which is
+// the first e2e run after installing the build under test. It opens a moment after start and covers
+// Home, so the first toTab of each test file waits briefly for it and taps "Đã hiểu" (that also
+// marks it seen, so later launches never show it).
+let whatsNewChecked = false;
+
 /**
  * Get to a tab's root from wherever the test got to (open sheet, split view, a Viewer or folders
  * pushed on the tab). What an earlier test left behind is not its job: `app.open()` relaunches
  * the app at the start of every test.
  */
 export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 'Tìm'): Promise<void> {
+  if (!whatsNewChecked) {
+    whatsNewChecked = true;
+    const ok = screen.getByRole('button', { name: exact('Đã hiểu') });
+    if (await ok.waitFor({ timeout: 4000 }).then(() => true, () => false)) {
+      await ok.tap();
+      await new Promise((r) => setTimeout(r, 800));   // let the sheet slide away
+    }
+  }
   const close = screen.getByRole('button', { name: exact('Đóng') });
   if (await close.isVisible()) await close.tap();
   const exitSplit = screen.getByRole('button', { name: exact('Thoát chia đôi') });

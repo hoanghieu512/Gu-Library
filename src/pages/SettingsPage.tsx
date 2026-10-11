@@ -14,6 +14,7 @@ import { readableTreePath } from '../storage/safPath';
 import { getDeviceId } from '../reading/store';
 import { getBaseScale, setBaseScale, SCALE_OPTIONS } from '../viewer/fontScale';
 import SyncSettings from '../sync/SyncSettings';
+import WhatsNewEntry from '../components/WhatsNewEntry';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { clearIndex } from '../search/store';
 import { useGuToast } from '../lib/useGuToast';
@@ -149,9 +150,7 @@ export default function SettingsPage() {
 
         <SyncSettings isOpen={syncOpen} onClose={() => setSyncOpen(false)} />
         {toastNode}
-        <p style={{ textAlign: 'center', color: 'var(--gu-grey)', fontSize: 13, marginTop: 24 }}>
-          Phiên bản {version}
-        </p>
+        <WhatsNewEntry version={version} />
       </IonContent>
     </IonPage>
   );
