@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.42.0] — 2026-10-11 — "Có gì mới" ngay trong app
+### Added
+- **Bảng "Có gì mới"**: lần đầu mở app sau mỗi lần cập nhật, app tự hiện những gì thay đổi ở các bản Pé chưa xem (tối đa 3, mới nhất trước — bỏ qua bản nào cũng thấy). Đóng cách nào (Đã hiểu, Đóng, vuốt xuống, nút back) cũng tính là đã xem, lần sau không hiện lại.
+- **Cài đặt → "Có gì mới · Phiên bản X"** (dòng phiên bản ở cuối màn nay bấm được): xem lại 3 bản gần nhất.
+- Ghi chú viết tay bằng lời thường, giọng huynh nhắn cho Pé, nằm ở `src/whatsNew/notes.ts`; **test đỏ nếu phiên bản đang build chưa có ghi chú** — mỗi lần phát hành đệ viết nháp, huynh duyệt.
+### Notes
+- Không đổi chỉ mục, không đổi dữ liệu đọc dở. Máy chưa từng xem (lần đầu có tính năng) chỉ hiện ghi chú của bản đang chạy.
+- Bộ e2e: lượt đầu sau khi cài bản mới, `toTab` tự bấm "Đã hiểu".
+- Trước phát hành đã sửa 2 lỗi do review + kiểm trên máy bắt: đóng bảng bằng nút từng làm Trang chủ biến khỏi trình đọc màn hình (và làm đỏ lượt e2e đầu sau khi cài); kéo ngược để cuộn lên từng vô tình đóng bảng.
+- UBS1: e2e 8/8 · 3 ph 19 s · $0 (không gọi model).
+
 ## [1.41.1] — 2026-10-10 — Đọc tiếp không còn trôi trang (slide) · trợ năng · lỗi nhỏ của 1.41.0
 ### Fixed
 - **Slide trôi trang khi đọc tiếp.** Với tài liệu có trang thấp hơn nửa màn hình (slide 4:3, 16:9), mỗi lần rời đi rồi mở lại từ "Đang đọc dở" tài liệu nhảy thêm một trang (UBS1: 3 → 4 → 5 → 6). Nguyên nhân: Viewer đặt mép trên trang ở đầu màn hình nhưng lại lấy trang nằm ở GIỮA màn hình làm trang đang đọc và lưu nó. Nay trang đang đọc là **trang chiếm nhiều màn hình nhất** (bằng nhau thì trang trên), và sau khi nhảy/mở lại thì giữ đúng trang đó tới khi cuộn tay. Tài liệu khổ dọc (A4) đọc như cũ. Máy dính lỗi: màn dài như UBS1 (đo được) và — theo ước tính kích thước màn — S20 FE; màn vuông dGen1 không dính.
