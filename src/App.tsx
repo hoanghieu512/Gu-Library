@@ -16,6 +16,7 @@ import PrintPage from './pages/PrintPage';
 import { useAndroidBackButton } from './nav/useAndroidBackButton';
 import ShareReceiver from './import/ShareReceiver';
 import CrashNotice from './components/CrashNotice';
+import WhatsNewNotice from './components/WhatsNewNotice';
 
 // Lazy: react-pdf (pdf.js) is a heavy bundle + needs DOMMatrix (crashes in jsdom tests).
 // Code-split so it's not imported when App is evaluated (keeps smoke test green).
@@ -37,6 +38,7 @@ export default function App() {
       <IonReactRouter>
         <BackButtonHandler />
         <CrashNotice />
+        <WhatsNewNotice />
         <ShareReceiver />
         <IonTabs>
           <IonRouterOutlet>
