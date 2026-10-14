@@ -34,6 +34,13 @@ describe('WhatsNewSheet — "Có gì mới" (v1.42.0)', () => {
     expect(scrollers).toHaveLength(0);
   });
 
+  it('every chip has the same em width, so the note text starts on one line down the sheet (v1.42.1)', () => {
+    render(<WhatsNewSheet isOpen notes={NOTES} onClose={() => {}} />);
+    const widths = ['Mới', 'Sửa lỗi', 'Cải thiện'].map((l) => screen.getByText(l).style.width);
+    expect(widths[0]).toMatch(/em$/);
+    expect(new Set(widths).size).toBe(1);
+  });
+
   it('acknowledge → "Đã hiểu" closes it', () => {
     const onClose = vi.fn();
     render(<WhatsNewSheet isOpen notes={NOTES} onClose={onClose} acknowledge />);
