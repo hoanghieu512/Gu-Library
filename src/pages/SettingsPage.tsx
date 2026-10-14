@@ -17,7 +17,7 @@ import Row, { Chevron } from '../components/SettingsRow';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { clearIndex } from '../search/store';
 import { useGuToast } from '../lib/useGuToast';
-import { SYNC_MAP } from '../components/SyncPill';
+import { SYNC_MAP } from '../sync/syncLabels';
 
 // Settings: every item is a paper card (`SettingsRow`). Only the LOOK is shared: every behaviour
 // (pick the folder, open the Sync/Perf modals, change the Viewer font size) stays here.

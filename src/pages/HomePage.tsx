@@ -18,7 +18,7 @@ import DeleteFolderConfirm, { type DeleteTarget } from '../components/DeleteFold
 import ColorPickerSheet from '../components/ColorPickerSheet';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { listMon, createMon, setMonColor } from '../storage/repo';
-import { monColor } from '../components/MonSwatch';
+import { monColor } from '../lib/monColor';
 import { UNFILED } from '../import/prefix';
 import { renameFolder } from '../storage/folderRepo';
 import { getRootUri } from '../storage/repo';
