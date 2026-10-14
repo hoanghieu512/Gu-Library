@@ -23,12 +23,25 @@ export function mostVisiblePage(offsets: number[], numPages: number, top: number
 }
 
 /**
+ * The page in view, before any jump hold: the last page once the scroll has reached the end
+ * (`maxTop` = scrollHeight − clientHeight), else the most visible page. At the end of a slide deck the
+ * last two slides are both fully visible and the tie went to the upper one, so the footer stopped at
+ * "7 / 8" and the deck never counted as read (UBS1, v1.42.0). A document that fits the screen has no
+ * end to reach (`maxTop` ≈ 0) — it must not read as finished the moment it opens.
+ */
+export function pageInView(offsets: number[], numPages: number, top: number, vh: number, maxTop: number): number {
+  if (maxTop >= 1 && top >= maxTop - 1) return Math.max(1, numPages);
+  return mostVisiblePage(offsets, numPages, top, vh);
+}
+
+/**
  * A jump (resume, "Tới trang", a sheet row) holds its page until the USER moves the page — a drag
  * or a zoom. Not until scrollTop moves: the scroll also moves on its own, and the first 1.41.1 build
  * lost the page that way — typing in "Tới trang" leaves the keyboard up, the jump lands in the
  * shorter viewport, the keyboard closes, the browser clamps the scroll at the end of the document,
  * and the last page read as the one before it (UBS1: jump to 8 → 7 / 8). Near the end the target
- * cannot reach the top either, so the most visible page may be an earlier one; the hold covers both.
+ * cannot reach the top either, so the page in view may be another one (since 1.42.1 the end reads as
+ * the last page: a jump to 7 near the end would show 8); the hold covers both.
  */
 export function pageHold() {
   let held: number | null = null;

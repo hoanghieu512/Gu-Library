@@ -3,7 +3,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { perfStart, perfEnd, perfCancel } from '../perf/perf';
 import { jumpGate } from '../viewer/jumpGate';
-import { mostVisiblePage, pageHold } from '../viewer/currentPage';
+import { pageHold, pageInView } from '../viewer/currentPage';
 
 // Worker offline (bundle, no CDN). This exact form built + ran correctly on device.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -154,7 +154,7 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   const recompute = () => {
     const el = containerRef.current; if (!el || numPages === 0) return;
     const top = el.scrollTop, vh = el.clientHeight;
-    onPageChange(hold.current(mostVisiblePage(offsets, numPages, top, vh)), numPages);
+    onPageChange(hold.current(pageInView(offsets, numPages, top, vh, el.scrollHeight - vh)), numPages);
     setWin([Math.max(1, pageAtY(offsets, numPages, top) - BUFFER),
             Math.min(numPages, pageAtY(offsets, numPages, top + vh) + BUFFER)]);
   };
