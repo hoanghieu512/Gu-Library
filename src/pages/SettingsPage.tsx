@@ -1,75 +1,30 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon,
+  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonSegment, IonSegmentButton, IonLabel,
 } from '@ionic/react';
 import {
-  folderOutline, syncOutline, textOutline, phonePortraitOutline, chevronForward,
-  searchOutline,
+  folderOutline, syncOutline, textOutline, phonePortraitOutline, searchOutline,
 } from 'ionicons/icons';
-import { App } from '@capacitor/app';
 import { getRootUri, pickAndSaveRoot } from '../storage/repo';
 import { readableTreePath } from '../storage/safPath';
 import { getDeviceId } from '../reading/store';
 import { getBaseScale, setBaseScale, SCALE_OPTIONS } from '../viewer/fontScale';
 import SyncSettings from '../sync/SyncSettings';
 import WhatsNewEntry from '../components/WhatsNewEntry';
+import Row, { Chevron } from '../components/SettingsRow';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { clearIndex } from '../search/store';
 import { useGuToast } from '../lib/useGuToast';
 import { SYNC_MAP } from '../components/SyncPill';
 
-// Màn Cài đặt — mỗi mục là một THẺ GIẤY: icon trong ô nền + tiêu đề serif + giá trị + dòng gợi ý,
-// bên phải là chevron (mục bấm được) hoặc trạng thái. Chỉ đổi HÌNH: mọi hành vi (chọn folder,
-// mở modal Sync/Perf, đổi cỡ chữ Viewer) giữ nguyên.
-const CARD: CSSProperties = {
-  background: 'var(--gu-paper-2)', borderRadius: 14, padding: 14, marginBottom: 12,
-};
-
-function IconBox({ icon, tint = 'rgba(117,66,14,0.10)', color = 'var(--gu-brown)' }: {
-  icon: string; tint?: string; color?: string;
-}) {
-  return (
-    <div style={{
-      width: 42, height: 42, borderRadius: 11, background: tint, flex: '0 0 auto',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      <IonIcon icon={icon} style={{ fontSize: 21, color }} />
-    </div>
-  );
-}
-
-function Row({ icon, tint, iconColor, title, value, hint, trailing, onClick, children }: {
-  icon: string; tint?: string; iconColor?: string;
-  title: string; value?: ReactNode; hint?: string; trailing?: ReactNode;
-  onClick?: () => void; children?: ReactNode;
-}) {
-  return (
-    <div style={{ ...CARD, cursor: onClick ? 'pointer' : undefined }} onClick={onClick} role={onClick ? 'button' : undefined}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <IconBox icon={icon} tint={tint} color={iconColor} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: 15.5, color: 'var(--gu-brown-deep)' }}>
-            {title}
-          </div>
-          {value !== undefined && (
-            <div style={{ fontSize: 13.5, color: 'var(--gu-brown)', marginTop: 2, wordBreak: 'break-all' }}>{value}</div>
-          )}
-          {hint && <div style={{ fontSize: 12, color: 'var(--gu-grey)', marginTop: 2 }}>{hint}</div>}
-        </div>
-        {trailing && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>{trailing}</div>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
+// Settings — every item is a paper card (`SettingsRow`). Only the LOOK is shared: every behaviour
+// (pick the folder, open the Sync/Perf modals, change the Viewer font size) stays here.
 export default function SettingsPage() {
   const { toastResult, node: toastNode } = useGuToast();
   const [root, setRoot] = useState<string | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
-  const [version, setVersion] = useState<string>(__APP_VERSION__);
   const [deviceId, setDeviceId] = useState<string>('');
   const [scale, setScale] = useState<string>('1');
   // Trạng thái đồng bộ: dùng LẠI hook + bộ nhãn của SyncPill (cùng nguồn với đèn ở Home).
@@ -78,7 +33,6 @@ export default function SettingsPage() {
 
   useEffect(() => { getRootUri().then(setRoot); }, []);
   useEffect(() => {
-    App.getInfo().then((info) => setVersion(info.version)).catch(() => { /* web/dev */ });
     getDeviceId().then(setDeviceId).catch(() => setDeviceId(''));
     getBaseScale().then((v) => setScale(String(v))).catch(() => setScale('1'));
   }, []);
@@ -86,7 +40,7 @@ export default function SettingsPage() {
   const pick = async () => { await pickAndSaveRoot(); setRoot(await getRootUri()); };
   const changeScale = (v: string) => { setScale(v); setBaseScale(parseFloat(v)); };
 
-  const chevron = <IonIcon icon={chevronForward} style={{ color: 'var(--gu-grey)', fontSize: 18 }} />;
+  const chevron = <Chevron />;
 
   return (
     <IonPage>
@@ -148,9 +102,10 @@ export default function SettingsPage() {
           }}
         />
 
+        <WhatsNewEntry />
+
         <SyncSettings isOpen={syncOpen} onClose={() => setSyncOpen(false)} />
         {toastNode}
-        <WhatsNewEntry version={version} />
       </IonContent>
     </IonPage>
   );
