@@ -5,6 +5,15 @@ import type { ReleaseNote } from './types';
 // fails when package.json's version has none. Technical history stays in CHANGELOG.md.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.42.1',
+    date: '14/10/2026',
+    items: [
+      { kind: 'fix', text: 'Đọc slide cuộn tới tận cuối mà số trang dưới chân vẫn ghi trang áp chót, nên slide đọc xong rồi cứ nằm hoài ở "Đang đọc dở". Giờ cuộn tới cuối là tính đọc xong nha.' },
+      { kind: 'improve', text: 'Trong bảng này, chữ các dòng giờ thẳng hàng với nhau, dễ đọc hơn.' },
+      { kind: 'improve', text: 'Dòng "Có gì mới" trong Cài đặt giờ là một thẻ như các mục khác, dễ thấy để bấm.' },
+    ],
+  },
+  {
     version: '1.42.0',
     date: '11/10/2026',
     items: [
