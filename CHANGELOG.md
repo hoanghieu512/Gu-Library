@@ -2,6 +2,17 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.42.1] (2026-10-14): Slide cuộn tới cuối là đọc xong · "Có gì mới" gọn hơn
+### Fixed
+- **Cuộn tay tới cuối slide, chân trang dừng ở trang áp chót ("7 / 8")** nên slide đọc xong vẫn nằm mãi trong "Đang đọc dở" (thanh tiến độ không bao giờ đầy). Nguyên nhân: ở đáy, hai slide cuối cùng hiện trọn, bằng nhau thì luật "trang chiếm nhiều màn nhất" của 1.41.1 chọn trang trên. Nay **đã cuộn chạm đáy thì là trang cuối** (`pageInView`); trang vừa nhảy tới vẫn được giữ như 1.41.1 (nhảy tới 7 ở gần cuối vẫn là 7) cho tới khi người dùng kéo, và **một cú kéo nhả trang đang giữ thì đọc lại màn hình ngay**, kể cả khi ở đáy kéo không cuộn được (review bắt: deck 1.42.0 để lại ở "7 / 8" mở lại nằm sẵn ở đáy, vuốt mãi vẫn 7 / 8); tài liệu ngắn vừa trọn một khung (hoặc chỉ dư 1 px do làm tròn) không bị tính đọc xong khi mở. Tái hiện trên UBS1 với 1.42.0 trước khi sửa (cuộn lên 5 / 8, xuống đáy 7 / 8).
+### Changed
+- **Bảng "Có gì mới":** các nhãn Mới / Sửa lỗi / Cải thiện cùng một bề rộng (theo `em`, co giãn theo cỡ chữ hệ thống) → cột chữ ghi chú thẳng hàng.
+- **Cài đặt → "Có gì mới"** thành một thẻ như các mục khác (icon, "Phiên bản X", chevron) thay cho dòng chữ xám ở cuối màn. Thẻ Cài đặt tách thành `SettingsRow` dùng chung (không đổi hình các thẻ cũ). Số phiên bản lấy một nguồn `__APP_VERSION__` (bỏ `App.getInfo()`; `versionName` Android vốn đọc cùng `package.json`).
+### Notes
+- Không đổi chỉ mục, không đổi dữ liệu đọc dở.
+- Bộ e2e: bấm "Đã hiểu" tới khi hết (CrashNotice cũng có một nút "Đã hiểu", hai bảng có thể cùng hiện); test `WhatsNewNotice` chọn phiên bản theo vị trí trong `RELEASE_NOTES` nên không còn đỏ mỗi lần nâng version.
+- UBS1: e2e 8/8 · 3 ph 18 s · $0 (không gọi model); lượt ngay sau cài (gặp bảng "Có gì mới") 8/8 · 3 ph 31 s.
+
 ## [1.42.0] — 2026-10-11 — "Có gì mới" ngay trong app
 ### Added
 - **Bảng "Có gì mới"**: lần đầu mở app sau mỗi lần cập nhật, app tự hiện những gì thay đổi ở các bản Pé chưa xem (tối đa 3, mới nhất trước — bỏ qua bản nào cũng thấy). Đóng cách nào (Đã hiểu, Đóng, vuốt xuống, nút back) cũng tính là đã xem, lần sau không hiện lại.

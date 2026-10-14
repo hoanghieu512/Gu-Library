@@ -3,7 +3,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { perfStart, perfEnd, perfCancel } from '../perf/perf';
 import { jumpGate } from '../viewer/jumpGate';
-import { mostVisiblePage, pageHold } from '../viewer/currentPage';
+import { pageHold, pageInView } from '../viewer/currentPage';
 
 // Worker offline (bundle, no CDN). This exact form built + ran correctly on device.
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -154,10 +154,14 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   const recompute = () => {
     const el = containerRef.current; if (!el || numPages === 0) return;
     const top = el.scrollTop, vh = el.clientHeight;
-    onPageChange(hold.current(mostVisiblePage(offsets, numPages, top, vh)), numPages);
+    onPageChange(hold.current(pageInView(offsets, numPages, top, vh, el.scrollHeight - vh)), numPages);
     setWin([Math.max(1, pageAtY(offsets, numPages, top) - BUFFER),
             Math.min(numPages, pageAtY(offsets, numPages, top + vh) + BUFFER)]);
   };
+
+  // The touch listeners (deps []) call the current recompute through this ref; updated after render.
+  const recomputeRef = useRef(recompute);
+  useEffect(() => { recomputeRef.current = recompute; });
 
   // Cập nhật trang hiện tại + cửa sổ render theo scroll (rAF throttle).
   useEffect(() => {
@@ -258,7 +262,12 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
       }
     };
     const onMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 || Math.abs(e.touches[0].clientY - touchY) > DRAG_PX) hold.release();
+      if (e.touches.length === 2) hold.release();
+      // A drag that lets go of a held page re-reads the screen once: at the end of the document the
+      // drag does not scroll, so no scroll event would (a deck reopened at "7 / 8" stayed there).
+      else if (Math.abs(e.touches[0].clientY - touchY) > DRAG_PX && hold.release()) {
+        requestAnimationFrame(() => recomputeRef.current());
+      }
       if (!pinching || e.touches.length !== 2) return;
       e.preventDefault(); // chặn cuộn/zoom-trình-duyệt trong lúc pinch
       live = Math.max(1, Math.min(MAX_ZOOM, startZoom * (dist(e.touches) / startDist)));

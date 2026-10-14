@@ -12,8 +12,11 @@ const KIND: Record<NoteKind, { label: string; bg: string }> = {
   improve: { label: 'Cải thiện', bg: '#4A5D3A' },
 };
 
+// One width for every chip (that of the widest, "Cải thiện"), so the note text starts on one line
+// down the sheet (v1.42.1). In em, so it grows with the chip's text under the system font size.
 const CHIP: CSSProperties = {
-  flex: '0 0 auto', marginTop: 2, padding: '1px 8px', borderRadius: 999,
+  flex: '0 0 auto', width: '6.4em', boxSizing: 'border-box', marginTop: 2, padding: '1px 0',
+  borderRadius: 999, textAlign: 'center',
   color: '#fff', fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
 };
 
