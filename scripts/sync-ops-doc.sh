@@ -191,8 +191,14 @@ publish() {
   mirror=$(git config opsdoc.mirror || true)
   if [ -n "$mirror" ]; then
     if [ -d "$(dirname "$mirror")" ]; then
-      cp "$DOC" "$mirror"
-      say "copied to $mirror"
+      # The vault copy is read in Obsidian, which shows every newline as a line break: join the
+      # wrapped lines there (the repos keep them wrapped for cleaner merges).
+      if python3 -I scripts/md-unwrap.py "$DOC" "$mirror" >/dev/null; then
+        say "copied to $mirror (wrapped lines joined for Obsidian)"
+      else
+        cp "$DOC" "$mirror"
+        say "WARNING: could not join the wrapped lines; copied as is to $mirror"
+      fi
     else
       say "WARNING: mirror folder $(dirname "$mirror") not found; skipped"
     fi
