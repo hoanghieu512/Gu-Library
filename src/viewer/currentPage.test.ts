@@ -49,6 +49,9 @@ describe('pageInView — the end of the document reads as the last page (v1.42.1
   it('a document that fits the screen cannot scroll → page 1, not "read to the end" on opening', () =>
     expect(pageInView(offs([276, 276]), 2, 0, vh, 0)).toBe(1));
 
+  it('a document 1 px taller than the screen (rounding) → not "at the end" while at the top', () =>
+    expect(pageInView(offs([290, 291]), 2, 0, vh, 1)).toBe(1));
+
   it('portrait pages: the end was already the last page → unchanged', () => {
     const o = offs([1000, 1000, 1000]);
     expect(pageInView(o, 3, 3000 - vh, vh, 3000 - vh)).toBe(3);
@@ -86,6 +89,14 @@ describe('pageHold — a jump holds its page until the user drags (v1.41.1)', ()
     h.jump(8);
     h.release();
     expect(h.current(7)).toBe(7);
+  });
+
+  it('release says whether a page was held — a drag at the end does not scroll, so the Viewer must re-read the screen itself (v1.42.1)', () => {
+    const h = pageHold();
+    expect(h.release()).toBe(false);
+    h.jump(7);
+    expect(h.release()).toBe(true);
+    expect(h.release()).toBe(false);
   });
 
   it('a new jump replaces the old one', () => {

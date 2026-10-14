@@ -27,10 +27,10 @@ export function mostVisiblePage(offsets: number[], numPages: number, top: number
  * (`maxTop` = scrollHeight − clientHeight), else the most visible page. At the end of a slide deck the
  * last two slides are both fully visible and the tie went to the upper one, so the footer stopped at
  * "7 / 8" and the deck never counted as read (UBS1, v1.42.0). A document that fits the screen has no
- * end to reach (`maxTop` ≈ 0) — it must not read as finished the moment it opens.
+ * end to reach (`maxTop` ≈ 0, or 1 px from rounding) — it must not read as finished the moment it opens.
  */
 export function pageInView(offsets: number[], numPages: number, top: number, vh: number, maxTop: number): number {
-  if (maxTop >= 1 && top >= maxTop - 1) return Math.max(1, numPages);
+  if (maxTop > 1 && top >= maxTop - 1) return Math.max(1, numPages);
   return mostVisiblePage(offsets, numPages, top, vh);
 }
 
@@ -48,8 +48,12 @@ export function pageHold() {
   return {
     /** A jump scrolled to `page`. */
     jump(page: number): void { held = page; },
-    /** The user dragged or zoomed: the page is whatever the screen now shows. */
-    release(): void { held = null; },
+    /**
+     * The user dragged or zoomed: the page is whatever the screen now shows. True when a page was
+     * held — then the caller re-reads the screen, as a drag at the end of the document does not scroll
+     * (a deck reopened at "7 / 8" stayed there however far the user swiped down).
+     */
+    release(): boolean { const had = held !== null; held = null; return had; },
     /** The current page, given the most visible one. */
     current(visible: number): number { return held ?? visible; },
   };

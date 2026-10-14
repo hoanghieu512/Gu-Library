@@ -159,6 +159,10 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
             Math.min(numPages, pageAtY(offsets, numPages, top + vh) + BUFFER)]);
   };
 
+  // The touch listeners (deps []) call the current recompute through this ref; updated after render.
+  const recomputeRef = useRef(recompute);
+  useEffect(() => { recomputeRef.current = recompute; });
+
   // Cập nhật trang hiện tại + cửa sổ render theo scroll (rAF throttle).
   useEffect(() => {
     const el = containerRef.current; if (!el) return;
@@ -258,7 +262,12 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
       }
     };
     const onMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 || Math.abs(e.touches[0].clientY - touchY) > DRAG_PX) hold.release();
+      if (e.touches.length === 2) hold.release();
+      // A drag that lets go of a held page re-reads the screen once: at the end of the document the
+      // drag does not scroll, so no scroll event would (a deck reopened at "7 / 8" stayed there).
+      else if (Math.abs(e.touches[0].clientY - touchY) > DRAG_PX && hold.release()) {
+        requestAnimationFrame(() => recomputeRef.current());
+      }
       if (!pinching || e.touches.length !== 2) return;
       e.preventDefault(); // chặn cuộn/zoom-trình-duyệt trong lúc pinch
       live = Math.max(1, Math.min(MAX_ZOOM, startZoom * (dist(e.touches) / startDist)));
