@@ -14,8 +14,8 @@ export function useSyncStatus(): { light: SyncState; refresh: () => void } {
   const tick = useCallback(async () => {
     const cfg = await getSyncConfig();
     if (!cfg.apiKey || !cfg.minipcId) { setLight('unconfigured'); return; }
-    let connections: ConnectionsResp | null = null;
-    let completion: CompletionResp | null = null;
+    let connections: ConnectionsResp | null;
+    let completion: CompletionResp | null;
     try { connections = await stGet<ConnectionsResp>('/rest/system/connections', cfg.apiKey); } catch { connections = null; }
     try {
       // Chỉ theo device (Syncthing gộp tiến độ mọi folder share với Atomman) — KHÔNG hardcode folder-ID môi trường.

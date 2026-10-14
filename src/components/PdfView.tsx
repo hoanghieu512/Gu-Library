@@ -135,9 +135,12 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
     return arr;
   }, [numPages, slotH]);
 
-  // refs để handler chạm (deps []) đọc được giá trị hiện tại
-  const offsetsRef = useRef(offsets); offsetsRef.current = offsets;
-  const numPagesRef = useRef(numPages); numPagesRef.current = numPages;
+  // The touch handlers (deps []) read the current values through these refs. Updated in a layout
+  // effect, not during render (a render React discards must not leak into them); a layout effect
+  // runs before the browser paints, so no touch can see the previous values once a layout shows.
+  const offsetsRef = useRef(offsets);
+  const numPagesRef = useRef(numPages);
+  useLayoutEffect(() => { offsetsRef.current = offsets; numPagesRef.current = numPages; });
 
   const pageAtY = (off: number[], nP: number, y: number) => {
     for (let n = 1; n <= nP; n++) if (off[n] > y) return n;

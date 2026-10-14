@@ -5,7 +5,7 @@ import MonActionsSheet from './MonActionsSheet';
 import BookPress, { PRESS_W } from './BookPress';
 import { getKhoSnapshot, foldSummary } from '../storage/khoSnapshot';
 import { listInboxByMon } from '../import/inboxRepo';
-import { monColor } from './MonSwatch';
+import { monColor } from '../lib/monColor';
 import { UNFILED } from '../import/prefix';
 import { spineWidth, packShelves } from '../home/shelf';
 import { spineLabel } from '../home/spineLabel';

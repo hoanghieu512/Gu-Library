@@ -38,8 +38,8 @@ export default function SyncSettings({ isOpen, onClose }: { isOpen: boolean; onC
       const v = await checkConnection(key);
       setVersion(v);
       setDevices(await listOtherDevices(key));
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setError(String((e as { message?: unknown } | null)?.message ?? e));
     }
   };
 
