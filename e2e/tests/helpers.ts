@@ -107,9 +107,10 @@ let whatsNewChecked = false;
 export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 'Tìm'): Promise<void> {
   if (!whatsNewChecked) {
     whatsNewChecked = true;
-    // .first(): CrashNotice's alert has a "Đã hiểu" button too, should both be up at once.
-    const ok = screen.getByRole('button', { name: exact('Đã hiểu') }).first();
-    if (await ok.waitFor({ timeout: 4000 }).then(() => true, () => false)) {
+    // CrashNotice's alert has a "Đã hiểu" button too: should both be up, tap until none is left.
+    for (let i = 0; i < 2; i++) {
+      const ok = screen.getByRole('button', { name: exact('Đã hiểu') }).first();
+      if (!(await ok.waitFor({ timeout: i === 0 ? 4000 : 1000 }).then(() => true, () => false))) break;
       await ok.tap();
       await new Promise((r) => setTimeout(r, 800));   // let the sheet slide away
     }
