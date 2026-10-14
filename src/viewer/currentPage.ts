@@ -27,7 +27,7 @@ export function mostVisiblePage(offsets: number[], numPages: number, top: number
  * (`maxTop` = scrollHeight − clientHeight), else the most visible page. At the end of a slide deck the
  * last two slides are both fully visible and the tie went to the upper one, so the footer stopped at
  * "7 / 8" and the deck never counted as read (UBS1, v1.42.0). A document that fits the screen has no
- * end to reach (`maxTop` ≈ 0, or 1 px from rounding) — it must not read as finished the moment it opens.
+ * end to reach (`maxTop` ≈ 0, or 1 px from rounding); it must not read as finished the moment it opens.
  */
 export function pageInView(offsets: number[], numPages: number, top: number, vh: number, maxTop: number): number {
   if (maxTop > 1 && top >= maxTop - 1) return Math.max(1, numPages);
@@ -35,9 +35,9 @@ export function pageInView(offsets: number[], numPages: number, top: number, vh:
 }
 
 /**
- * A jump (resume, "Tới trang", a sheet row) holds its page until the USER moves the page — a drag
- * or a zoom. Not until scrollTop moves: the scroll also moves on its own, and the first 1.41.1 build
- * lost the page that way — typing in "Tới trang" leaves the keyboard up, the jump lands in the
+ * A jump (resume, "Tới trang", a sheet row) holds its page until the USER moves the page (a drag
+ * or a zoom). Not until scrollTop moves: the scroll also moves on its own, and the first 1.41.1 build
+ * lost the page that way: typing in "Tới trang" leaves the keyboard up, the jump lands in the
  * shorter viewport, the keyboard closes, the browser clamps the scroll at the end of the document,
  * and the last page read as the one before it (UBS1: jump to 8 → 7 / 8). Near the end the target
  * cannot reach the top either, so the page in view may be another one (since 1.42.1 the end reads as
@@ -50,7 +50,7 @@ export function pageHold() {
     jump(page: number): void { held = page; },
     /**
      * The user dragged or zoomed: the page is whatever the screen now shows. True when a page was
-     * held — then the caller re-reads the screen, as a drag at the end of the document does not scroll
+     * held; then the caller re-reads the screen, as a drag at the end of the document does not scroll
      * (a deck reopened at "7 / 8" stayed there however far the user swiped down).
      */
     release(): boolean { const had = held !== null; held = null; return had; },

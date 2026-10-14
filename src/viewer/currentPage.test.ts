@@ -31,7 +31,7 @@ describe('mostVisiblePage — the page taking the most of the screen (v1.41.1)',
   });
 });
 
-describe('pageInView — the end of the document reads as the last page (v1.42.1)', () => {
+describe('pageInView: the end of the document reads as the last page (v1.42.1)', () => {
   // Slide deck on UBS1: 8 slots of 276 px, 580 px viewport → the scroll ends at 2208 − 580 = 1628.
   const deck = offs(Array(8).fill(276)); const vh = 580; const maxTop = 8 * 276 - vh;
 
@@ -91,7 +91,7 @@ describe('pageHold — a jump holds its page until the user drags (v1.41.1)', ()
     expect(h.current(7)).toBe(7);
   });
 
-  it('release says whether a page was held — a drag at the end does not scroll, so the Viewer must re-read the screen itself (v1.42.1)', () => {
+  it('release says whether a page was held: a drag at the end does not scroll, so the Viewer must re-read the screen itself (v1.42.1)', () => {
     const h = pageHold();
     expect(h.release()).toBe(false);
     h.jump(7);
