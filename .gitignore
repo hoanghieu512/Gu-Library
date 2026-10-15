@@ -18,6 +18,9 @@ ios/
 # Generated test fixture (not committed)
 fixture-kho/
 
+# Release APKs kept next to the project (signed builds that went to Gú's phone, 5 MB each)
+releases/
+
 # Claude Code: shared config is committed (.claude/launch.json); the personal
 # permission allowlist is not — this repo is public and that file carries local paths
 .claude/settings.local.json
