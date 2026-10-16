@@ -135,6 +135,73 @@ describe('xếp hạng', () => {
   });
 });
 
+describe('last word matched whole ranks above last word as a prefix (Gú, v1.42.1)', () => {
+  // Real shape (Luật DN 2020, QA kho 16/10): "Điều 3" carries its opening paragraph, so it is
+  // longer than the heading-only "Điều 3x" units, and "điều 3" listed it 11th of 18.
+  function ix() {
+    const x = emptyIndex();
+    addDoc(x, DOC_A, {
+      units: [
+        { label: 'Điều 3', page: 1, text: 'Điều 3. Áp dụng Luật Doanh nghiệp và luật khác\nTrường hợp luật khác có quy định đặc thù về việc thành lập, tổ chức quản lý thì áp dụng quy định của luật đó.' },
+        ...[30, 31, 32, 34, 37, 312].map((n) => ({ label: `Điều ${n}`, page: n, text: `Điều ${n}. Tên điều` })),
+        { label: 'Khoản 2 · Điều 9', page: 5, text: '2. Trừ trường hợp quy định tại Điều 3 của Luật này.' },
+      ],
+    });
+    return x;
+  }
+  const labels = (q: string) => search(ix(), q).map((h) => h.unit.label);
+
+  it('"điều 3" lists Điều 3 first, then other whole matches, then Điều 3x', () => {
+    expect(labels('điều 3')).toEqual([
+      'Điều 3', 'Khoản 2 · Điều 9',
+      'Điều 30', 'Điều 31', 'Điều 32', 'Điều 34', 'Điều 37', 'Điều 312',
+    ]);
+  });
+
+  it('no accents behaves the same', () => {
+    expect(labels('dieu 3')).toEqual(labels('điều 3'));
+  });
+
+  it('a whole match later in a unit counts, even when a prefix match comes first', () => {
+    const x = emptyIndex();
+    addDoc(x, DOC_A, {
+      units: [
+        { label: 'Điều 34', page: 1, text: 'Điều 34. Tài sản góp vốn' },
+        { label: 'Điều 30', page: 2, text: 'Điều 30. Đăng ký thay đổi, trừ trường hợp tại Điều 3' },
+      ],
+    });
+    expect(search(x, 'dieu 3').map((h) => h.unit.label)).toEqual(['Điều 30', 'Điều 34']);
+  });
+
+  it('a one-word query too: "dan" puts "dân" above "danh"', () => {
+    const x = emptyIndex();
+    addDoc(x, DOC_A, {
+      units: [
+        { label: 'danh', page: 1, text: 'Danh sách' },
+        { label: 'dân', page: 2, text: 'Quyền công dân' },
+      ],
+    });
+    expect(search(x, 'dan').map((h) => h.unit.label)).toEqual(['dân', 'danh']);
+  });
+
+  it('symbol queries too: "15/5" puts 15/5/2018 above 15/52', () => {
+    const x = emptyIndex();
+    addDoc(x, DOC_A, {
+      units: [
+        { label: 'prefix', page: 1, text: 'Số 15/52' },
+        { label: 'whole', page: 2, text: 'Nghị quyết ngày 15/5/2018 của Hội đồng' },
+      ],
+    });
+    expect(search(x, '15/5').map((h) => h.unit.label)).toEqual(['whole', 'prefix']);
+  });
+
+  it('the Search card shows the same first row as the sheet', () => {
+    const r = searchDocs(ix(), 'dieu 3');
+    expect(r.docs[0].best.unit.label).toBe('Điều 3');
+    expect(r.docs[0].count).toBe(8);
+  });
+});
+
 describe('trang ảnh chưa OCR không phải là chữ', () => {
   it('KHÔNG index marker như nội dung (lỗi thật của v1.38.0)', () => {
     const ix = emptyIndex();

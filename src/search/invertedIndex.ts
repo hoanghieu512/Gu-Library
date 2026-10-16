@@ -225,6 +225,7 @@ const SENTENCE = '.,:';
 
 export interface Literal {
   re: RegExp;        // run on fold(text)
+  whole: RegExp;     // `re` with the last word ending there ("15/5" in 15/5/2018, not in 15/52)
   syms: string[];    // every meaningful symbol — cheap raw-text pre-check (fold leaves them alone)
 }
 
@@ -256,13 +257,16 @@ export function literalOf(query: string): Literal | null {
   });
   if (syms.length === 0) return null;
   // Leading boundary only; the end stays open so the last word still matches as a prefix.
-  return { re: new RegExp((isTok(runs[0] ?? '') ? '(?<![a-z0-9])' : '') + src), syms };
+  const lead = isTok(runs[0] ?? '') ? '(?<![a-z0-9])' : '';
+  return { re: new RegExp(lead + src), whole: new RegExp(lead + src + '(?![a-z0-9])'), syms };
 }
 
 /**
- * Calls `visit(id, pos)` for every unit matching the query, in no particular order. A unit matches
- * when it holds the whole query as one run of words (last word as a prefix — the user is still
- * typing); a query with a meaningful symbol ("35%", "15/5") must match it literally (v1.40.1).
+ * Calls `visit(id, pos, whole)` for every unit matching the query, in no particular order. A unit
+ * matches when it holds the whole query as one run of words (last word as a prefix — the user is
+ * still typing); a query with a meaningful symbol ("35%", "15/5") must match it literally (v1.40.1).
+ * `whole` = the last word also matches as a whole word somewhere ("điều 3" in "Điều 3.", not only
+ * in "Điều 34."); `pos` is then that occurrence, else the first prefix one.
  *
  * No cap and no kho-order cut-off: until v1.40.1 candidates stopped at 600 in KHO ORDER before
  * ranking, so a common word only ever surfaced the first subject A-Z (measured 06/10: "dieu tra"
@@ -270,7 +274,7 @@ export function literalOf(query: string): Literal | null {
  * Membership uses byte marks over all units, not Sets: a broad prefix ("th") hits ~100k units and
  * a Set that size cost more than the checks themselves (measured 06/10).
  */
-function eachMatch(ix: SearchIndex, query: string, visit: (id: number, pos: number) => void): void {
+function eachMatch(ix: SearchIndex, query: string, visit: (id: number, pos: number, whole: boolean) => void): void {
   const { seq, exact, prefix } = parseQuery(query);
   if (!prefix) return;
   const lit = literalOf(query);
@@ -281,11 +285,18 @@ function eachMatch(ix: SearchIndex, query: string, visit: (id: number, pos: numb
     if (lit) {
       // Cheap raw-text pre-check first: fold() leaves symbols alone.
       if (!lit.syms.every((c) => u.text.includes(c))) return;
-      pos = fold(u.text).search(lit.re);
+      const f = fold(u.text);
+      pos = f.search(lit.whole);
+      if (pos >= 0) { visit(id, pos, true); return; }
+      pos = f.search(lit.re);
     } else {
+      // `n` is single-spaced with no trailing space: a whole last word is followed by ' ' or the end.
+      pos = u.n.indexOf(needle + ' ');
+      if (pos < 0 && u.n.endsWith(needle)) pos = u.n.length - needle.length;
+      if (pos >= 0) { visit(id, pos, true); return; }
       pos = u.n.indexOf(needle);
     }
-    if (pos >= 0) visit(id, pos);
+    if (pos >= 0) visit(id, pos, false);
   };
 
   const lists: number[][] = [];
@@ -317,13 +328,16 @@ function eachMatch(ix: SearchIndex, query: string, visit: (id: number, pos: numb
 }
 
 /**
- * Every unit matching the query, best first: match position (earlier first), then shorter unit,
- * then index order.
+ * Every unit matching the query, best first: last word matched whole before matched only as a
+ * prefix, then match position (earlier first), then shorter unit, then index order.
+ *
+ * Whole-word first since v1.42.2: "điều 3" listed the heading-only "Điều 34." above the real
+ * "Điều 3." whenever Điều 3 carried a longer opening paragraph (Gú, Luật DN 2020: 11th of 18).
  */
 export function search(ix: SearchIndex, query: string, limit = Infinity): Hit[] {
-  const found: { id: number; pos: number; len: number }[] = [];
-  eachMatch(ix, query, (id, pos) => found.push({ id, pos, len: ix.units[id].text.length }));
-  found.sort((a, b) => (a.pos - b.pos) || (a.len - b.len) || (a.id - b.id));
+  const found: { id: number; pos: number; len: number; whole: number }[] = [];
+  eachMatch(ix, query, (id, pos, whole) => found.push({ id, pos, len: ix.units[id].text.length, whole: whole ? 1 : 0 }));
+  found.sort((a, b) => (b.whole - a.whole) || (a.pos - b.pos) || (a.len - b.len) || (a.id - b.id));
   const matched = parseQuery(query).seq.length;
   return found.slice(0, limit).map(({ id }) => {
     const unit = ix.units[id];
@@ -357,17 +371,20 @@ export function searchDocs(ix: SearchIndex, query: string): DocSearchResult {
   // same order `search` uses). Sorting ~100k matches of a broad prefix took 211 ms (06/10).
   const count = new Int32Array(ix.docs.length);
   const bestId = new Int32Array(ix.docs.length).fill(-1);
+  const bestWhole = new Uint8Array(ix.docs.length);
   const bestPos = new Float64Array(ix.docs.length);
   const bestLen = new Float64Array(ix.docs.length);
   let total = 0;
-  eachMatch(ix, query, (id, pos) => {
+  eachMatch(ix, query, (id, pos, isWhole) => {
     const d = ix.units[id].d;
     const len = ix.units[id].text.length;
+    const whole = isWhole ? 1 : 0;
     total++;
     count[d]++;
     const b = bestId[d];
-    if (b < 0 || pos < bestPos[d] || (pos === bestPos[d] && (len < bestLen[d] || (len === bestLen[d] && id < b)))) {
-      bestId[d] = id; bestPos[d] = pos; bestLen[d] = len;
+    if (b < 0 || whole > bestWhole[d] || (whole === bestWhole[d] && (pos < bestPos[d] ||
+        (pos === bestPos[d] && (len < bestLen[d] || (len === bestLen[d] && id < b)))))) {
+      bestId[d] = id; bestWhole[d] = whole; bestPos[d] = pos; bestLen[d] = len;
     }
   });
   if (total === 0) return { total: 0, docs: [] };
