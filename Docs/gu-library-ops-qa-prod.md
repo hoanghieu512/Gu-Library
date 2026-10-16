@@ -486,13 +486,19 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
     **#11** trước sửa, **#2** sau sửa (#1 là "Điều 3. Điều khoản chuyển tiếp" tr.128 của luật sửa
     đổi, ngắn hơn). UBS1, APK release 1.42.2 sha1 `98beac5…`: sheet "Tìm trong tài liệu này" gõ
     "dieu 3" → 18 đoạn, hai Điều 3 ở #1–#2, rồi đoạn dẫn chiếu "Điều 3", Điều 3x sau cùng.
-    **e2e 8/8 · 3 ph 18 s · $0 · Haiku 5.5 (không gọi model) · app v1.42.2.** Chưa kiểm dGen1.
+    **e2e 8/8 · 3 ph 18 s · $0 · Haiku 5.5 (không gọi model) · app v1.42.2.** dGen1 (cùng APK, cài
+    đè 1.42.1, mở bằng `monkey`): bảng "Có gì mới" tự hiện đúng một mục 1.42.2, WebView không đen;
+    màn Tìm "dieu 3" thẻ đầu (BLHS 2015) là "Điều 3. Nguyên tắc xử lý" (1.42.1 ngay trước khi cài:
+    "Điều 35. Phạt tiền"), vẫn 2.557 đoạn / 94 tài liệu; sheet Luật DN 2020 18 đoạn, thứ tự trang
+    128 · 1 · 128 · 128 · 122 rồi mới tới Điều 3x (16–21), y như harness; bấm "Điều 3 · trang 1" →
+    "Trang 1 / 129" (vị trí đọc Luật DN 2020 trong kho QA vì thế giờ là trang 1).
   - **Bẫy kiểm tay (UBS1):** gõ chữ "u" bằng `adb shell input text`/`keyevent` đều bị Gboard nuốt
     (đã ghi ở `e2e/README.md`), máy không có lệnh clipboard qua adb → chạm phím "u" trên bàn phím ảo
     bằng toạ độ. Phím ESC (`keyevent 111`) để cất bàn phím ĐÓNG luôn sheet; cất bằng cách chạm tiêu đề.
-  - **Chưa giải thích được:** cài 1.42.2 đè 1.42.1 rồi mở bằng `agent-device open`, bảng "Có gì mới"
-    không thấy hiện (mở lại bằng `monkey` cũng không). Code "Có gì mới" không đổi ở bản này; cần kiểm
-    lại trên dGen1 (cài rồi mở bằng `monkey`, không qua agent-device) trước khi lên Prod.
+  - **UBS1 không thấy bảng "Có gì mới":** cài 1.42.2 rồi mở lần đầu bằng `agent-device open` thì không
+    thấy bảng (mở lại bằng `monkey` cũng không, tức lần đầu đã ghi là đã xem). dGen1 mở bằng `monkey`
+    thì bảng hiện đúng → tính năng chạy; nghi lần mở qua agent-device đã đóng bảng, chưa chứng minh.
+    Kiểm tay bảng sau khi cài: mở lần đầu bằng `monkey`, không qua agent-device.
 - **v1.42.1: slide cuộn tới cuối là đọc xong · "Có gì mới" gọn hơn (14/10).** Beat polish, không spec/plan
   (thiết kế ngắn huynh duyệt trong phiên). (a) **Cuộn tay tới cuối slide dừng "7 / 8"**: ở đáy hai
   slide cuối hiện trọn, luật "trang chiếm nhiều màn nhất" (1.41.1) chọn trang trên khi bằng nhau →
