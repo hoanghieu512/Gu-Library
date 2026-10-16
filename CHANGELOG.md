@@ -2,6 +2,13 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.42.2] (2026-10-16): Tra "điều 3" ra đúng Điều 3 trước
+### Fixed
+- **Tra "điều 3" trong tài liệu, các Điều 30–39, 3xx đứng trên Điều 3 thật** (Gú bắt được trên Luật Thương mại 2005; tái hiện trên Luật Doanh nghiệp 2020 của kho QA: "Điều 3. Áp dụng Luật Doanh nghiệp…" đứng **thứ 11/18**). Nguyên nhân: chữ cuối của câu tra luôn khớp như tiền tố (người dùng có thể đang gõ dở), nên "3" khớp cả "34", "312"; sau đó xếp theo vị trí khớp rồi độ dài đoạn, mà Điều 3 kèm đoạn mở đầu nên dài hơn các Điều 3x chỉ có dòng tiêu đề. Nay xếp thành hai bậc: **chữ cuối khớp nguyên từ trước, khớp tiền tố sau**, trong mỗi bậc giữ thứ tự cũ (vị trí, độ ngắn, thứ tự trong kho). Áp dụng cả câu tra có ký hiệu ("15/5" xếp 15/5/2018 trên 15/52). Đoạn trích trên thẻ màn Tìm theo cùng thứ tự, nên vẫn trùng dòng đầu của sheet.
+### Notes
+- Không đổi chỉ mục, không đổi số đoạn khớp: chỉ đổi thứ tự.
+- Luật DN 2020 bản VBHN có hai "Điều 3" (của luật sửa đổi ở tr.128 và của Luật DN ở tr.1); bản tr.128 ngắn hơn nên đứng #1, bản tr.1 #2. Giữ luật "đoạn ngắn trước" vì cả hai đều là Điều 3.
+
 ## [1.42.1] (2026-10-14): Slide cuộn tới cuối là đọc xong · "Có gì mới" gọn hơn
 ### Fixed
 - **Cuộn tay tới cuối slide, chân trang dừng ở trang áp chót ("7 / 8")** nên slide đọc xong vẫn nằm mãi trong "Đang đọc dở" (thanh tiến độ không bao giờ đầy). Nguyên nhân: ở đáy, hai slide cuối cùng hiện trọn, bằng nhau thì luật "trang chiếm nhiều màn nhất" của 1.41.1 chọn trang trên. Nay **đã cuộn chạm đáy thì là trang cuối** (`pageInView`); trang vừa nhảy tới vẫn được giữ như 1.41.1 (nhảy tới 7 ở gần cuối vẫn là 7) cho tới khi người dùng kéo, và **một cú kéo nhả trang đang giữ thì đọc lại màn hình ngay**, kể cả khi ở đáy kéo không cuộn được (review bắt: deck 1.42.0 để lại ở "7 / 8" mở lại nằm sẵn ở đáy, vuốt mãi vẫn 7 / 8); tài liệu ngắn vừa trọn một khung (hoặc chỉ dư 1 px do làm tròn) không bị tính đọc xong khi mở. Tái hiện trên UBS1 với 1.42.0 trước khi sửa (cuộn lên 5 / 8, xuống đáy 7 / 8).
