@@ -476,6 +476,23 @@ Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) —
     trong RAM vật lý; (4) máy `status normal`, free 3.98 GB → không có áp lực buộc trả thêm.
     → Con số "giữ lại" là **PSS kế toán**, RAM vật lý thực bị chiếm nhỏ hơn nhiều. *Phép thử tuyệt
     đối (chưa cần chạy):* ép áp lực bộ nhớ thật rồi đo lại — chỉ làm nếu sau này thấy máy Gú ì.
+- **v1.42.2: tra "điều 3" ra đúng Điều 3 trước (16/10).** Sửa lỗi Gú báo (Luật Thương mại 2005),
+  không spec/plan. Chữ cuối câu tra luôn khớp tiền tố, nên "3" khớp cả 34, 312; xếp theo vị trí rồi
+  độ dài thì Điều 3 (kèm đoạn mở đầu) thua các Điều 3x chỉ có tiêu đề. Nay hai bậc: chữ cuối khớp
+  NGUYÊN từ trước, khớp tiền tố sau (`eachMatch` báo `whole`; `search` và thẻ `searchDocs` cùng thứ
+  tự, nên thẻ vẫn = dòng đầu sheet). Không đổi chỉ mục, không đổi số đoạn khớp.
+  - **Verify:** tái hiện trên sidecar thật Luật DN 2020 (kéo từ UBS1, chỉ đọc) bằng harness tạm gọi
+    `indexDoc`/`mergeShards`/`search`: "điều 3" 18 đoạn, "Điều 3. Áp dụng Luật Doanh nghiệp…" đứng
+    **#11** trước sửa, **#2** sau sửa (#1 là "Điều 3. Điều khoản chuyển tiếp" tr.128 của luật sửa
+    đổi, ngắn hơn). UBS1, APK release 1.42.2 sha1 `98beac5…`: sheet "Tìm trong tài liệu này" gõ
+    "dieu 3" → 18 đoạn, hai Điều 3 ở #1–#2, rồi đoạn dẫn chiếu "Điều 3", Điều 3x sau cùng.
+    **e2e 8/8 · 3 ph 18 s · $0 · Haiku 5.5 (không gọi model) · app v1.42.2.** Chưa kiểm dGen1.
+  - **Bẫy kiểm tay (UBS1):** gõ chữ "u" bằng `adb shell input text`/`keyevent` đều bị Gboard nuốt
+    (đã ghi ở `e2e/README.md`), máy không có lệnh clipboard qua adb → chạm phím "u" trên bàn phím ảo
+    bằng toạ độ. Phím ESC (`keyevent 111`) để cất bàn phím ĐÓNG luôn sheet; cất bằng cách chạm tiêu đề.
+  - **Chưa giải thích được:** cài 1.42.2 đè 1.42.1 rồi mở bằng `agent-device open`, bảng "Có gì mới"
+    không thấy hiện (mở lại bằng `monkey` cũng không). Code "Có gì mới" không đổi ở bản này; cần kiểm
+    lại trên dGen1 (cài rồi mở bằng `monkey`, không qua agent-device) trước khi lên Prod.
 - **v1.42.1: slide cuộn tới cuối là đọc xong · "Có gì mới" gọn hơn (14/10).** Beat polish, không spec/plan
   (thiết kế ngắn huynh duyệt trong phiên). (a) **Cuộn tay tới cuối slide dừng "7 / 8"**: ở đáy hai
   slide cuối hiện trọn, luật "trang chiếm nhiều màn nhất" (1.41.1) chọn trang trên khi bằng nhau →
