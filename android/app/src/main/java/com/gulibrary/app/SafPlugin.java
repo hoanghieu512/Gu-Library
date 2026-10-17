@@ -265,9 +265,25 @@ public class SafPlugin extends Plugin {
             if (child == null) { call.reject("createDirectory returned null"); return; }
             // (2) Bị dedup ("_inbox (1)")? = bản gốc ĐÃ tồn tại (dò (1) lỡ vì churn). Xóa bản
             // trùng rỗng vừa tạo rồi trả bản gốc — CHỈ khi xác nhận được gốc (không thì giữ chỗ ghi).
-            if (!name.equals(child.getName())) {
+            String gotName = child.getName();
+            if (!name.equals(gotName)) {
+                String created = child.getUri().toString();
                 String real = findChildDirByName(parentTree, name);
-                if (real != null) { child.delete(); ret.put("uri", real); call.resolve(ret); return; }
+                if (real != null && !real.equals(created)) {
+                    if (!child.delete()) android.util.Log.w("GuSaf", "ensureDir could not remove the copy '" + gotName + "'");
+                    ret.put("uri", real); call.resolve(ret); return;
+                }
+                if (real == null) {
+                    // The rename proves `name` exists, yet the parent's listing cannot see it: the
+                    // provider is hiding the kho (dGen1, 2026-10-17, after a bad boot). Handing back
+                    // the copy would split the kho, so undo it and refuse. JS maps KHO_HIDDEN to
+                    // KhoUnreadableError.
+                    boolean removed = child.delete();
+                    android.util.Log.w("GuSaf", "ensureDir '" + name + "' is hidden; copy '" + gotName + "' removed=" + removed);
+                    call.reject("'" + name + "' exists but the provider does not list it"
+                        + (removed ? "" : "; could not remove the copy '" + gotName + "'"), "KHO_HIDDEN");
+                    return;
+                }
             }
             ret.put("uri", child.getUri().toString());
             call.resolve(ret);

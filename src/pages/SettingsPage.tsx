@@ -16,6 +16,8 @@ import WhatsNewEntry from '../components/WhatsNewEntry';
 import Row, { Chevron } from '../components/SettingsRow';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { clearIndex } from '../search/store';
+import { getKhoSnapshot } from '../storage/khoSnapshot';
+import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../storage/khoHidden';
 import { useGuToast } from '../lib/useGuToast';
 import { SYNC_MAP } from '../sync/syncLabels';
 
@@ -97,6 +99,11 @@ export default function SettingsPage() {
           hint="Dùng khi tìm ra kết quả cũ hoặc thiếu · lần vào màn Tìm sau sẽ đọc lại cả kho"
           trailing={chevron}
           onClick={async () => {
+            // A kho Android is hiding reads as empty: clearing the index then leaves nothing to rebuild
+            // it from, so keep it and say to restart the phone. Any other failure clears as before.
+            try { await getKhoSnapshot(true); } catch (err) {
+              if (err instanceof KhoUnreadableError) { toastResult(KHO_UNREADABLE_MESSAGE, false); return; }
+            }
             await clearIndex();
             toastResult('Đã xoá chỉ mục — mở màn Tìm để dựng lại', true);
           }}

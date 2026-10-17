@@ -11,16 +11,22 @@ import { onKhoChanged } from '../lib/khoEvents';
 import { listMon } from '../storage/repo';
 import KhoRow, { StatusPill } from '../components/KhoRow';
 import MonSwatch from '../components/MonSwatch';
+import KhoUnreadableNotice from '../components/KhoUnreadableNotice';
+import { KhoUnreadableError } from '../storage/khoHidden';
 
 export default function PrintPage() {
   const [rows, setRows] = useState<PrintRow[]>([]);
   const [busy, setBusy] = useState(false);
+  // Android is hiding the kho: an empty list would claim nothing needs printing, so say what to do.
+  const [khoHidden, setKhoHidden] = useState(false);
   // Màu môn cho swatch ở header nhóm — ĐỌC từ `_mon.json` (cùng nguồn màu gáy kệ Home), không
   // suy từ tên: môn Gú đã gán màu phải ra ĐÚNG màu đó. Lỗi đọc → bỏ swatch, không chặn màn.
   const [monColors, setMonColors] = useState<Map<string, string | undefined>>(new Map());
 
   const reload = useCallback(() => {
-    listPrintRows().then(setRows).catch(() => setRows([]));
+    listPrintRows()
+      .then((r) => { setRows(r); setKhoHidden(false); })
+      .catch((err) => { setRows([]); setKhoHidden(err instanceof KhoUnreadableError); });
     listMon()
       .then((ms) => setMonColors(new Map(ms.map((m) => [m.name, m.meta.color] as const))))
       .catch(() => { /* giữ map cũ */ });
@@ -45,7 +51,10 @@ export default function PrintPage() {
 
   const doGom = async () => {
     setBusy(true);
-    try { await gomToPrint(); reload(); } finally { setBusy(false); }
+    try { await gomToPrint(); reload(); } catch (err) {
+      if (!(err instanceof KhoUnreadableError)) throw err;
+      setRows([]); setKhoHidden(true);
+    } finally { setBusy(false); }
   };
 
   const doDone = async (row: PrintRow) => {
@@ -72,7 +81,8 @@ export default function PrintPage() {
       {/* Padding NGANG ở content; padding DỌC nằm trong từng header (h2) → dải nền header
           đồng đều mọi nhóm (nhóm đầu không còn mỏng hơn do padding-top của content). */}
       <IonContent style={{ '--padding-start': '16px', '--padding-end': '16px', '--padding-bottom': '16px' } as CSSProperties}>
-        {rows.length === 0 && (
+        {khoHidden && <KhoUnreadableNotice />}
+        {!khoHidden && rows.length === 0 && (
           <p style={{ color: 'var(--gu-grey)', paddingTop: 16 }}>Chưa có tài liệu nào cần in.</p>
         )}
         {[...byMon.entries()].map(([mon, list]) => (

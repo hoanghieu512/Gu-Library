@@ -32,6 +32,8 @@ import { countPrintFlagged } from '../print/printRepo';
 import { encodeUriParam } from '../storage/uriParam';
 import { perfColdReady, afterPaint } from '../perf/perf';
 import { invalidateKho } from '../storage/khoSnapshot';
+import { KhoUnreadableError } from '../storage/khoHidden';
+import KhoUnreadableNotice from '../components/KhoUnreadableNotice';
 
 export default function HomePage() {
   const history = useHistory();
@@ -49,17 +51,27 @@ export default function HomePage() {
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
   // vì key=uri ổn định nên MonCard không tự remount.
   const [refreshTick, setRefreshTick] = useState(0);
+  // Android is hiding the whole kho (khoHidden.ts): show "restart the phone" in place of the shelf.
+  const [khoHidden, setKhoHidden] = useState(false);
 
   const reload = async () => {
     const root = await getRootUri();
     setHasRoot(!!root);
     await migrateOnce();
-    setReading(await listReading());
+    let hidden = false;
+    try { setReading(await listReading()); } catch (err) {
+      setReading([]);
+      hidden = err instanceof KhoUnreadableError;
+    }
     if (root) {
-      try { setMons(await listMon()); } catch { setMons([]); }
+      try { setMons(await listMon()); } catch (err) {
+        setMons([]);
+        hidden = hidden || err instanceof KhoUnreadableError;
+      }
     } else {
       setMons([]);
     }
+    setKhoHidden(hidden);
     try { setPrintCount(await countPrintFlagged()); } catch { setPrintCount(0); }
     setRefreshTick((t) => t + 1);
     // Cold start: Trang chủ vẽ xong danh sách lần đầu (perfColdReady chỉ tính 1 lần/phiên).
@@ -193,7 +205,9 @@ export default function HomePage() {
           </div>
         )}
 
-        {hasRoot && (
+        {hasRoot && khoHidden && <KhoUnreadableNotice />}
+
+        {hasRoot && !khoHidden && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', marginTop: 16 }}>
               <h2 className="gu-title" style={{ fontSize: 18, margin: 0, paddingInlineStart: 16, flex: 1 }}>Môn học</h2>

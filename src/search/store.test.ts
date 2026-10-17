@@ -1,8 +1,21 @@
-import { describe, it, expect } from 'vitest';
-import { displayNameMap, stampOf } from './store';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { displayNameMap, refreshIndex, stampOf } from './store';
+import { Saf } from '../plugins/saf';
+import { fakeKho, ROOT } from '../test/fakeSaf';
+import { KhoUnreadableError } from '../storage/khoHidden';
 import type { KhoFolder } from '../storage/khoSnapshot';
 import type { Document, Mon } from '../storage/types';
 import { indexDoc, mergeShards, search } from './invertedIndex';
+
+const prefs = vi.hoisted(() => new Map<string, string>());
+vi.mock('@capacitor/preferences', () => ({
+  Preferences: {
+    get: async ({ key }: { key: string }) => ({ value: prefs.get(key) ?? null }),
+    set: async ({ key, value }: { key: string; value: string }) => { prefs.set(key, value); },
+    remove: async ({ key }: { key: string }) => { prefs.delete(key); },
+  },
+}));
+vi.mock('../plugins/saf', () => ({ Saf: {} }));
 
 const DOC_A = { pdfUri: 'uri://a.pdf', name: 'Luật Đất đai', mon: 'Đất Đai' };
 const DOC_B = { pdfUri: 'uri://b.pdf', name: 'Bài giảng', mon: 'Hình sự chung' };
@@ -86,5 +99,29 @@ describe('displayNameMap — renamed documents for the Search cards (v1.41.1)', 
     const m: Mon = { name: 'Đất Đai', uri: mon.uri, meta: {} as Mon['meta'] };
     expect(displayNameMap({ mons: [m], monFolders: new Map([[m.uri, mon]]) })).toEqual(
       new Map([['u:a.pdf', 'Luật Đất đai 2024'], ['u:c.pdf', 'Slide chương 1']]));
+  });
+});
+
+// dGen1, 2026-10-17: the provider hid the kho, it read as empty, and the refresh replaced the
+// stored index with that empty kho. The refresh must fail before it touches the stored index.
+describe('refreshIndex — a kho Android will not list', () => {
+  const open = vi.fn(() => { throw new Error('the stored index was touched'); });
+  beforeEach(() => {
+    prefs.clear();
+    prefs.set('saf_root_uri', ROOT);
+    const kho = fakeKho();
+    Object.assign(Saf, kho.saf);
+    kho.put('Logic/bai1.pdf');
+    kho.put('Logic/bai1.json', '{"units":[]}');
+    kho.mkdir('_inbox');
+    kho.state.hideAll = true;
+    open.mockClear();
+    vi.stubGlobal('indexedDB', { open });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('refuses without reading or replacing the stored index', async () => {
+    await expect(refreshIndex()).rejects.toBeInstanceOf(KhoUnreadableError);
+    expect(open).not.toHaveBeenCalled();
   });
 });

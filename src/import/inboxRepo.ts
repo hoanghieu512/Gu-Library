@@ -4,6 +4,7 @@ import { getRootUri } from '../storage/repo';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { makeInboxName, parseInboxPrefix } from './prefix';
 import { getKhoSnapshot } from '../storage/khoSnapshot';
+import { ensureKhoDir, KhoUnreadableError } from '../storage/khoHidden';
 
 const INBOX = '_inbox';
 const KEY_LAST_MON = 'last_mon_name';
@@ -19,8 +20,7 @@ export async function setLastMon(mon: string): Promise<void> {
 async function ensureInbox(): Promise<string> {
   const root = await getRootUri();
   if (!root) throw new Error('Chưa chọn folder kho (Cài đặt)');
-  const { uri } = await Saf.ensureDir({ parentUri: root, name: INBOX });
-  return uri;
+  return ensureKhoDir(root, INBOX);
 }
 
 // Copy file share vào _inbox/ với tiền tố ĐƯỜNG ĐÍCH (mảng đoạn từ môn xuống). Trả tên cuối.
@@ -47,7 +47,11 @@ export async function importBatch(
     const f = files[i];
     onProgress?.(i + 1, files.length, f.name);
     try { await importSharedFile(f.uri, f.name, path); ok += 1; }
-    catch { fails.push(f.name); }
+    catch (err) {
+      // A kho Android is hiding fails every file the same way: stop the batch and say so.
+      if (err instanceof KhoUnreadableError) { if (ok > 0) emitKhoChanged(); throw err; }
+      fails.push(f.name);
+    }
   }
   if (ok > 0) emitKhoChanged();
   return { ok, fails };

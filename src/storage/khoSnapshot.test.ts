@@ -1,6 +1,19 @@
-import { describe, it, expect } from 'vitest';
-import { foldSummary, countFlagged, folderByPath, type KhoFolder, type KhoSnapshot } from './khoSnapshot';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { foldSummary, countFlagged, folderByPath, getKhoSnapshot, type KhoFolder, type KhoSnapshot } from './khoSnapshot';
 import type { Document, FolderListing } from './types';
+import { Saf } from '../plugins/saf';
+import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
+import { KhoUnreadableError } from './khoHidden';
+
+const prefs = vi.hoisted(() => new Map<string, string>());
+vi.mock('@capacitor/preferences', () => ({
+  Preferences: {
+    get: async ({ key }: { key: string }) => ({ value: prefs.get(key) ?? null }),
+    set: async ({ key, value }: { key: string; value: string }) => { prefs.set(key, value); },
+    remove: async ({ key }: { key: string }) => { prefs.delete(key); },
+  },
+}));
+vi.mock('../plugins/saf', () => ({ Saf: {} }));
 
 function doc(base: string, flagged = false): Document {
   return { name: base, fileBase: base, pdfUri: `u:${base}.pdf`, jsonUri: `u:${base}.json`, printFlagged: flagged };
@@ -51,5 +64,43 @@ describe('folderByPath', () => {
     expect(folderByPath(snap, ['Logic', 'KhongCo'])).toBeNull();
     expect(folderByPath(snap, ['SaiMon'])).toBeNull();
     expect(folderByPath(snap, [])).toBeNull();
+  });
+});
+
+describe('getKhoSnapshot — a kho Android will not list', () => {
+  let kho: FakeKho;
+  beforeEach(() => {
+    prefs.clear();
+    prefs.set('saf_root_uri', ROOT);
+    kho = fakeKho();
+    Object.assign(Saf, kho.saf);
+  });
+
+  it('reads the subjects of a kho that lists', async () => {
+    kho.mkdir('Logic');
+    kho.mkdir('_inbox');
+    expect((await getKhoSnapshot(true)).mons.map((m) => m.name)).toEqual(['Logic']);
+  });
+
+  it('takes a kho that is really empty as empty', async () => {
+    expect((await getKhoSnapshot(true)).mons).toEqual([]);
+  });
+
+  // dGen1, 2026-10-17: the root listed nothing, so Home showed no subjects and the search index
+  // was rebuilt from that empty tree. Refuse instead of handing out an empty kho.
+  it('refuses a kho whose root lists nothing while its folders are still there', async () => {
+    kho.mkdir('Logic');
+    kho.mkdir('_inbox');
+    kho.state.hideAll = true;
+    await expect(getKhoSnapshot(true)).rejects.toBeInstanceOf(KhoUnreadableError);
+  });
+
+  it('leaves no folder behind when the plugin refuses the hidden kho', async () => {
+    kho.mkdir('Logic');
+    kho.mkdir('_inbox');
+    kho.state.hideAll = true;
+    kho.state.rejectHidden = true;
+    await expect(getKhoSnapshot(true)).rejects.toBeInstanceOf(KhoUnreadableError);
+    expect(kho.dirNames()).toEqual(['Logic', '_inbox']);
   });
 });
