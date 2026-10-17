@@ -5,6 +5,14 @@ import type { ReleaseNote } from './types';
 // fails when package.json's version has none. Technical history stays in CHANGELOG.md.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.42.3',
+    date: '18/10/2026',
+    items: [
+      { kind: 'fix', text: 'Có lúc điện thoại khởi động bị lỗi, app không đọc được folder kho: Trang chủ trống trơn như mất hết môn, còn file gửi vào app thì nằm nhầm chỗ, máy tính không thấy. Giờ gặp lúc đó app báo "Không đọc được kho", nhắc Pé khởi động lại máy, và không ghi gì vào kho. Khởi động lại rồi mở app là đâu vào đấy nha.' },
+      { kind: 'fix', text: 'Lúc lưu hay chuyển tài liệu, bấm "Thư mục mới" gõ tên trùng thư mục đã có chỉ khác chữ hoa chữ thường (như "slide" khi đã có "Slide"), trước đây app tạo thêm "slide (1)" rồi bỏ tài liệu vào đó. Giờ app báo "Đã tồn tại" luôn.' },
+    ],
+  },
+  {
     version: '1.42.2',
     date: '16/10/2026',
     items: [
