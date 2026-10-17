@@ -57,3 +57,26 @@ describe('recordProgress', () => {
     expect(kho.fileNames()).toEqual([FILE]);
   });
 });
+
+// Each page turn saves progress. While the kho is hidden, finding that out takes an ensureDir that
+// makes a real "_inbox (1)" on disk and removes it again, which Syncthing may pick up.
+describe('recordProgress, page after page while the kho is hidden', () => {
+  it('never probes it with a folder', async () => {
+    kho.state.hideAll = true;
+    kho.state.rejectHidden = true;
+    const ensure = vi.spyOn(Saf, 'ensureDir');
+    await expect(recordProgress(doc, 3, 10)).rejects.toBeInstanceOf(KhoUnreadableError);
+    await expect(recordProgress(doc, 4, 10)).rejects.toBeInstanceOf(KhoUnreadableError);
+    await expect(recordProgress(doc, 5, 10)).rejects.toBeInstanceOf(KhoUnreadableError);
+    expect(ensure).not.toHaveBeenCalled();
+  });
+
+  it('writes again once the kho lists', async () => {
+    kho.state.hideAll = true;
+    kho.state.rejectHidden = true;
+    await expect(recordProgress(doc, 3, 10)).rejects.toBeInstanceOf(KhoUnreadableError);
+    kho.state.hideAll = false;
+    await recordProgress(doc, 4, 10);
+    expect((await entriesOf())['Logic/bai1.pdf'].page).toBe(4);
+  });
+});

@@ -31,7 +31,9 @@ export async function khoWrite<T>(write: Promise<T>): Promise<T> {
   try {
     return await write;
   } catch (err) {
-    if ((err as { code?: string }).code === HIDDEN_CODE) throw new KhoUnreadableError((err as Error).message);
+    if ((err as { code?: string } | null | undefined)?.code === HIDDEN_CODE) {
+      throw new KhoUnreadableError((err as Error).message);
+    }
     throw err;
   }
 }
@@ -44,7 +46,9 @@ export async function khoWrite<T>(write: Promise<T>): Promise<T> {
 export async function ensureKhoDir(root: string, name: string): Promise<string> {
   const { uri } = await khoWrite(Saf.ensureDir({ parentUri: root, name }));
   const { entries } = await Saf.listFolder({ uri: root });
-  if (!entries.some((e) => e.isDirectory && e.name === name)) {
+  // Any case: on a case-insensitive disk (UBS1) "_Inbox" is the folder ensureDir handed back.
+  const want = name.toLowerCase();
+  if (!entries.some((e) => e.isDirectory && e.name.toLowerCase() === want)) {
     throw new KhoUnreadableError(`root does not list ${name}`);
   }
   return uri;

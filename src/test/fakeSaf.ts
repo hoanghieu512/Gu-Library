@@ -17,7 +17,7 @@ interface Node { name: string; isDirectory: boolean; parent: string | null; data
 
 export interface FakeKho {
   saf: Partial<SafPlugin>;
-  state: { hideAll: boolean; rejectHidden: boolean };
+  state: { hideAll: boolean; rejectHidden: boolean; caseInsensitive: boolean };
   /** Names of the folders directly under `parentUri`, as they are on disk (ignores hideAll). */
   dirNames(parentUri?: string): string[];
   /** Names of the files directly under `parentUri`, as they are on disk (ignores hideAll). */
@@ -29,12 +29,14 @@ export interface FakeKho {
 
 export function fakeKho(): FakeKho {
   const nodes = new Map<string, Node>([[ROOT, { name: 'kho', isDirectory: true, parent: null, data: '', docId: ROOT_DOC }]]);
-  const state = { hideAll: false, rejectHidden: false };
+  const state = { hideAll: false, rejectHidden: false, caseInsensitive: false };
 
   const children = (uri: string) => [...nodes.entries()].filter(([, n]) => n.parent === uri);
   const toEntry = ([uri, n]: [string, Node]): SafEntry =>
     ({ name: n.name, isDirectory: n.isDirectory, uri, size: n.data.length, lastModified: 1 });
-  const taken = (parent: string, name: string) => children(parent).some(([, n]) => n.name === name);
+  // `caseInsensitive` mimics UBS1's disk, where "Slide" takes the name "slide".
+  const same = (a: string, b: string) => (state.caseInsensitive ? a.toLowerCase() === b.toLowerCase() : a === b);
+  const taken = (parent: string, name: string) => children(parent).some(([, n]) => same(n.name, name));
 
   // Android dedups a folder as "x (1)" and a file as "x (1).pdf".
   const uniqueName = (parent: string, name: string, isDirectory: boolean) => {
@@ -93,9 +95,12 @@ export function fakeKho(): FakeKho {
       if (!n || n.isDirectory) throw new Error('read failed');
       return { data: n.data };
     },
-    // Mirrors SafPlugin.ensureDir: reuse the folder the listing shows, otherwise create one.
+    // Mirrors SafPlugin.ensureDir: reuse the folder the listing shows (exact name first, then the
+    // same name in another case, like SafNames.pick), otherwise create one.
     async ensureDir({ parentUri, name }) {
-      const seen = visible(parentUri).find(([, n]) => n.isDirectory && n.name === name);
+      const dirs = visible(parentUri).filter(([, n]) => n.isDirectory);
+      const seen = dirs.find(([, n]) => n.name === name)
+        ?? dirs.find(([, n]) => n.name.toLowerCase() === name.toLowerCase());
       if (seen) return { uri: seen[0] };
       return { uri: create(parentUri, name, true) };
     },

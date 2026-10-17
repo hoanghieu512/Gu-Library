@@ -46,7 +46,7 @@ function renderPrint() {
   );
 }
 
-describe('PrintPage — a kho Android will not list', () => {
+describe('PrintPage: a kho Android will not list', () => {
   it('lists what is flagged for printing', async () => {
     renderPrint();
     expect(await screen.findByText('bai1')).toBeInTheDocument();

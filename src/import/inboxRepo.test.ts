@@ -53,6 +53,16 @@ describe('importBatch', () => {
     expect(kho.dirNames()).toEqual(['_inbox']);
   });
 
+  // UBS1's disk ignores case: an "_Inbox" there is the _inbox the worker reads, not a hidden kho.
+  it('uses an _inbox spelled in another case', async () => {
+    const inbox = kho.mkdir('_Inbox');
+    kho.state.caseInsensitive = true;
+    const r = await importBatch([FILE], ['Logic']);
+    expect(r.ok).toBe(1);
+    expect(kho.dirNames()).toEqual(['_Inbox']);
+    expect(kho.fileNames(inbox)).toHaveLength(1);
+  });
+
   it('still counts any other per-file failure and carries on', async () => {
     kho.mkdir('_inbox');
     const copy = Saf.copyToDir;

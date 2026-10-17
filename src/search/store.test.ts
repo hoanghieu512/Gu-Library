@@ -104,7 +104,7 @@ describe('displayNameMap — renamed documents for the Search cards (v1.41.1)', 
 
 // dGen1, 2026-10-17: the provider hid the kho, it read as empty, and the refresh replaced the
 // stored index with that empty kho. The refresh must fail before it touches the stored index.
-describe('refreshIndex — a kho Android will not list', () => {
+describe('refreshIndex: a kho Android will not list', () => {
   const open = vi.fn(() => { throw new Error('the stored index was touched'); });
   beforeEach(() => {
     prefs.clear();

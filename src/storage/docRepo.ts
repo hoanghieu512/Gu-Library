@@ -41,10 +41,10 @@ export async function moveDocument(folderUri: string, base: string, destFolderUr
   for (const f of cluster) {
     const newName = newBase + f.suffix;
     if (isBinary(f.suffix)) {
-      await khoWrite(Saf.copyToDir({ srcUri: f.uri, dirUri: destFolderUri, name: newName })); // stream, mime pdf — an toàn bộ nhớ + .tmp
+      await khoWrite(Saf.copyToDir({ srcUri: f.uri, dirUri: destFolderUri, name: newName })); // stream, mime pdf: an toàn bộ nhớ + .tmp
     } else {
       const { data } = await Saf.readFile({ uri: f.uri });
-      await khoWrite(Saf.writeFile({ dirUri: destFolderUri, name: newName, content: data })); // json text — tránh octet-mime .tmp
+      await khoWrite(Saf.writeFile({ dirUri: destFolderUri, name: newName, content: data })); // json text: tránh octet-mime .tmp
     }
   }
   for (const f of cluster) await Saf.deleteFile({ uri: f.uri }); // xoá gốc SAU khi copy xong cả cụm

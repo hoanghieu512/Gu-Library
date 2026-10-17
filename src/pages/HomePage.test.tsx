@@ -48,7 +48,7 @@ function renderHome() {
   );
 }
 
-describe('HomePage — a kho Android will not list', () => {
+describe('HomePage: a kho Android will not list', () => {
   it('shows the subjects of a kho that lists', async () => {
     renderHome();
     expect(await screen.findByText('Môn học')).toBeInTheDocument();

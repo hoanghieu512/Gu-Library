@@ -67,7 +67,7 @@ describe('folderByPath', () => {
   });
 });
 
-describe('getKhoSnapshot — a kho Android will not list', () => {
+describe('getKhoSnapshot: a kho Android will not list', () => {
   let kho: FakeKho;
   beforeEach(() => {
     prefs.clear();

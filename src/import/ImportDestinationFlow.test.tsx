@@ -45,7 +45,7 @@ function importOneFile() {
   fireEvent.click(screen.getByText('Lưu vào Logic'));
 }
 
-describe('ImportDestinationFlow — a kho Android will not list', () => {
+describe('ImportDestinationFlow: a kho Android will not list', () => {
   it('ends on how many files went in', async () => {
     importOneFile();
     expect(await screen.findByText('Đã nhập 1/1 file')).toBeInTheDocument();
