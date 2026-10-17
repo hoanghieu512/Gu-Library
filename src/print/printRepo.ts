@@ -6,6 +6,7 @@ import { emitKhoChanged } from '../lib/khoEvents';
 import { parseDisplayName } from '../storage/displayName';
 import { printFlagName, printedNameFor, isSentMatch } from './printName';
 import { getKhoSnapshot, countFlagged } from '../storage/khoSnapshot';
+import { ensureKhoDir, khoWrite, KhoUnreadableError } from '../storage/khoHidden';
 
 const PRINT_DIR = '_print';
 
@@ -30,11 +31,11 @@ async function resolveDocFolder(docUri: string): Promise<{ folderUri: string; ba
 export async function setPrintFlag(docUri: string): Promise<void> {
   const ctx = await resolveDocFolder(docUri);
   if (!ctx) throw new Error('Không tìm thấy thư mục tài liệu');
-  await Saf.writeFile({
+  await khoWrite(Saf.writeFile({
     dirUri: ctx.folderUri,
     name: printFlagName(ctx.base),
     content: JSON.stringify({ v: 1, flaggedAt: Date.now() }),
-  });
+  }));
   emitKhoChanged();
 }
 
@@ -96,12 +97,16 @@ export async function countPrintFlagged(): Promise<number> {
 }
 
 // Liệt kê _print/ (file con). Không tồn tại → [].
+// A kho Android is hiding is not swallowed: an empty list would claim nothing needs printing.
 async function listPrintEntries(root: string): Promise<{ name: string; uri: string }[]> {
   try {
-    const { uri } = await Saf.ensureDir({ parentUri: root, name: PRINT_DIR });
+    const uri = await ensureKhoDir(root, PRINT_DIR);
     const { entries } = await Saf.listFolder({ uri });
     return entries.filter((e) => !e.isDirectory).map((e) => ({ name: e.name, uri: e.uri }));
-  } catch { return []; }
+  } catch (err) {
+    if (err instanceof KhoUnreadableError) throw err;
+    return [];
+  }
 }
 
 export interface PrintRow {
@@ -130,9 +135,9 @@ export async function gomToPrint(): Promise<number> {
   const root = await getRootUri(); if (!root) throw new Error('Chưa chọn folder kho');
   const toCopy = (await listPrintRows()).filter((r) => !r.sent);
   if (toCopy.length === 0) return 0;
-  const { uri: printUri } = await Saf.ensureDir({ parentUri: root, name: PRINT_DIR });
+  const printUri = await ensureKhoDir(root, PRINT_DIR);
   for (const r of toCopy) {
-    await Saf.copyToDir({ srcUri: r.pdfUri, dirUri: printUri, name: printedNameFor(r.monName, r.fileBase) });
+    await khoWrite(Saf.copyToDir({ srcUri: r.pdfUri, dirUri: printUri, name: printedNameFor(r.monName, r.fileBase) }));
   }
   emitKhoChanged();
   return toCopy.length;

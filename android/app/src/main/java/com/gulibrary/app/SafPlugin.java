@@ -226,6 +226,10 @@ public class SafPlugin extends Plugin {
             String uniq = uniqueName(dir, name);
             androidx.documentfile.provider.DocumentFile f = dir.createFile(mimeForName(uniq), uniq);
             if (f == null) { call.reject("createFile returned null"); return; }
+            String got = f.getName();
+            if (SafNames.mayBeRenamed(got, uniq) && findChildByName(android.net.Uri.parse(dirUri), uniq, null) == null) {
+                rejectHidden(call, "copyToDir", uniq, f); return;
+            }
             java.io.InputStream is = getContext().getContentResolver().openInputStream(android.net.Uri.parse(srcUri));
             java.io.OutputStream os = getContext().getContentResolver().openOutputStream(f.getUri());
             if (is == null || os == null) { call.reject("open stream failed"); return; }
@@ -235,7 +239,7 @@ public class SafPlugin extends Plugin {
             os.flush(); os.close(); is.close();
             com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
             ret.put("uri", f.getUri().toString());
-            ret.put("name", uniq);
+            ret.put("name", got != null ? got : uniq); // the name on disk, even if the provider changed it
             call.resolve(ret);
         } catch (Exception e) { call.reject("copy failed: " + e.getMessage()); }
     }
@@ -265,9 +269,17 @@ public class SafPlugin extends Plugin {
             if (child == null) { call.reject("createDirectory returned null"); return; }
             // (2) Bị dedup ("_inbox (1)")? = bản gốc ĐÃ tồn tại (dò (1) lỡ vì churn). Xóa bản
             // trùng rỗng vừa tạo rồi trả bản gốc — CHỈ khi xác nhận được gốc (không thì giữ chỗ ghi).
-            if (!name.equals(child.getName())) {
+            String gotName = child.getName();
+            if (SafNames.mayBeRenamed(gotName, name)) {
+                String created = child.getUri().toString();
                 String real = findChildDirByName(parentTree, name);
-                if (real != null) { child.delete(); ret.put("uri", real); call.resolve(ret); return; }
+                if (real != null && !real.equals(created)) {
+                    if (!child.delete()) android.util.Log.w("GuSaf", "ensureDir could not remove the copy '" + gotName + "'");
+                    ret.put("uri", real); call.resolve(ret); return;
+                }
+                if (real == null && findChildByName(parentTree, name, null) == null) {
+                    rejectHidden(call, "ensureDir", name, child); return;
+                }
             }
             ret.put("uri", child.getUri().toString());
             call.resolve(ret);
@@ -277,6 +289,16 @@ public class SafPlugin extends Plugin {
     // Dò con là THƯ MỤC tên khớp bằng một cursor DocumentsContract tươi (giống listFolder) → không
     // qua cache DocumentFile.findFile (nguồn stale gây tạo trùng). Trả URI con, hoặc null nếu vắng.
     private String findChildDirByName(Uri parentTree, String name) {
+        return findChildByName(parentTree, name, true);
+    }
+
+    private String findChildFileByName(Uri parentTree, String name) {
+        return findChildByName(parentTree, name, false);
+    }
+
+    // `wantDir` null = a child of either kind. The exact name wins; else the same name in another
+    // case (SafNames.pick). A failed query lists nothing.
+    private String findChildByName(Uri parentTree, String name, Boolean wantDir) {
         String parentDocId;
         try { parentDocId = android.provider.DocumentsContract.getDocumentId(parentTree); }
         catch (Exception e) { parentDocId = android.provider.DocumentsContract.getTreeDocumentId(parentTree); }
@@ -286,16 +308,33 @@ public class SafPlugin extends Plugin {
             android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE
         };
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        java.util.List<String> names = new java.util.ArrayList<>();
         try (android.database.Cursor c =
                  getContext().getContentResolver().query(childrenUri, proj, null, null, null)) {
             while (c != null && c.moveToNext()) {
-                if (name.equals(c.getString(1))
-                    && android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) {
-                    return android.provider.DocumentsContract.buildDocumentUriUsingTree(parentTree, c.getString(0)).toString();
+                boolean isDir = android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2));
+                if (wantDir == null || wantDir == isDir) {
+                    ids.add(c.getString(0));
+                    names.add(c.getString(1));
                 }
             }
         } catch (Exception e) { /* dò lỗi → coi như chưa có, để createDirectory thử */ }
-        return null;
+        int i = SafNames.pick(names, name);
+        return i < 0 ? null : android.provider.DocumentsContract.buildDocumentUriUsingTree(parentTree, ids.get(i)).toString();
+    }
+
+    // The provider renamed a new document because `name` is taken on disk, yet the parent's listing
+    // cannot see `name`: it is hiding the kho (dGen1, 2026-10-17, after a bad boot). Handing back
+    // the copy would split the kho, so remove it (still empty) and refuse. JS maps KHO_HIDDEN to
+    // KhoUnreadableError. The message must not say "exists": JS reads that as a duplicate name.
+    private void rejectHidden(PluginCall call, String method, String name,
+                              androidx.documentfile.provider.DocumentFile copy) {
+        String got = copy.getName();
+        boolean removed = copy.delete();
+        android.util.Log.w("GuSaf", method + " '" + name + "' is hidden; copy '" + got + "' removed=" + removed);
+        call.reject("'" + name + "' is on disk but the provider does not list it"
+            + (removed ? "" : "; could not remove the copy '" + got + "'"), "KHO_HIDDEN");
     }
 
     // Tạo folder mới, CHẶN nếu trùng (khác ensureDir reuse). Dùng cho tạo môn/folder con.
@@ -312,6 +351,16 @@ public class SafPlugin extends Plugin {
             androidx.documentfile.provider.DocumentFile child = parent.createDirectory(name);
             if (child == null) { call.reject("createDirectory returned null"); return; }
             android.util.Log.i("GuSaf", "createDir req='" + name + "' got='" + child.getName() + "'");
+            if (SafNames.mayBeRenamed(child.getName(), name)) {
+                Uri parentTree = android.net.Uri.parse(parentUri);
+                if (findChildByName(parentTree, name, null) == null) { rejectHidden(call, "createDir", name, child); return; }
+                if (!child.getUri().toString().equals(findChildDirByName(parentTree, name))) {
+                    // `name` is listed after all (a stale findFile, the same name in another case,
+                    // or a file): it is taken, so undo the copy rather than hand back "name (1)".
+                    if (!child.delete()) android.util.Log.w("GuSaf", "createDir could not remove the copy '" + child.getName() + "'");
+                    call.reject("exists"); return;
+                }
+            }
             com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
             ret.put("uri", child.getUri().toString());
             ret.put("name", child.getName());
@@ -353,11 +402,24 @@ public class SafPlugin extends Plugin {
             if (existing != null) existing.delete();
             androidx.documentfile.provider.DocumentFile f = dir.createFile("application/octet-stream", name);
             if (f == null) { call.reject("createFile returned null"); return; }
-            java.io.OutputStream os = getContext().getContentResolver().openOutputStream(f.getUri());
+            Uri target = f.getUri();
+            if (SafNames.mayBeRenamed(f.getName(), name)) {
+                Uri dirTree = android.net.Uri.parse(dirUri);
+                if (findChildByName(dirTree, name, null) == null) { rejectHidden(call, "writeFile", name, f); return; }
+                // findFile missed a file the listing shows (stale cache, or the same name in another
+                // case): write into that file and drop the copy, instead of leaving "name (1)" beside it.
+                String real = findChildFileByName(dirTree, name);
+                if (real != null && !real.equals(target.toString())) {
+                    if (!f.delete()) android.util.Log.w("GuSaf", "writeFile could not remove the copy '" + f.getName() + "'");
+                    target = android.net.Uri.parse(real);
+                }
+            }
+            java.io.OutputStream os = getContext().getContentResolver().openOutputStream(target, "wt");
+            if (os == null) { call.reject("open stream failed"); return; }
             os.write(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             os.flush(); os.close();
             com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
-            ret.put("uri", f.getUri().toString());
+            ret.put("uri", target.toString());
             call.resolve(ret);
         } catch (Exception e) { call.reject("write failed: " + e.getMessage()); }
     }

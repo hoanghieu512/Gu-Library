@@ -4,6 +4,7 @@ import { relPathFromUris } from '../reading/paths';
 import { parseDisplayName } from './displayName';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { clusterSuffixes, uniqueBase } from './docCluster';
+import { khoWrite } from './khoHidden';
 
 const isBinary = (suffix: string) => suffix.toLowerCase() === '.pdf';
 
@@ -23,7 +24,7 @@ export async function setDisplayName(folderUri: string, base: string, name: stri
   const { entries } = await Saf.listFolder({ uri: folderUri });
   const existing = entries.find((e) => !e.isDirectory && e.name === `${base}.display.json`);
   if (trimmed) {
-    await Saf.writeFile({ dirUri: folderUri, name: `${base}.display.json`, content: JSON.stringify({ name: trimmed }) });
+    await khoWrite(Saf.writeFile({ dirUri: folderUri, name: `${base}.display.json`, content: JSON.stringify({ name: trimmed }) }));
   } else if (existing) {
     await Saf.deleteFile({ uri: existing.uri });
   }
@@ -40,10 +41,10 @@ export async function moveDocument(folderUri: string, base: string, destFolderUr
   for (const f of cluster) {
     const newName = newBase + f.suffix;
     if (isBinary(f.suffix)) {
-      await Saf.copyToDir({ srcUri: f.uri, dirUri: destFolderUri, name: newName }); // stream, mime pdf — an toàn bộ nhớ + .tmp
+      await khoWrite(Saf.copyToDir({ srcUri: f.uri, dirUri: destFolderUri, name: newName })); // stream, mime pdf: an toàn bộ nhớ + .tmp
     } else {
       const { data } = await Saf.readFile({ uri: f.uri });
-      await Saf.writeFile({ dirUri: destFolderUri, name: newName, content: data }); // json text — tránh octet-mime .tmp
+      await khoWrite(Saf.writeFile({ dirUri: destFolderUri, name: newName, content: data })); // json text: tránh octet-mime .tmp
     }
   }
   for (const f of cluster) await Saf.deleteFile({ uri: f.uri }); // xoá gốc SAU khi copy xong cả cụm

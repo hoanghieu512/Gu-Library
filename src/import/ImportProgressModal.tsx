@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { IonModal, IonButton, IonIcon } from '@ionic/react';
-import { checkmarkCircle } from 'ionicons/icons';
+import { alertCircle, checkmarkCircle } from 'ionicons/icons';
 
 interface Props {
   open: boolean;
@@ -8,6 +8,7 @@ interface Props {
   done: number;   // file thứ đang nhập (1-indexed)
   total: number;
   ok: number;     // số file đã nhập xong (cho màn done)
+  problem?: string; // set → the done screen says what went wrong (kho hidden by Android), not "Đã nhập"
   onCancel: () => void;
   onViewKho: () => void;
   onAddMore?: () => void;      // có → hiện nút "Thêm tiếp" (chỉ luồng chọn-file-từ-máy)
@@ -19,7 +20,7 @@ const C = 2 * Math.PI * R;
 
 // Modal tiến trình nhập lô (dialog nhỏ giữa màn, dùng IonModal có sẵn). Không đóng tay lúc đang
 // nhập (backdropDismiss=false); chỉ Hủy (đang nhập) hoặc Xem kho (xong) — CHỈ MỘT điểm kết.
-export default function ImportProgressModal({ open, phase, done, total, ok, onCancel, onViewKho, onAddMore, onDidDismiss }: Props) {
+export default function ImportProgressModal({ open, phase, done, total, ok, problem, onCancel, onViewKho, onAddMore, onDidDismiss }: Props) {
   const pct = total > 0 ? Math.min(1, done / total) : 0;
   return (
     <IonModal
@@ -49,6 +50,17 @@ export default function ImportProgressModal({ open, phase, done, total, ok, onCa
               Vui lòng không tắt ứng dụng.
             </div>
             <IonButton fill="clear" color="danger" onClick={onCancel} style={{ textTransform: 'none' }}>Hủy</IonButton>
+          </>
+        ) : problem ? (
+          <>
+            <IonIcon icon={alertCircle} style={{ fontSize: 60, color: 'var(--ion-color-danger)', marginBottom: 10 }} />
+            <div style={{ fontFamily: 'var(--gu-serif)', fontWeight: 700, fontSize: 18, color: 'var(--gu-brown-deep)' }}>
+              Không đọc được kho
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--gu-brown-deep)', margin: '6px 0 18px', lineHeight: 1.45 }}>
+              {problem}
+            </div>
+            <IonButton shape="round" onClick={onViewKho} style={{ textTransform: 'none' }}>Đã hiểu</IonButton>
           </>
         ) : (
           <>

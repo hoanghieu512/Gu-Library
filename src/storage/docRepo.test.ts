@@ -1,0 +1,42 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Saf } from '../plugins/saf';
+import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
+import { KhoUnreadableError } from './khoHidden';
+import { setDisplayName } from './docRepo';
+
+const prefs = vi.hoisted(() => new Map<string, string>());
+vi.mock('@capacitor/preferences', () => ({
+  Preferences: {
+    get: async ({ key }: { key: string }) => ({ value: prefs.get(key) ?? null }),
+    set: async ({ key, value }: { key: string; value: string }) => { prefs.set(key, value); },
+    remove: async ({ key }: { key: string }) => { prefs.delete(key); },
+  },
+}));
+vi.mock('../plugins/saf', () => ({ Saf: {} }));
+
+let kho: FakeKho;
+let mon: string;
+beforeEach(() => {
+  prefs.clear();
+  prefs.set('saf_root_uri', ROOT);
+  kho = fakeKho();
+  Object.assign(Saf, kho.saf);
+  mon = kho.mkdir('Logic');
+  kho.put('Logic/bai1.pdf');
+  kho.put('Logic/bai1.json', '{}');
+  kho.put('Logic/bai1.display.json', JSON.stringify({ name: 'Bài 1' }));
+});
+
+describe('setDisplayName', () => {
+  it('replaces the name already set', async () => {
+    await setDisplayName(mon, 'bai1', 'Bài một');
+    expect(kho.fileNames(mon)).toEqual(['bai1.display.json', 'bai1.json', 'bai1.pdf']);
+  });
+
+  it('refuses a hidden kho and writes no second name file', async () => {
+    kho.state.hideAll = true;
+    kho.state.rejectHidden = true;
+    await expect(setDisplayName(mon, 'bai1', 'Bài một')).rejects.toBeInstanceOf(KhoUnreadableError);
+    expect(kho.fileNames(mon)).toEqual(['bai1.display.json', 'bai1.json', 'bai1.pdf']);
+  });
+});
