@@ -2,6 +2,16 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.42.3] (2026-10-18): Kho bị Android giấu thì báo khởi động lại máy, không chia đôi folder
+### Fixed
+- **Provider giấu cả kho thì app chia đôi folder** (dGen1 17/10, sau một lần boot lỗi; phát hiện ở Judexp, repo lấy plugin SAF từ đây). `com.android.externalstorage` không thấy `/storage/emulated` nên coi cả kho là ẩn: mọi folder liệt kê rỗng nhưng tạo folder vẫn được. Hệ quả ở bản cũ: `ensureDir("_inbox")` ra `_inbox (1)` (file share nằm ở chỗ worker không đọc), mỗi lần mở "Đi in" thêm một `_print (k)`, Trang chủ trống như mất hết môn, màn Tìm dựng lại chỉ mục từ kho rỗng, lưu tiến độ đọc đẻ `_reading-<id> (1).json`. Nay native (`ensureDir`, `createDir`, `writeFile`, `copyToDir`): provider trả bản mới tên `tên (k)` (hoặc không cho biết tên) mà danh sách đọc tươi không có `tên` thì xóa bản trùng rỗng, trả `KHO_HIDDEN`. JS đổi thành `KhoUnreadableError` (`src/storage/khoHidden.ts`); Trang chủ, "Đi in", modal Nhập file và nút "Dựng lại chỉ mục" báo "Khởi động lại máy rồi mở lại app", không ghi gì vào kho; chỉ mục tìm kiếm giữ nguyên.
+- **"Thư mục mới" tên `slide` cạnh `Slide` ra `slide (1)` rồi chuyển tài liệu vào đó** (đĩa không phân biệt hoa thường như UBS1 và máy Samsung; sheet "Lưu vào…/Chuyển tới…" chỉ chặn trùng đúng hoa thường). Nay native xóa bản trùng, trả `exists`, sheet báo "Đã tồn tại". `writeFile` gặp file đã có khác hoa thường thì ghi vào file đó; `ensureDir` dùng lại `_Inbox` có sẵn thay vì coi là kho bị giấu.
+### Notes
+- Provider chỉ thay ký tự FAT không cho (vd `:` trong tên file share) thì không tính là trùng tên (`SafNames.mayBeRenamed`, có JUnit `SafNamesTest`).
+- Lưu tiến độ đọc từ chối thẳng khi gốc kho rỗng (tài liệu đang đọc nằm trong kho), không dò bằng `ensureDir` vì mỗi lần dò tạo rồi xóa một folder thật.
+- `renameDir` để nguyên: không với tới được khi kho bị giấu, `folderRepo` đã chặn trùng không phân biệt hoa thường.
+- Chưa kiểm chứng được trạng thái provider giấu kho trên máy (không tái hiện được; dGen1 khỏi sau khi khởi động lại). Còn mở từ review: Cài đặt kiểm kho bằng cả lượt walk, `ensureKhoDir` chạy mỗi file khi nhập lô, `khoWrite` phải bọc từng chỗ gọi, `createDir` xóa bản trùng hỏng thì để lại folder mồ côi, số file đã nhập mất khi lô dừng giữa chừng, Viewer nuốt mọi lỗi lưu tiến độ, mock test lặp ở 11 file.
+
 ## [1.42.2] (2026-10-16): Tra "điều 3" ra đúng Điều 3 trước
 ### Fixed
 - **Tra "điều 3" trong tài liệu, các Điều 30–39, 3xx đứng trên Điều 3 thật** (Gú bắt được trên Luật Thương mại 2005; tái hiện trên Luật Doanh nghiệp 2020 của kho QA: "Điều 3. Áp dụng Luật Doanh nghiệp…" đứng **thứ 11/18**). Nguyên nhân: chữ cuối của câu tra luôn khớp như tiền tố (người dùng có thể đang gõ dở), nên "3" khớp cả "34", "312"; sau đó xếp theo vị trí khớp rồi độ dài đoạn, mà Điều 3 kèm đoạn mở đầu nên dài hơn các Điều 3x chỉ có dòng tiêu đề. Nay xếp thành hai bậc: **chữ cuối khớp nguyên từ trước, khớp tiền tố sau**, trong mỗi bậc giữ thứ tự cũ (vị trí, độ ngắn, thứ tự trong kho). Áp dụng cả câu tra có ký hiệu ("15/5" xếp 15/5/2018 trên 15/52). Đoạn trích trên thẻ màn Tìm theo cùng thứ tự, nên vẫn trùng dòng đầu của sheet.
