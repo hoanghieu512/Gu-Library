@@ -6,7 +6,7 @@ import { emitKhoChanged } from '../lib/khoEvents';
 import { parseDisplayName } from '../storage/displayName';
 import { printFlagName, printedNameFor, isSentMatch } from './printName';
 import { getKhoSnapshot, countFlagged } from '../storage/khoSnapshot';
-import { ensureKhoDir, KhoUnreadableError } from '../storage/khoHidden';
+import { ensureKhoDir, khoWrite, KhoUnreadableError } from '../storage/khoHidden';
 
 const PRINT_DIR = '_print';
 
@@ -31,11 +31,11 @@ async function resolveDocFolder(docUri: string): Promise<{ folderUri: string; ba
 export async function setPrintFlag(docUri: string): Promise<void> {
   const ctx = await resolveDocFolder(docUri);
   if (!ctx) throw new Error('Không tìm thấy thư mục tài liệu');
-  await Saf.writeFile({
+  await khoWrite(Saf.writeFile({
     dirUri: ctx.folderUri,
     name: printFlagName(ctx.base),
     content: JSON.stringify({ v: 1, flaggedAt: Date.now() }),
-  });
+  }));
   emitKhoChanged();
 }
 
@@ -137,7 +137,7 @@ export async function gomToPrint(): Promise<number> {
   if (toCopy.length === 0) return 0;
   const printUri = await ensureKhoDir(root, PRINT_DIR);
   for (const r of toCopy) {
-    await Saf.copyToDir({ srcUri: r.pdfUri, dirUri: printUri, name: printedNameFor(r.monName, r.fileBase) });
+    await khoWrite(Saf.copyToDir({ srcUri: r.pdfUri, dirUri: printUri, name: printedNameFor(r.monName, r.fileBase) }));
   }
   emitKhoChanged();
   return toCopy.length;

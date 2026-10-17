@@ -5,15 +5,36 @@
 
 import { Saf } from '../plugins/saf';
 
+/** What to tell Gú. Picking the folder again would not help: the phone is at fault, not the folder. */
+export const KHO_UNREADABLE_MESSAGE =
+  'Điện thoại đang không cho app đọc folder kho, thường do máy khởi động lỗi. '
+  + 'Khởi động lại máy rồi mở lại app nha. Trong lúc này app không ghi gì vào kho.';
+
+/**
+ * Its message is the one to show Gú, like the other errors the repos throw, so a screen that
+ * shows `err.message` says the right thing; `detail` says what was not listed.
+ */
 export class KhoUnreadableError extends Error {
+  readonly detail: string;
   constructor(detail: string) {
-    super(`kho cannot be listed: ${detail}`);
+    super(KHO_UNREADABLE_MESSAGE);
     this.name = 'KhoUnreadableError';
+    this.detail = detail;
   }
 }
 
-/** The code SafPlugin.ensureDir rejects with when the folder exists but is not listed. */
+/** The code SafPlugin rejects with when a name is taken on disk but the listing does not show it. */
 const HIDDEN_CODE = 'KHO_HIDDEN';
+
+/** A write to the kho through Saf, with KHO_HIDDEN turned into KhoUnreadableError. */
+export async function khoWrite<T>(write: Promise<T>): Promise<T> {
+  try {
+    return await write;
+  } catch (err) {
+    if ((err as { code?: string }).code === HIDDEN_CODE) throw new KhoUnreadableError((err as Error).message);
+    throw err;
+  }
+}
 
 /**
  * Saf.ensureDir for a folder at the kho root (_inbox, _print), refusing a kho Android is hiding.
@@ -21,13 +42,7 @@ const HIDDEN_CODE = 'KHO_HIDDEN';
  * rest of the app would not find either.
  */
 export async function ensureKhoDir(root: string, name: string): Promise<string> {
-  let uri: string;
-  try {
-    ({ uri } = await Saf.ensureDir({ parentUri: root, name }));
-  } catch (err) {
-    if ((err as { code?: string }).code === HIDDEN_CODE) throw new KhoUnreadableError((err as Error).message);
-    throw err;
-  }
+  const { uri } = await khoWrite(Saf.ensureDir({ parentUri: root, name }));
   const { entries } = await Saf.listFolder({ uri: root });
   if (!entries.some((e) => e.isDirectory && e.name === name)) {
     throw new KhoUnreadableError(`root does not list ${name}`);
@@ -35,7 +50,10 @@ export async function ensureKhoDir(root: string, name: string): Promise<string> 
   return uri;
 }
 
-/** What to tell Gú. Picking the folder again would not help: the phone is at fault, not the folder. */
-export const KHO_UNREADABLE_MESSAGE =
-  'Điện thoại đang không cho app đọc folder kho, thường do máy khởi động lỗi. '
-  + 'Khởi động lại máy rồi mở lại app nha. Trong lúc này app không ghi gì vào kho.';
+/**
+ * An empty root is a brand-new kho, or one Android is hiding. Call this with the root's listing
+ * before acting on "nothing is there": a new kho just gains its _inbox, a hidden one throws.
+ */
+export async function assertRootListed(root: string, rootEntries: readonly unknown[]): Promise<void> {
+  if (rootEntries.length === 0) await ensureKhoDir(root, '_inbox');
+}

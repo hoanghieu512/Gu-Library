@@ -17,7 +17,7 @@ import { parseMonMeta } from './monjson';
 import { parseDisplayName } from './displayName';
 import { sortMons } from './sortMon';
 import { onKhoChanged } from '../lib/khoEvents';
-import { ensureKhoDir } from './khoHidden';
+import { assertRootListed } from './khoHidden';
 import type { FolderListing, Mon } from './types';
 
 const INBOX = '_inbox';
@@ -75,10 +75,9 @@ async function buildSnapshot(): Promise<KhoSnapshot> {
   const root = await getRootUri();
   if (!root) return emptySnapshot();
   const { entries: rootEntries } = await Saf.listFolder({ uri: root });
-  // An empty root is a brand-new kho, or one Android is hiding (dGen1, 2026-10-17, after a bad
-  // boot). ensureKhoDir tells them apart: a new kho just gains its _inbox, a hidden one throws
-  // KhoUnreadableError, so Home says to restart the phone and Search never rebuilds from nothing.
-  if (rootEntries.length === 0) await ensureKhoDir(root, INBOX);
+  // A hidden kho (dGen1, 2026-10-17, after a bad boot) throws here, so Home says to restart the
+  // phone and Search never rebuilds its index from nothing.
+  await assertRootListed(root, rootEntries);
   // Môn = folder KHÔNG dotfile và KHÔNG '_'-prefix. Loại theo tiền tố '_' (không chỉ so đúng
   // '_inbox'/'_print') để mọi folder hệ thống — kể cả bản trùng lỡ sinh như '_inbox (1)' — không
   // bao giờ bị coi là môn. (validateFolderName đã chặn tên môn bắt đầu bằng '_' nên an toàn.)

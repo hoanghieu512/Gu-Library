@@ -135,7 +135,9 @@ export default function ViewerPage() {
     setTotal(totalPages);
     if (page === lastSaved.current) return;
     lastSaved.current = page;
-    recordProgress(docUri, page, totalPages);
+    // Best effort: when it fails (e.g. KhoUnreadableError while Android hides the kho) reading goes
+    // on and only the page is not kept.
+    recordProgress(docUri, page, totalPages).catch(() => {});
   };
 
   const doJump = () => {

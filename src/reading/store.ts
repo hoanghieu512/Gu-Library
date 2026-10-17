@@ -3,6 +3,7 @@ import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
 import { relPathFromUris } from './paths';
 import { getKhoSnapshot, folderByPath } from '../storage/khoSnapshot';
+import { assertRootListed, khoWrite } from '../storage/khoHidden';
 import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry, renameReadingSubtree, removeReadingSubtree,
          type DeviceReadingFile, type ReadingEntry } from './model';
 
@@ -26,6 +27,9 @@ const isReadingFile = (name: string) => name.startsWith('_reading-') && name.end
 
 async function readDeviceFile(root: string, deviceId: string): Promise<DeviceReadingFile> {
   const { entries } = await Saf.listFolder({ uri: root });
+  // A hidden kho lists no reading file: starting a fresh one would overwrite this phone's
+  // progress, or (the provider renaming it) leave a second "_reading-<id> (1).json".
+  await assertRootListed(root, entries);
   const f = entries.find((e) => !e.isDirectory && e.name === fileName(deviceId));
   if (f) {
     try {
@@ -38,7 +42,7 @@ async function readDeviceFile(root: string, deviceId: string): Promise<DeviceRea
 }
 
 async function writeDeviceFile(root: string, file: DeviceReadingFile): Promise<void> {
-  await Saf.writeFile({ dirUri: root, name: fileName(file.deviceId), content: JSON.stringify(file) });
+  await khoWrite(Saf.writeFile({ dirUri: root, name: fileName(file.deviceId), content: JSON.stringify(file) }));
 }
 
 async function readAllFiles(root: string): Promise<DeviceReadingFile[]> {
