@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Saf } from '../plugins/saf';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { KhoUnreadableError } from '../storage/khoHidden';
 import { importBatch } from './inboxRepo';
@@ -12,14 +12,14 @@ vi.mock('@capacitor/preferences', () => ({
     remove: async ({ key }: { key: string }) => { prefs.delete(key); },
   },
 }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 let kho: FakeKho;
 beforeEach(() => {
   prefs.clear();
   prefs.set('saf_root_uri', ROOT);
   kho = fakeKho();
-  Object.assign(Saf, kho.saf);
+  Object.assign(SafNative, kho.saf);
 });
 
 const FILE = { uri: 'content://share/a.pdf', name: 'a.pdf' };
@@ -38,7 +38,7 @@ describe('importBatch', () => {
   it('refuses a kho that does not list its _inbox, and copies nothing', async () => {
     kho.mkdir('_inbox');
     kho.state.hideAll = true;
-    const copy = vi.spyOn(Saf, 'copyToDir');
+    const copy = vi.spyOn(SafNative, 'copyToDir');
     await expect(importBatch([FILE, { ...FILE, name: 'b.pdf' }], ['Logic'])).rejects.toBeInstanceOf(KhoUnreadableError);
     expect(copy).not.toHaveBeenCalled();
   });
@@ -47,7 +47,7 @@ describe('importBatch', () => {
     kho.mkdir('_inbox');
     kho.state.hideAll = true;
     kho.state.rejectHidden = true;
-    const copy = vi.spyOn(Saf, 'copyToDir');
+    const copy = vi.spyOn(SafNative, 'copyToDir');
     await expect(importBatch([FILE], ['Logic'])).rejects.toBeInstanceOf(KhoUnreadableError);
     expect(copy).not.toHaveBeenCalled();
     expect(kho.dirNames()).toEqual(['_inbox']);
@@ -65,9 +65,9 @@ describe('importBatch', () => {
 
   it('still counts any other per-file failure and carries on', async () => {
     kho.mkdir('_inbox');
-    const copy = Saf.copyToDir;
+    const copy = SafNative.copyToDir;
     let n = 0;
-    Saf.copyToDir = async (o) => { if (n++ === 0) throw new Error('source gone'); return copy(o); };
+    SafNative.copyToDir = async (o) => { if (n++ === 0) throw new Error('source gone'); return copy(o); };
     const r = await importBatch([FILE, { ...FILE, name: 'b.pdf' }], ['Logic']);
     expect(r).toEqual({ ok: 1, fails: ['a.pdf'] });
   });

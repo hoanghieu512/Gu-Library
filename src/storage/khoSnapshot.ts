@@ -17,7 +17,7 @@ import { parseMonMeta } from './monjson';
 import { parseDisplayName } from './displayName';
 import { sortMons } from './sortMon';
 import { onKhoChanged } from '../lib/khoEvents';
-import { assertRootListed } from './khoHidden';
+import { assertRootListed } from './khoRoot';
 import type { FolderListing, Mon } from './types';
 
 const INBOX = '_inbox';

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { foldSummary, countFlagged, folderByPath, getKhoSnapshot, type KhoFolder, type KhoSnapshot } from './khoSnapshot';
 import type { Document, FolderListing } from './types';
-import { Saf } from '../plugins/saf';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { KhoUnreadableError } from './khoHidden';
 
@@ -13,7 +13,7 @@ vi.mock('@capacitor/preferences', () => ({
     remove: async ({ key }: { key: string }) => { prefs.delete(key); },
   },
 }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 function doc(base: string, flagged = false): Document {
   return { name: base, fileBase: base, pdfUri: `u:${base}.pdf`, jsonUri: `u:${base}.json`, printFlagged: flagged };
@@ -73,7 +73,7 @@ describe('getKhoSnapshot: a kho Android will not list', () => {
     prefs.clear();
     prefs.set('saf_root_uri', ROOT);
     kho = fakeKho();
-    Object.assign(Saf, kho.saf);
+    Object.assign(SafNative, kho.saf);
   });
 
   it('reads the subjects of a kho that lists', async () => {

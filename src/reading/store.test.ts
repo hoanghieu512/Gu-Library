@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Saf } from '../plugins/saf';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { KhoUnreadableError } from '../storage/khoHidden';
-import { recordProgress } from './store';
+import { recordProgress, recordProgressBestEffort } from './store';
 
 const prefs = vi.hoisted(() => new Map<string, string>());
 vi.mock('@capacitor/preferences', () => ({
@@ -12,7 +12,7 @@ vi.mock('@capacitor/preferences', () => ({
     remove: async ({ key }: { key: string }) => { prefs.delete(key); },
   },
 }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 const FILE = '_reading-dev.json';
 let kho: FakeKho;
@@ -22,17 +22,19 @@ beforeEach(() => {
   prefs.set('saf_root_uri', ROOT);
   prefs.set('device_id', 'dev');
   kho = fakeKho();
-  Object.assign(Saf, kho.saf);
+  Object.assign(SafNative, kho.saf);
   doc = kho.put('Logic/bai1.pdf');
   kho.put('Logic/bai1.json', '{}');
   kho.mkdir('_inbox');
   kho.put(FILE, JSON.stringify({ deviceId: 'dev', entries: {}, tombstones: {} }));
 });
+// Here, not at the end of each test: a failed assertion would skip it and leave console.warn mocked.
+afterEach(() => { vi.restoreAllMocks(); });
 
 const entriesOf = async () => {
-  const { entries } = await Saf.listFolder!({ uri: ROOT });
+  const { entries } = await SafNative.listFolder!({ uri: ROOT });
   const f = entries.find((e) => e.name === FILE)!;
-  return JSON.parse((await Saf.readFile!({ uri: f.uri })).data).entries;
+  return JSON.parse((await SafNative.readFile!({ uri: f.uri })).data).entries;
 };
 
 describe('recordProgress', () => {
@@ -64,7 +66,7 @@ describe('recordProgress, page after page while the kho is hidden', () => {
   it('never probes it with a folder', async () => {
     kho.state.hideAll = true;
     kho.state.rejectHidden = true;
-    const ensure = vi.spyOn(Saf, 'ensureDir');
+    const ensure = vi.spyOn(SafNative, 'ensureDir');
     await expect(recordProgress(doc, 3, 10)).rejects.toBeInstanceOf(KhoUnreadableError);
     await expect(recordProgress(doc, 4, 10)).rejects.toBeInstanceOf(KhoUnreadableError);
     await expect(recordProgress(doc, 5, 10)).rejects.toBeInstanceOf(KhoUnreadableError);
@@ -78,5 +80,30 @@ describe('recordProgress, page after page while the kho is hidden', () => {
     kho.state.hideAll = false;
     await recordProgress(doc, 4, 10);
     expect((await entriesOf())['Logic/bai1.pdf'].page).toBe(4);
+  });
+});
+
+// The Viewer saves on every page turn and reading must go on when a save fails.
+describe('recordProgressBestEffort', () => {
+  it('stays silent about a hidden kho, which Home tells Gú about', async () => {
+    kho.state.hideAll = true;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBe(false);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  // It used to swallow every failure, so a bug in saving "Đang đọc dở" left no trace anywhere.
+  it('logs any other failure instead of dropping it', async () => {
+    const boom = new Error('write failed: disk full');
+    SafNative.writeFile = async () => { throw boom; };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBe(false);
+    expect(warn).toHaveBeenCalledWith(expect.any(String), boom);
+  });
+
+  // The Viewer keeps trying a page until this says it is on disk.
+  it('saves the page when nothing fails, and says so', async () => {
+    await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBe(true);
+    expect((await entriesOf())['Logic/bai1.pdf'].page).toBe(3);
   });
 });

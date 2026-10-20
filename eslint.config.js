@@ -27,4 +27,20 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
     },
   },
+  {
+    // App code reaches the SAF plugin through src/plugins/saf.ts, which turns KHO_HIDDEN into
+    // KhoUnreadableError for every call; importing SafNative skips that (review of 20/10). Tests
+    // fake SafNative on purpose, and types are harmless.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/plugins/**', 'src/**/*.test.{ts,tsx}', 'src/test/**'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['**/safNative'],
+          allowTypeImports: true,
+          message: "Import Saf from 'plugins/saf' instead: it turns KHO_HIDDEN into KhoUnreadableError.",
+        }],
+      }],
+    },
+  },
 ])

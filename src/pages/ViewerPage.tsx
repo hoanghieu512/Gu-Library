@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonInput, IonButton, IonFooter, IonIcon, IonSpinner, useIonViewWillEnter,
@@ -9,7 +9,8 @@ import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
 import { useGuToast } from '../lib/useGuToast';
 import DocSearchSheet from '../components/DocSearchSheet';
-import { getResumePage, recordProgress } from '../reading/store';
+import { getResumePage, recordProgressBestEffort } from '../reading/store';
+import { createProgressSaver } from '../reading/progressSaver';
 import { getBaseScale } from '../viewer/fontScale';
 import { resolveDocDisplayName } from '../storage/docRepo';
 import { decodeUriParam } from '../storage/uriParam';
@@ -89,7 +90,6 @@ export default function ViewerPage() {
     const ro = new ResizeObserver((es) => { for (const e of es) setFrameH(Math.round(e.contentRect.height)); });
     ro.observe(el); roRef.current = ro;
   };
-  const lastSaved = useRef(0);
   const { toastResult, node: toastNode } = useGuToast();
 
   // Ionic keeps this page alive in its tab and REUSES it when another tab pushes a link to the same
@@ -129,15 +129,16 @@ export default function ViewerPage() {
   // Đánh đổi đã chốt: có một nhịp trắng ngắn (màn chọn tài liệu) — KHÔNG nạp trước cho mượt.
   const swapBottom = () => setBottomUri(null);
 
+  // Best effort: a failed save (e.g. while Android hides the kho) does not stop reading; the page
+  // is tried again on a later report.
+  const saveProgress = useMemo(
+    () => createProgressSaver((page, total) => recordProgressBestEffort(docUri, page, total)), [docUri]);
+
   // Chỉ pane TRÊN ghi reading-state ("Đang đọc dở" / nhớ trang). Pane dưới là tra cứu → không ghi.
   const onTopPage = (page: number, totalPages: number) => {
     setCurrentPage(page);
     setTotal(totalPages);
-    if (page === lastSaved.current) return;
-    lastSaved.current = page;
-    // Best effort: when it fails (e.g. KhoUnreadableError while Android hides the kho) reading goes
-    // on and only the page is not kept.
-    recordProgress(docUri, page, totalPages).catch(() => {});
+    saveProgress(page, totalPages);
   };
 
   const doJump = () => {
