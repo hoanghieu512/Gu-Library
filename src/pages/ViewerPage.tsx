@@ -9,7 +9,7 @@ import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
 import { useGuToast } from '../lib/useGuToast';
 import DocSearchSheet from '../components/DocSearchSheet';
-import { getResumePage, recordProgress } from '../reading/store';
+import { getResumePage, recordProgressBestEffort } from '../reading/store';
 import { getBaseScale } from '../viewer/fontScale';
 import { resolveDocDisplayName } from '../storage/docRepo';
 import { decodeUriParam } from '../storage/uriParam';
@@ -135,9 +135,9 @@ export default function ViewerPage() {
     setTotal(totalPages);
     if (page === lastSaved.current) return;
     lastSaved.current = page;
-    // Best effort: when it fails (e.g. KhoUnreadableError while Android hides the kho) reading goes
-    // on and only the page is not kept.
-    recordProgress(docUri, page, totalPages).catch(() => {});
+    // Best effort: when it fails (e.g. while Android hides the kho) reading goes on and only the
+    // page is not kept.
+    void recordProgressBestEffort(docUri, page, totalPages);
   };
 
   const doJump = () => {

@@ -6,7 +6,6 @@ import { parseDisplayName } from './displayName';
 import { parseMonMeta } from './monjson';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { getKhoSnapshot } from './khoSnapshot';
-import { khoWrite } from './khoHidden';
 
 const ROOT_KEY = 'saf_root_uri';
 
@@ -47,8 +46,8 @@ export async function listFolder(uri: string): Promise<FolderListing> {
 export async function createMon(name: string, color: string): Promise<void> {
   const root = await getRootUri();
   if (!root) throw new Error('Chưa chọn folder kho');
-  const { uri } = await khoWrite(Saf.createDir({ parentUri: root, name })); // reject 'exists' nếu trùng
-  await khoWrite(Saf.writeFile({ dirUri: uri, name: '_mon.json', content: JSON.stringify({ color }) }));
+  const { uri } = await Saf.createDir({ parentUri: root, name }); // reject 'exists' nếu trùng
+  await Saf.writeFile({ dirUri: uri, name: '_mon.json', content: JSON.stringify({ color }) });
   emitKhoChanged();
 }
 
@@ -61,13 +60,13 @@ export async function setMonColor(monUri: string, color: string): Promise<void> 
     const f = entries.find((e) => !e.isDirectory && e.name === '_mon.json');
     if (f) meta = parseMonMeta((await Saf.readFile({ uri: f.uri })).data);
   } catch { /* chưa có _mon.json → tạo mới */ }
-  await khoWrite(Saf.writeFile({ dirUri: monUri, name: '_mon.json', content: JSON.stringify({ ...meta, color }) }));
+  await Saf.writeFile({ dirUri: monUri, name: '_mon.json', content: JSON.stringify({ ...meta, color }) });
   emitKhoChanged();
 }
 
 // Tạo folder con tại parentUri (độ sâu bất kỳ). KHÔNG _mon.json. Trả uri folder mới.
 export async function createSubfolder(parentUri: string, name: string): Promise<string> {
-  const { uri } = await khoWrite(Saf.createDir({ parentUri, name })); // reject 'exists' nếu trùng
+  const { uri } = await Saf.createDir({ parentUri, name }); // reject 'exists' nếu trùng
   emitKhoChanged();
   return uri;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Saf } from '../plugins/saf';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from './khoHidden';
 import { createMon, createSubfolder, setMonColor } from './repo';
@@ -12,7 +12,7 @@ vi.mock('@capacitor/preferences', () => ({
     remove: async ({ key }: { key: string }) => { prefs.delete(key); },
   },
 }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 let kho: FakeKho;
 let mon: string;
@@ -20,7 +20,7 @@ beforeEach(() => {
   prefs.clear();
   prefs.set('saf_root_uri', ROOT);
   kho = fakeKho();
-  Object.assign(Saf, kho.saf);
+  Object.assign(SafNative, kho.saf);
   mon = kho.mkdir('Logic');
   kho.mkdir('Logic/Slide');
   kho.put('Logic/_mon.json', JSON.stringify({ color: '#111111', order: 2 }));
@@ -55,9 +55,9 @@ describe('createMon', () => {
 describe('setMonColor', () => {
   it('keeps the other settings of the subject', async () => {
     await setMonColor(mon, '#333333');
-    const { entries } = await Saf.listFolder!({ uri: mon });
+    const { entries } = await SafNative.listFolder!({ uri: mon });
     const f = entries.find((e) => e.name === '_mon.json')!;
-    expect(JSON.parse((await Saf.readFile!({ uri: f.uri })).data)).toEqual({ color: '#333333', order: 2 });
+    expect(JSON.parse((await SafNative.readFile!({ uri: f.uri })).data)).toEqual({ color: '#333333', order: 2 });
   });
 
   // The old plugin wrote "_mon (1).json" holding only the colour, next to the real _mon.json.

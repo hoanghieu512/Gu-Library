@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Saf } from '../plugins/saf';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { KhoUnreadableError } from './khoHidden';
 import { setDisplayName } from './docRepo';
@@ -12,7 +12,7 @@ vi.mock('@capacitor/preferences', () => ({
     remove: async ({ key }: { key: string }) => { prefs.delete(key); },
   },
 }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 let kho: FakeKho;
 let mon: string;
@@ -20,7 +20,7 @@ beforeEach(() => {
   prefs.clear();
   prefs.set('saf_root_uri', ROOT);
   kho = fakeKho();
-  Object.assign(Saf, kho.saf);
+  Object.assign(SafNative, kho.saf);
   mon = kho.mkdir('Logic');
   kho.put('Logic/bai1.pdf');
   kho.put('Logic/bai1.json', '{}');

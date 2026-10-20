@@ -4,7 +4,7 @@ import { IonApp, IonRouterOutlet } from '@ionic/react';
 import { IonReactMemoryRouter } from '@ionic/react-router';
 import { createMemoryHistory } from 'history';
 import { Route } from 'react-router-dom';
-import { Saf } from '../plugins/saf';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { invalidateKho } from '../storage/khoSnapshot';
 import PrintPage from './PrintPage';
@@ -18,14 +18,14 @@ vi.mock('@capacitor/preferences', () => ({
   },
 }));
 vi.mock('@capacitor/app', () => ({ App: { addListener: async () => ({ remove: () => {} }) } }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 let kho: FakeKho;
 beforeEach(() => {
   prefs.clear();
   prefs.set('saf_root_uri', ROOT);
   kho = fakeKho();
-  Object.assign(Saf, kho.saf);
+  Object.assign(SafNative, kho.saf);
   kho.put('Logic/bai1.pdf');
   kho.put('Logic/bai1.json', '{}');
   kho.put('Logic/bai1.print.json', '{}');

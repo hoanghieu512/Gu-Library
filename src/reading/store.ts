@@ -3,7 +3,7 @@ import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
 import { relPathFromUris } from './paths';
 import { getKhoSnapshot, folderByPath } from '../storage/khoSnapshot';
-import { khoWrite, KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../storage/khoHidden';
 import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry, renameReadingSubtree, removeReadingSubtree,
          type DeviceReadingFile, type ReadingEntry } from './model';
 
@@ -44,7 +44,7 @@ async function readDeviceFile(root: string, deviceId: string): Promise<DeviceRea
 }
 
 async function writeDeviceFile(root: string, file: DeviceReadingFile): Promise<void> {
-  await khoWrite(Saf.writeFile({ dirUri: root, name: fileName(file.deviceId), content: JSON.stringify(file) }));
+  await Saf.writeFile({ dirUri: root, name: fileName(file.deviceId), content: JSON.stringify(file) });
 }
 
 async function readAllFiles(root: string): Promise<DeviceReadingFile[]> {
@@ -76,6 +76,20 @@ export async function recordProgress(docUri: string, page: number, total: number
     file = upsertEntry(file, entry);
   }
   await writeDeviceFile(root, file);
+}
+
+/**
+ * recordProgress for the Viewer, which saves on every page turn and must keep reading when a save
+ * fails. A hidden kho is expected (Home tells Gú); anything else is a bug, so it is logged rather
+ * than dropped. Tests and debug builds show it (logcat Capacitor/Console); a release build prints
+ * no console output, Capacitor's default loggingBehavior.
+ */
+export async function recordProgressBestEffort(docUri: string, page: number, total: number): Promise<void> {
+  try {
+    await recordProgress(docUri, page, total);
+  } catch (err) {
+    if (!(err instanceof KhoUnreadableError)) console.warn('recordProgress failed', err);
+  }
 }
 
 // Vuốt xoá khỏi danh sách (chỉ entry; file trong kho giữ nguyên).

@@ -4,7 +4,7 @@ import { IonApp, IonRouterOutlet } from '@ionic/react';
 import { IonReactMemoryRouter } from '@ionic/react-router';
 import { createMemoryHistory } from 'history';
 import { Route } from 'react-router-dom';
-import { Saf } from '../plugins/saf';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { invalidateKho } from '../storage/khoSnapshot';
 import HomePage from './HomePage';
@@ -18,7 +18,7 @@ vi.mock('@capacitor/preferences', () => ({
   },
 }));
 vi.mock('@capacitor/app', () => ({ App: { addListener: async () => ({ remove: () => {} }) } }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 vi.mock('../sync/useSyncStatus', () => ({ useSyncStatus: () => ({ light: 'unconfigured', refresh: () => {} }) }));
 
 // MonShelf measures the shelf; jsdom has no ResizeObserver.
@@ -30,7 +30,7 @@ beforeEach(() => {
   prefs.set('saf_root_uri', ROOT);
   prefs.set('device_id', 'test-device');
   kho = fakeKho();
-  Object.assign(Saf, kho.saf);
+  Object.assign(SafNative, kho.saf);
   kho.mkdir('Logic');
   kho.mkdir('_inbox');
   invalidateKho();

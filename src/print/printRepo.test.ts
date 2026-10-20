@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Saf } from '../plugins/saf';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { KhoUnreadableError } from '../storage/khoHidden';
 import { listPrintRows, gomToPrint } from './printRepo';
@@ -12,7 +12,7 @@ vi.mock('@capacitor/preferences', () => ({
     remove: async ({ key }: { key: string }) => { prefs.delete(key); },
   },
 }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 let kho: FakeKho;
 let printDir: string;
@@ -20,7 +20,7 @@ beforeEach(() => {
   prefs.clear();
   prefs.set('saf_root_uri', ROOT);
   kho = fakeKho();
-  Object.assign(Saf, kho.saf);
+  Object.assign(SafNative, kho.saf);
   kho.put('Logic/bai1.pdf');
   kho.put('Logic/bai1.json', '{}');
   kho.put('Logic/bai1.print.json', '{}');
@@ -58,7 +58,7 @@ describe('gomToPrint', () => {
 
   it('copies nothing when the kho does not list its folders', async () => {
     kho.state.hideAll = true;
-    const copy = vi.spyOn(Saf, 'copyToDir');
+    const copy = vi.spyOn(SafNative, 'copyToDir');
     await expect(gomToPrint()).rejects.toBeInstanceOf(KhoUnreadableError);
     expect(copy).not.toHaveBeenCalled();
   });

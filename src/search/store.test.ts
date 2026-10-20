@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { displayNameMap, refreshIndex, stampOf } from './store';
-import { Saf } from '../plugins/saf';
+import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT } from '../test/fakeSaf';
 import { KhoUnreadableError } from '../storage/khoHidden';
 import type { KhoFolder } from '../storage/khoSnapshot';
@@ -15,7 +15,7 @@ vi.mock('@capacitor/preferences', () => ({
     remove: async ({ key }: { key: string }) => { prefs.delete(key); },
   },
 }));
-vi.mock('../plugins/saf', () => ({ Saf: {} }));
+vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 const DOC_A = { pdfUri: 'uri://a.pdf', name: 'Luật Đất đai', mon: 'Đất Đai' };
 const DOC_B = { pdfUri: 'uri://b.pdf', name: 'Bài giảng', mon: 'Hình sự chung' };
@@ -110,7 +110,7 @@ describe('refreshIndex: a kho Android will not list', () => {
     prefs.clear();
     prefs.set('saf_root_uri', ROOT);
     const kho = fakeKho();
-    Object.assign(Saf, kho.saf);
+    Object.assign(SafNative, kho.saf);
     kho.put('Logic/bai1.pdf');
     kho.put('Logic/bai1.json', '{"units":[]}');
     kho.mkdir('_inbox');

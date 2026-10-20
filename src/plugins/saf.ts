@@ -1,32 +1,29 @@
-import { registerPlugin } from '@capacitor/core';
+import { KhoUnreadableError } from '../storage/khoHidden';
+import { SafNative, type SafPlugin } from './safNative';
 
-export interface SafEntry {
-  name: string;
-  isDirectory: boolean;
-  uri: string;
-  // Dấu vân tay để index tìm kiếm biết file nào đổi (v1.38.0). Về cùng cursor với listFolder,
-  // KHÔNG tốn thêm vòng SAF. **-1 = DocumentsProvider không trả cột đó** → phải coi như "đã đổi"
-  // và đọc lại, đừng coi là bằng nhau (hai file "cùng -1" không nói lên điều gì).
-  size?: number;
-  lastModified?: number;
-}
+export type { SafEntry, SafPlugin } from './safNative';
 
-export interface SafPlugin {
-  pickFolder(): Promise<{ uri: string }>;
-  pickFiles(): Promise<{ files: { uri: string; name: string }[] }>;
-  hasPermission(options: { uri: string }): Promise<{ granted: boolean }>;
-  listFolder(options: { uri: string }): Promise<{ entries: SafEntry[] }>;
-  readFile(options: { uri: string }): Promise<{ data: string }>;
-  readFileBase64(options: { uri: string }): Promise<{ data: string }>;
-  probeReadable(options: { uri: string }): Promise<void>; // mở thử (v1.26.0) — gọi trước fetch PDF, gone/thu-quyền → reject
+/** The code SafPlugin rejects with when a name is taken on disk but the listing does not show it. */
+const HIDDEN_CODE = 'KHO_HIDDEN';
 
-  copyToDir(options: { srcUri: string; dirUri: string; name: string }): Promise<{ uri: string; name: string }>;
-  /* TEMP M6 spike */
-  ensureDir(options: { parentUri: string; name: string }): Promise<{ uri: string }>;
-  createDir(options: { parentUri: string; name: string }): Promise<{ uri: string; name: string }>;
-  renameDir(options: { uri: string; newName: string }): Promise<{ uri: string }>;
-  writeFile(options: { dirUri: string; name: string; content: string }): Promise<{ uri: string }>;
-  deleteFile(options: { uri: string }): Promise<void>;
-}
-
-export const Saf = registerPlugin<SafPlugin>('Saf');
+/**
+ * The plugin, with KHO_HIDDEN turned into KhoUnreadableError on every call, so a write added later
+ * cannot forget it and the `instanceof KhoUnreadableError` checks in the screens see it. Methods
+ * are looked up on SafNative per call, which is what lets tests swap them after import.
+ */
+export const Saf: SafPlugin = new Proxy(SafNative, {
+  get(target, prop) {
+    const value: unknown = Reflect.get(target, prop);
+    if (typeof value !== 'function') return value;
+    return async (...args: unknown[]) => {
+      try {
+        return await value.apply(target, args);
+      } catch (err) {
+        if ((err as { code?: string } | null | undefined)?.code === HIDDEN_CODE) {
+          throw new KhoUnreadableError((err as Error).message);
+        }
+        throw err;
+      }
+    };
+  },
+});

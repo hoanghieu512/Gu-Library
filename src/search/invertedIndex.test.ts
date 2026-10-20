@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { emptyIndex, addDoc, search, indexStats, displayLabel, indexDoc, mergeShards, searchDocs } from './invertedIndex';
 import type { Sidecar } from './invertedIndex';
 
@@ -534,34 +534,28 @@ describe('searchDocs (v1.41.0)', () => {
     expect(r.docs.every((d) => Number.isFinite(d.score))).toBe(true);
   });
 
-  it('a 2-letter prefix matching 100k units: searchDocs skips the full sort (well under half of search)', () => {
+  it('a 2-letter prefix matching 10k units: searchDocs sorts the documents, never the matches', () => {
     // Real kho 06/10: "th" (typing "thời hiệu") matched 98,789 units and took 414 ms on the Mac
-    // when every match was sorted — a visible freeze on the phone. Timed RELATIVE to `search`
-    // (which must sort everything) on the same data in the same run, so a busy CPU during the
-    // parallel test run moves both numbers and the ratio holds.
+    // when every match was sorted, a visible freeze on the phone. This used to time searchDocs
+    // against `search`, which failed about one full-suite run in three on a busy CPU (18/10), so
+    // it now checks the cause: no sort runs over more entries than there are documents.
     const ix = emptyIndex();
-    for (let d = 0; d < 100; d++) {
+    for (let d = 0; d < 20; d++) {
       addDoc(ix, { pdfUri: `uri://t${d}.pdf`, name: `T${d}`, mon: 'M' }, {
-        // Scrambled match positions and lengths, like real text: pre-sorted input would hide a sort.
-        units: Array.from({ length: 1000 }, (_, i) => {
-          const pad = 'mục '.repeat((i * 7919 + d * 104729) % 41);
-          return { label: '', page: i + 1, text: `${pad}Thời hạn ${d} thực hiện ${i}` };
-        }),
+        units: Array.from({ length: 500 }, (_, i) => ({ label: '', page: i + 1, text: `Thời hạn ${d} thực hiện ${i}` })),
       });
     }
-    const best = (f: () => unknown) => {
-      f();                                      // warm the lazy caches (sorted tokens, docLen)
-      let b = Infinity;
-      for (let k = 0; k < 5; k++) { const t0 = performance.now(); f(); b = Math.min(b, performance.now() - t0); }
-      return b;
-    };
-    const tDocs = best(() => searchDocs(ix, 'th'));
-    const tSorted = best(() => search(ix, 'th'));
-    expect(tDocs).toBeLessThan(tSorted * 0.6);
+    searchDocs(ix, 'th');                       // warm the lazy caches (sorted token list, docLen)
+    const sort = vi.spyOn(Array.prototype, 'sort');
+    const toSorted = vi.spyOn(Array.prototype, 'toSorted');
     const r = searchDocs(ix, 'th');
-    expect(r.total).toBe(100_000);
-    expect(r.docs).toHaveLength(100);
-  }, 20_000);                                   // building 100k units is slow on a busy CPU
+    const sortedLengths = [...sort.mock.contexts, ...toSorted.mock.contexts].map((a) => (a as unknown[]).length);
+    sort.mockRestore();
+    toSorted.mockRestore();
+    expect(r.total).toBe(10_000);
+    expect(r.docs).toHaveLength(20);
+    expect(Math.max(0, ...sortedLengths)).toBeLessThanOrEqual(20);
+  });
 
   it('empty or symbol-only query → { total: 0, docs: [] }', () => {
     expect(searchDocs(fixture(), '')).toEqual({ total: 0, docs: [] });

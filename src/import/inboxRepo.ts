@@ -4,7 +4,8 @@ import { getRootUri } from '../storage/repo';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { makeInboxName, parseInboxPrefix } from './prefix';
 import { getKhoSnapshot } from '../storage/khoSnapshot';
-import { ensureKhoDir, khoWrite, KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../storage/khoHidden';
+import { ensureKhoDir } from '../storage/khoRoot';
 
 const INBOX = '_inbox';
 const KEY_LAST_MON = 'last_mon_name';
@@ -26,7 +27,7 @@ async function ensureInbox(): Promise<string> {
 // Copy file share vào _inbox/ với tiền tố ĐƯỜNG ĐÍCH (mảng đoạn từ môn xuống). Trả tên cuối.
 export async function importSharedFile(srcUri: string, originalName: string, path: string[]): Promise<string> {
   const inbox = await ensureInbox();
-  const { name } = await khoWrite(Saf.copyToDir({ srcUri, dirUri: inbox, name: makeInboxName(path, originalName) }));
+  const { name } = await Saf.copyToDir({ srcUri, dirUri: inbox, name: makeInboxName(path, originalName) });
   await setLastMon(path[0]);
   return name;
 }
