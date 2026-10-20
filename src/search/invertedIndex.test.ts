@@ -1,6 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { emptyIndex, addDoc, search, indexStats, displayLabel, indexDoc, mergeShards, searchDocs } from './invertedIndex';
 import type { Sidecar } from './invertedIndex';
+
+// A test that throws between spying on a sort and restoring it would leave it spied for the rest.
+afterEach(() => { vi.restoreAllMocks(); });
 
 // Đúng câu worker ghi vào sidecar cho trang ảnh — có đuôi số trang nên phải khớp TIỀN TỐ.
 const MARK = (n: number) => `[trang ảnh scan — chưa có lớp văn bản] (trang ${n})`;
@@ -546,12 +549,15 @@ describe('searchDocs (v1.41.0)', () => {
       });
     }
     searchDocs(ix, 'th');                       // warm the lazy caches (sorted token list, docLen)
-    const sort = vi.spyOn(Array.prototype, 'sort');
-    const toSorted = vi.spyOn(Array.prototype, 'toSorted');
+    // searchDocs works in typed arrays, so their sort (on %TypedArray%.prototype) counts too.
+    const typedProto = Object.getPrototypeOf(Int32Array.prototype);
+    const spies = [
+      vi.spyOn(Array.prototype, 'sort'), vi.spyOn(Array.prototype, 'toSorted'),
+      vi.spyOn(typedProto, 'sort'), vi.spyOn(typedProto, 'toSorted'),
+    ];
     const r = searchDocs(ix, 'th');
-    const sortedLengths = [...sort.mock.contexts, ...toSorted.mock.contexts].map((a) => (a as unknown[]).length);
-    sort.mockRestore();
-    toSorted.mockRestore();
+    const sortedLengths = spies.flatMap((s) => s.mock.contexts).map((a) => (a as ArrayLike<unknown>).length);
+    vi.restoreAllMocks();                       // afterEach does it too, for when searchDocs throws
     expect(r.total).toBe(10_000);
     expect(r.docs).toHaveLength(20);
     expect(Math.max(0, ...sortedLengths)).toBeLessThanOrEqual(20);

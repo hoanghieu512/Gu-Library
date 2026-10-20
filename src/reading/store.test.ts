@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { KhoUnreadableError } from '../storage/khoHidden';
@@ -28,6 +28,8 @@ beforeEach(() => {
   kho.mkdir('_inbox');
   kho.put(FILE, JSON.stringify({ deviceId: 'dev', entries: {}, tombstones: {} }));
 });
+// Here, not at the end of each test: a failed assertion would skip it and leave console.warn mocked.
+afterEach(() => { vi.restoreAllMocks(); });
 
 const entriesOf = async () => {
   const { entries } = await SafNative.listFolder!({ uri: ROOT });
@@ -86,9 +88,8 @@ describe('recordProgressBestEffort', () => {
   it('stays silent about a hidden kho, which Home tells Gú about', async () => {
     kho.state.hideAll = true;
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBeUndefined();
+    await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBe(false);
     expect(warn).not.toHaveBeenCalled();
-    warn.mockRestore();
   });
 
   // It used to swallow every failure, so a bug in saving "Đang đọc dở" left no trace anywhere.
@@ -96,13 +97,13 @@ describe('recordProgressBestEffort', () => {
     const boom = new Error('write failed: disk full');
     SafNative.writeFile = async () => { throw boom; };
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBeUndefined();
+    await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBe(false);
     expect(warn).toHaveBeenCalledWith(expect.any(String), boom);
-    warn.mockRestore();
   });
 
-  it('saves the page when nothing fails', async () => {
-    await recordProgressBestEffort(doc, 3, 10);
+  // The Viewer keeps trying a page until this says it is on disk.
+  it('saves the page when nothing fails, and says so', async () => {
+    await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBe(true);
     expect((await entriesOf())['Logic/bai1.pdf'].page).toBe(3);
   });
 });

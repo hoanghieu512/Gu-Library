@@ -82,13 +82,15 @@ export async function recordProgress(docUri: string, page: number, total: number
  * recordProgress for the Viewer, which saves on every page turn and must keep reading when a save
  * fails. A hidden kho is expected (Home tells Gú); anything else is a bug, so it is logged rather
  * than dropped. Tests and debug builds show it (logcat Capacitor/Console); a release build prints
- * no console output, Capacitor's default loggingBehavior.
+ * no console output, Capacitor's default loggingBehavior. Resolves true once the page is saved.
  */
-export async function recordProgressBestEffort(docUri: string, page: number, total: number): Promise<void> {
+export async function recordProgressBestEffort(docUri: string, page: number, total: number): Promise<boolean> {
   try {
     await recordProgress(docUri, page, total);
+    return true;
   } catch (err) {
     if (!(err instanceof KhoUnreadableError)) console.warn('recordProgress failed', err);
+    return false;
   }
 }
 
