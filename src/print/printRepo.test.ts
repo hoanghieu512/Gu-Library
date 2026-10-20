@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 import { listPrintRows, gomToPrint } from './printRepo';
 
 const prefs = vi.hoisted(() => new Map<string, string>());

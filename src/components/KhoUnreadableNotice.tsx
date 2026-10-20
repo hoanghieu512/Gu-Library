@@ -1,9 +1,10 @@
 import { IonIcon } from '@ionic/react';
 import { alertCircle } from 'ionicons/icons';
-import { KHO_UNREADABLE_MESSAGE } from '../storage/khoHidden';
+import { KHO_UNREADABLE_MESSAGE } from '../plugins/khoUnreadable';
 
-// Shown in place of the kho's contents while Android will not list it (see khoHidden.ts), so an
-// empty list never reads as "the kho is empty" and nothing on the screen offers to write.
+// Shown in place of the kho's contents while Android will not list it (see
+// plugins/khoUnreadable.ts), so an empty list never reads as "the kho is empty" and nothing on
+// the screen offers to write.
 export default function KhoUnreadableNotice() {
   return (
     <div role="alert" style={{

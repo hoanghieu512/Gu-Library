@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 import { recordProgress, recordProgressBestEffort } from './store';
 
 const prefs = vi.hoisted(() => new Map<string, string>());
@@ -99,6 +99,16 @@ describe('recordProgressBestEffort', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await expect(recordProgressBestEffort(doc, 3, 10)).resolves.toBe(false);
     expect(warn).toHaveBeenCalledWith(expect.any(String), boom);
+  });
+
+  // A release build prints no console output; the native log is what shows there.
+  it('sends that failure to the native log too', async () => {
+    SafNative.writeFile = async () => { throw new Error('write failed: disk full'); };
+    const native = vi.fn(async () => {});
+    SafNative.logWarn = native;
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await recordProgressBestEffort(doc, 3, 10);
+    expect(native).toHaveBeenCalledWith({ message: expect.stringContaining('write failed: disk full') });
   });
 
   // The Viewer keeps trying a page until this says it is on disk.

@@ -32,7 +32,7 @@ import { countPrintFlagged } from '../print/printRepo';
 import { encodeUriParam } from '../storage/uriParam';
 import { perfColdReady, afterPaint } from '../perf/perf';
 import { invalidateKho } from '../storage/khoSnapshot';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 import KhoUnreadableNotice from '../components/KhoUnreadableNotice';
 
 export default function HomePage() {
@@ -51,7 +51,7 @@ export default function HomePage() {
   // Tăng mỗi reload → ép MonCard đếm lại số tài liệu (summarizeMon) khi foreground,
   // vì key=uri ổn định nên MonCard không tự remount.
   const [refreshTick, setRefreshTick] = useState(0);
-  // Android is hiding the whole kho (khoHidden.ts): show "restart the phone" in place of the shelf.
+  // Android is hiding the whole kho (plugins/khoUnreadable.ts): show "restart the phone" in place of the shelf.
   const [khoHidden, setKhoHidden] = useState(false);
 
   const reload = async () => {

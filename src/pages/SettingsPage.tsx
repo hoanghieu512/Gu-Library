@@ -17,7 +17,7 @@ import Row, { Chevron } from '../components/SettingsRow';
 import { useSyncStatus } from '../sync/useSyncStatus';
 import { clearIndex } from '../search/store';
 import { getKhoSnapshot } from '../storage/khoSnapshot';
-import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../storage/khoHidden';
+import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../plugins/khoUnreadable';
 import { useGuToast } from '../lib/useGuToast';
 import { SYNC_MAP } from '../sync/syncLabels';
 

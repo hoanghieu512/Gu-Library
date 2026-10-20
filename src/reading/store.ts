@@ -3,7 +3,8 @@ import { Saf } from '../plugins/saf';
 import { getRootUri } from '../storage/repo';
 import { relPathFromUris } from './paths';
 import { getKhoSnapshot, folderByPath } from '../storage/khoSnapshot';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
+import { logWarn } from '../plugins/appLog';
 import { mergeReading, upsertEntry, removeEntry as removeInFile, moveEntry, renameReadingSubtree, removeReadingSubtree,
          type DeviceReadingFile, type ReadingEntry } from './model';
 
@@ -81,15 +82,15 @@ export async function recordProgress(docUri: string, page: number, total: number
 /**
  * recordProgress for the Viewer, which saves on every page turn and must keep reading when a save
  * fails. A hidden kho is expected (Home tells Gú); anything else is a bug, so it is logged rather
- * than dropped. Tests and debug builds show it (logcat Capacitor/Console); a release build prints
- * no console output, Capacitor's default loggingBehavior. Resolves true once the page is saved.
+ * than dropped, release builds included (logWarn: `adb logcat -s GuApp`). Resolves true once the
+ * page is saved.
  */
 export async function recordProgressBestEffort(docUri: string, page: number, total: number): Promise<boolean> {
   try {
     await recordProgress(docUri, page, total);
     return true;
   } catch (err) {
-    if (!(err instanceof KhoUnreadableError)) console.warn('recordProgress failed', err);
+    if (!(err instanceof KhoUnreadableError)) logWarn('recordProgress failed', err);
     return false;
   }
 }

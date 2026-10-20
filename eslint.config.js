@@ -43,4 +43,15 @@ export default defineConfig([
       }],
     },
   },
+  {
+    // storage imports the plugins, never the other way: saf.ts importing storage/khoHidden.ts made
+    // a cycle the moment khoHidden.ts called Saf (review of 20/10).
+    files: ['src/plugins/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{ group: ['**/storage/**'], message: 'src/plugins must not depend on src/storage.' }],
+      }],
+    },
+  },
 ])

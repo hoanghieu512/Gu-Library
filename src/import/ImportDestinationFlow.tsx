@@ -5,7 +5,7 @@ import ChooseMonSheet from './ChooseMonSheet';
 import ImportProgressModal from './ImportProgressModal';
 import { importBatch } from './inboxRepo';
 import { perfStart, perfEnd } from '../perf/perf';
-import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../storage/khoHidden';
+import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../plugins/khoUnreadable';
 
 // Sheet chọn đích + copy cả lô (dùng chung ShareReceiver + AddPage). batch>0 = mở sheet.
 // v1.12.0: modal tiến trình (vòng % + Hủy) → modal success (Xem kho). CHỈ một điểm kết (không toast lặp).

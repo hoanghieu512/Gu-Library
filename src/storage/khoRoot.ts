@@ -2,7 +2,7 @@
 // empty root is a new kho rather than one Android is hiding.
 
 import { Saf } from '../plugins/saf';
-import { KhoUnreadableError } from './khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 
 /**
  * Saf.ensureDir for a folder at the kho root (_inbox, _print), refusing a kho Android is hiding.

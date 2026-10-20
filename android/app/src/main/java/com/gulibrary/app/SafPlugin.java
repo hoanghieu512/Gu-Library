@@ -437,6 +437,14 @@ public class SafPlugin extends Plugin {
         } catch (Exception e) { call.reject("delete failed: " + e.getMessage()); }
     }
 
+    // One warning line from JS (src/plugins/appLog.ts). A release build prints no console output,
+    // and Capacitor's own logging would dump every call's payload, so the app logs through here.
+    @PluginMethod
+    public void logWarn(PluginCall call) {
+        android.util.Log.w("GuApp", call.getString("message", ""));
+        call.resolve();
+    }
+
     // Mở system file picker: nhiều file, chỉ loại worker nhận (pdf/doc/docx/ppt/pptx + ảnh jpg/png/webp).
     @PluginMethod
     public void pickFiles(PluginCall call) {

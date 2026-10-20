@@ -563,6 +563,28 @@ describe('searchDocs (v1.41.0)', () => {
     expect(Math.max(0, ...sortedLengths)).toBeLessThanOrEqual(20);
   });
 
+  // The sort check above misses a slowdown that sorts nothing, like a scan over every document for
+  // each match (review of 20/10). Timed against a plain pass over the same units, interleaved in the
+  // same run: measured 20/10 at 7.6 idle and 8.2 to 9.4 during the full suite, 79 with a findIndex
+  // over the documents per match. 25 sits about 3x from both.
+  it('100k matches over 2000 documents: searchDocs stays within 25x of one pass over the units', () => {
+    const ix = emptyIndex();
+    for (let d = 0; d < 2000; d++) {
+      addDoc(ix, { pdfUri: `uri://t${d}.pdf`, name: `T${d}`, mon: 'M' }, {
+        units: Array.from({ length: 50 }, (_, i) => ({ label: '', page: i + 1, text: `Thời hạn ${d} thực hiện ${i}` })),
+      });
+    }
+    const pass = () => { let s = 0; for (const u of ix.units) s += u.text.length + u.d; return s; };
+    searchDocs(ix, 'th'); pass();                // warm the lazy caches and the JIT
+    let tPass = Infinity, tDocs = Infinity;
+    for (let k = 0; k < 7; k++) {
+      let t0 = performance.now(); pass(); tPass = Math.min(tPass, performance.now() - t0);
+      t0 = performance.now(); searchDocs(ix, 'th'); tDocs = Math.min(tDocs, performance.now() - t0);
+    }
+    expect(searchDocs(ix, 'th').total).toBe(100_000);
+    expect(tDocs / tPass).toBeLessThan(25);
+  }, 20_000);                                   // building 100k units is slow on a busy CPU
+
   it('empty or symbol-only query → { total: 0, docs: [] }', () => {
     expect(searchDocs(fixture(), '')).toEqual({ total: 0, docs: [] });
     expect(searchDocs(fixture(), '...')).toEqual({ total: 0, docs: [] });

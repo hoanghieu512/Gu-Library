@@ -4,7 +4,7 @@ import { getRootUri } from '../storage/repo';
 import { emitKhoChanged } from '../lib/khoEvents';
 import { makeInboxName, parseInboxPrefix } from './prefix';
 import { getKhoSnapshot } from '../storage/khoSnapshot';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 import { ensureKhoDir } from '../storage/khoRoot';
 
 const INBOX = '_inbox';

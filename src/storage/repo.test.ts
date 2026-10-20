@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
-import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from './khoHidden';
+import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../plugins/khoUnreadable';
 import { createMon, createSubfolder, setMonColor } from './repo';
 
 const prefs = vi.hoisted(() => new Map<string, string>());

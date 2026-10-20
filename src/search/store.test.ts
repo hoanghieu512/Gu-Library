@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { displayNameMap, refreshIndex, stampOf } from './store';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT } from '../test/fakeSaf';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 import type { KhoFolder } from '../storage/khoSnapshot';
 import type { Document, Mon } from '../storage/types';
 import { indexDoc, mergeShards, search } from './invertedIndex';

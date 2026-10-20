@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { invalidateKho } from '../storage/khoSnapshot';
-import { KHO_UNREADABLE_MESSAGE } from '../storage/khoHidden';
+import { KHO_UNREADABLE_MESSAGE } from '../plugins/khoUnreadable';
 import SettingsPage from './SettingsPage';
 
 const prefs = vi.hoisted(() => new Map<string, string>());

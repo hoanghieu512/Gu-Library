@@ -3,7 +3,7 @@ import { foldSummary, countFlagged, folderByPath, getKhoSnapshot, type KhoFolder
 import type { Document, FolderListing } from './types';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
-import { KhoUnreadableError } from './khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 
 const prefs = vi.hoisted(() => new Map<string, string>());
 vi.mock('@capacitor/preferences', () => ({
