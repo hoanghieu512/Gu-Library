@@ -357,8 +357,10 @@ public class SafPlugin extends Plugin {
                 if (!child.getUri().toString().equals(findChildDirByName(parentTree, name))) {
                     // `name` is listed after all (a stale findFile, the same name in another case,
                     // or a file): it is taken, so undo the copy rather than hand back "name (1)".
-                    if (!child.delete()) android.util.Log.w("GuSaf", "createDir could not remove the copy '" + child.getName() + "'");
-                    call.reject("exists"); return;
+                    String copyName = child.getName();
+                    boolean removed = child.delete();
+                    if (!removed) android.util.Log.w("GuSaf", "createDir could not remove the copy '" + copyName + "'");
+                    call.reject(SafNames.takenMessage(removed, copyName)); return;
                 }
             }
             com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();

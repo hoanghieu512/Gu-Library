@@ -3,15 +3,9 @@ import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { KhoUnreadableError } from '../plugins/khoUnreadable';
 import { recordProgress, recordProgressBestEffort } from './store';
+import { prefs } from '../test/fakePreferences';
 
-const prefs = vi.hoisted(() => new Map<string, string>());
-vi.mock('@capacitor/preferences', () => ({
-  Preferences: {
-    get: async ({ key }: { key: string }) => ({ value: prefs.get(key) ?? null }),
-    set: async ({ key, value }: { key: string; value: string }) => { prefs.set(key, value); },
-    remove: async ({ key }: { key: string }) => { prefs.delete(key); },
-  },
-}));
+vi.mock('@capacitor/preferences', () => import('../test/fakePreferences'));
 vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 const FILE = '_reading-dev.json';

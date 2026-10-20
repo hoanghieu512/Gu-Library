@@ -12,6 +12,7 @@ import KhoRow from '../components/KhoRow';
 import GuSheet from '../components/GuSheet';
 import UnfiledSwatch from '../components/UnfiledSwatch';
 import type { Mon, SubFolder } from '../storage/types';
+import { withLeftoverNote } from '../storage/createDirError';
 
 interface Props {
   isOpen: boolean;
@@ -84,7 +85,7 @@ export default function ChooseMonSheet({ isOpen, note, onPick, onCancel }: Props
       onPick([...path, r.value], newUri);                     // chọn nó làm đích luôn
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      setNewErr(msg.includes('exists') ? 'Đã tồn tại' : (msg || 'Lỗi tạo thư mục'));
+      setNewErr(msg.includes('exists') ? withLeftoverNote('Đã tồn tại', msg) : (msg || 'Lỗi tạo thư mục'));
       setBusy(false);
     }
   };

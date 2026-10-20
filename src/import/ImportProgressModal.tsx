@@ -9,6 +9,7 @@ interface Props {
   total: number;
   ok: number;     // số file đã nhập xong (cho màn done)
   problem?: string; // set → the done screen says what went wrong (kho hidden by Android), not "Đã nhập"
+  left?: string[];  // with problem: the files the batch did not get to, to share again after the restart
   onCancel: () => void;
   onViewKho: () => void;
   onAddMore?: () => void;      // có → hiện nút "Thêm tiếp" (chỉ luồng chọn-file-từ-máy)
@@ -20,7 +21,11 @@ const C = 2 * Math.PI * R;
 
 // Modal tiến trình nhập lô (dialog nhỏ giữa màn, dùng IonModal có sẵn). Không đóng tay lúc đang
 // nhập (backdropDismiss=false); chỉ Hủy (đang nhập) hoặc Xem kho (xong) — CHỈ MỘT điểm kết.
-export default function ImportProgressModal({ open, phase, done, total, ok, problem, onCancel, onViewKho, onAddMore, onDidDismiss }: Props) {
+// At most five names, so a long batch does not push the button off the screen.
+const namesOf = (names: string[]) =>
+  names.length <= 5 ? names.join(', ') : `${names.slice(0, 5).join(', ')} và ${names.length - 5} file khác`;
+
+export default function ImportProgressModal({ open, phase, done, total, ok, problem, left, onCancel, onViewKho, onAddMore, onDidDismiss }: Props) {
   const pct = total > 0 ? Math.min(1, done / total) : 0;
   return (
     <IonModal
@@ -60,6 +65,11 @@ export default function ImportProgressModal({ open, phase, done, total, ok, prob
             <div style={{ fontSize: 13, color: 'var(--gu-brown-deep)', margin: '6px 0 18px', lineHeight: 1.45 }}>
               {problem}
             </div>
+            {ok > 0 && left && left.length > 0 && (
+              <div style={{ fontSize: 13, color: 'var(--gu-brown-deep)', margin: '0 0 18px', lineHeight: 1.45 }}>
+                Đã nhập {ok}/{total} file trước khi dừng. Sau khi khởi động lại, chỉ cần nhập lại: {namesOf(left)}.
+              </div>
+            )}
             <IonButton shape="round" onClick={onViewKho} style={{ textTransform: 'none' }}>Đã hiểu</IonButton>
           </>
         ) : (

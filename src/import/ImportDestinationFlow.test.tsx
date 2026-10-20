@@ -5,15 +5,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import ImportDestinationFlow from './ImportDestinationFlow';
+import { prefs } from '../test/fakePreferences';
 
-const prefs = vi.hoisted(() => new Map<string, string>());
-vi.mock('@capacitor/preferences', () => ({
-  Preferences: {
-    get: async ({ key }: { key: string }) => ({ value: prefs.get(key) ?? null }),
-    set: async ({ key, value }: { key: string; value: string }) => { prefs.set(key, value); },
-    remove: async ({ key }: { key: string }) => { prefs.delete(key); },
-  },
-}));
+vi.mock('@capacitor/preferences', () => import('../test/fakePreferences'));
 vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 // IonModal does not run in jsdom: show its children while open.
 vi.mock('@ionic/react', async (importOriginal) => ({
@@ -36,14 +30,15 @@ beforeEach(() => {
   kho.mkdir('_inbox');
 });
 
-function importOneFile() {
+function importFiles(...names: string[]) {
   render(
     <MemoryRouter>
-      <ImportDestinationFlow batch={[{ uri: 'content://share/a.pdf', name: 'a.pdf' }]} onClear={() => {}} />
+      <ImportDestinationFlow batch={names.map((name) => ({ uri: `content://share/${name}`, name }))} onClear={() => {}} />
     </MemoryRouter>,
   );
   fireEvent.click(screen.getByText('Lưu vào Logic'));
 }
+const importOneFile = () => importFiles('a.pdf');
 
 describe('ImportDestinationFlow: a kho Android will not list', () => {
   it('ends on how many files went in', async () => {
@@ -58,5 +53,28 @@ describe('ImportDestinationFlow: a kho Android will not list', () => {
     importOneFile();
     expect(await screen.findByText(/Khởi động lại máy/)).toBeInTheDocument();
     expect(screen.queryByText(/Đang nhập/)).not.toBeInTheDocument();
+  });
+
+  // Review of 18/10: after a restart Gú would share the whole batch again, and the files already
+  // in would come back as "[Môn] x (1).pdf".
+  it('says how many files went in before it stopped, and which to share again', async () => {
+    const copy = SafNative.copyToDir!;
+    let n = 0;
+    SafNative.copyToDir = async (o) => {
+      if (++n === 2) throw Object.assign(new Error('hidden'), { code: 'KHO_HIDDEN' });
+      return copy(o);
+    };
+    importFiles('a.pdf', 'b.pdf', 'c.pdf');
+    expect(await screen.findByText(/Khởi động lại máy/)).toBeInTheDocument();
+    expect(screen.getByText(/Đã nhập 1\/3 file trước khi dừng/)).toBeInTheDocument();
+    expect(screen.getByText(/b\.pdf, c\.pdf/)).toBeInTheDocument();
+  });
+
+  it('names no file when nothing went in', async () => {
+    kho.state.hideAll = true;
+    kho.state.rejectHidden = true;
+    importFiles('a.pdf', 'b.pdf');
+    expect(await screen.findByText(/Khởi động lại máy/)).toBeInTheDocument();
+    expect(screen.queryByText(/trước khi dừng/)).not.toBeInTheDocument();
   });
 });
