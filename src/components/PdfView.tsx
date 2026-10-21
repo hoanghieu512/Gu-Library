@@ -15,7 +15,7 @@ interface Props {
   initialPage: number;            // trang khôi phục lúc mở
   baseScale?: number;             // cỡ chữ mặc định (zoom khởi tạo); pinch chồng lên base này
   onPageChange: (page: number, total: number) => void; // báo trang hiện tại để lưu
-  jumpTo?: { page: number };      // jump command — a NEW object each time, so the same page jumps again
+  jumpTo?: { page: number };      // jump command: a NEW object each time, so the same page jumps again
   onFirstPaint?: () => void;      // once, when the first page has rendered (the Viewer then reads the Điều table)
 }
 

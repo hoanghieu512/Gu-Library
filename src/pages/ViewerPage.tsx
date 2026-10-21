@@ -353,8 +353,9 @@ export default function ViewerPage() {
                       onErrorAction={{ label: 'Chọn tài liệu khác', onClick: () => setBottomUri(null) }}
                     />
                   ) : (
-                    // A new document must not inherit the previous one's last jump.
-                    <DocPicker onPick={(u) => { setBottomJumpTo(undefined); setBottomPage(1); setBottomUri(u); }} />
+                    // A new document must not inherit the previous one's last jump, nor count as painted
+                    // (picking the same one again would read its sidecar before its first page).
+                    <DocPicker onPick={(u) => { setBottomJumpTo(undefined); setBottomPage(1); setBottomPainted(null); setBottomUri(u); }} />
                   )}
                 </div>
               </>

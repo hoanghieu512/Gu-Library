@@ -16,12 +16,12 @@ export interface TocEntry {
 }
 
 const TITLE_MAX = 160;
-// OCR reads Đ/đ as the eth letter Ð/ð (U+00D0/U+00F0); fold() would split "Ðiều" into "ieu".
+// OCR reads Đ/đ as the eth letter (U+00D0/U+00F0); fold() would then split that "Điều" into "ieu".
 // Worker v0.20.0+ already writes Đ, older sidecars may not.
-const fixEth = (s: string) => s.normalize('NFC').replace(/Ð/g, 'Đ').replace(/ð/g, 'đ');
+const fixEth = (s: string) => s.normalize('NFC').replace(/\u00D0/g, 'Đ').replace(/\u00F0/g, 'đ');
 const LEAD = /^Điều\s*\d+[a-zđ]*/iu;
 const NUM = /^dieu\s*(\d+[a-z]*)/;
-const CHAPTER = /^Chương\s/u;
+const CHAPTER = /^Chương\s/iu;
 
 const str = (v: unknown) => (typeof v === 'string' ? fixEth(v).trim() : '');
 
@@ -48,7 +48,7 @@ export function buildToc(sidecar: Sidecar): TocEntry[] {
   return out;
 }
 
-/** The article number in what was typed: "Điều 5", "dieu 5", "Ðiều 5" and " 5." all give "5". */
+/** The article number in what was typed: "Điều 5", "dieu 5", its eth form and " 5." all give "5". */
 export function dieuQuery(raw: string): string {
   return fold(fixEth(raw)).trim().replace(/^dieu/, '').replace(/[^a-z0-9]/g, '');
 }

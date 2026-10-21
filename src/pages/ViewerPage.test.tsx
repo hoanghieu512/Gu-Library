@@ -30,7 +30,10 @@ vi.mock('../components/DocPane', () => ({
 }));
 vi.mock('../components/DocPicker', () => ({
   default: ({ onPick }: { onPick: (uri: string) => void }) => (
-    <button type="button" onClick={() => onPick('uri://tra.pdf')}>pick</button>
+    <>
+      <button type="button" onClick={() => onPick('uri://tra.pdf')}>pick</button>
+      <button type="button" onClick={() => onPick('uri://khac.pdf')}>pick other</button>
+    </>
   ),
 }));
 vi.mock('../viewer/loadToc', () => ({ loadToc: vi.fn() }));
@@ -59,11 +62,16 @@ const entries = buildToc({
   ],
 });
 
+// The load of uri://khac.pdf waits until the test resolves it.
+let resolveKhac: (v: typeof entries) => void;
 beforeEach(() => {
   // ViewerPage measures its frame for the split; jsdom has no ResizeObserver.
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
   vi.mocked(loadToc).mockReset();
-  vi.mocked(loadToc).mockImplementation(async (uri) => (uri === 'uri://slide.pdf' ? [] : entries));
+  vi.mocked(loadToc).mockImplementation((uri) => {
+    if (uri === 'uri://khac.pdf') return new Promise((res) => { resolveKhac = res; });
+    return Promise.resolve(uri === 'uri://slide.pdf' ? [] : entries);
+  });
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -132,5 +140,41 @@ describe('ViewerPage: Mục lục Điều', () => {
 
     fireEvent.click(screen.getByLabelText('Đổi tài liệu tra cứu'));
     expect(screen.queryByLabelText('Mục lục Điều của tài liệu tra cứu')).toBeNull();
+  });
+
+  // Split opened with uri://tra.pdf in the bottom pane, its first page painted, its button shown.
+  async function splitWithTra() {
+    openViewer('uri://luat.pdf');
+    await screen.findByTestId('pane:uri://luat.pdf');
+    fireEvent.click(screen.getByLabelText('Chia đôi màn hình'));
+    click('pick');
+    await screen.findByTestId('pane:uri://tra.pdf');
+    click('painted:uri://tra.pdf');
+    await screen.findByLabelText('Mục lục Điều của tài liệu tra cứu');
+  }
+
+  it('picking the same reference document again waits for its first paint', async () => {
+    await splitWithTra();
+    const loads = vi.mocked(loadToc).mock.calls.length;
+    fireEvent.click(screen.getByLabelText('Đổi tài liệu tra cứu'));
+    click('pick');
+    await screen.findByTestId('pane:uri://tra.pdf');
+    expect(screen.queryByLabelText('Mục lục Điều của tài liệu tra cứu')).toBeNull();
+    expect(loadToc).toHaveBeenCalledTimes(loads);
+    click('painted:uri://tra.pdf');
+    expect(await screen.findByLabelText('Mục lục Điều của tài liệu tra cứu')).toBeInTheDocument();
+  });
+
+  it('a new reference document never shows the previous table', async () => {
+    await splitWithTra();
+    fireEvent.click(screen.getByLabelText('Đổi tài liệu tra cứu'));
+    click('pick other');
+    await screen.findByTestId('pane:uri://khac.pdf');
+    expect(screen.queryByLabelText('Mục lục Điều của tài liệu tra cứu')).toBeNull();
+    click('painted:uri://khac.pdf');
+    await waitFor(() => expect(loadToc).toHaveBeenCalledWith('uri://khac.pdf'));
+    expect(screen.queryByLabelText('Mục lục Điều của tài liệu tra cứu')).toBeNull();
+    await act(async () => { resolveKhac(entries); });
+    expect(await screen.findByLabelText('Mục lục Điều của tài liệu tra cứu')).toBeInTheDocument();
   });
 });

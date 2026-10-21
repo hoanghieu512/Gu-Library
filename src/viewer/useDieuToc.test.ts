@@ -41,6 +41,14 @@ describe('useDieuToc', () => {
     await waitFor(() => expect(result.current).toEqual([entryB]));
   });
 
+  it('does not show the previous table while the next one loads', async () => {
+    const { result, rerender } = renderHook(({ uri }) => useDieuToc(uri), { initialProps: { uri: 'a' } });
+    await act(async () => { pending.get('a')!([entryA]); });
+    await waitFor(() => expect(result.current).toEqual([entryA]));
+    rerender({ uri: 'b' });
+    expect(result.current).toBeNull();
+  });
+
   it('drops the table at once when the document goes away', async () => {
     const { result, rerender } = renderHook(({ uri }: { uri: string | null }) => useDieuToc(uri), {
       initialProps: { uri: 'a' as string | null },

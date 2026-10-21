@@ -30,8 +30,12 @@ describe('buildToc', () => {
     expect(toc([d({ label: 'Điều 9', path: [] })])[0].chapter).toBe('');
   });
 
-  it('reads Ð and letter suffixes', () => {
-    const [e] = toc([d({ label: 'Ðiều 10a', text: 'Ðiều 10a. Bổ sung' })]);
+  it('reads a chapter written in capitals', () => {
+    expect(toc([d({ label: 'Điều 9', path: ['CHƯƠNG II', 'Điều 9'] })])[0].chapter).toBe('CHƯƠNG II');
+  });
+
+  it('reads \u00D0 and letter suffixes', () => {
+    const [e] = toc([d({ label: '\u00D0iều 10a', text: '\u00D0iều 10a. Bổ sung' })]);
     expect(e.label).toBe('Điều 10a');
     expect(e.num).toBe('10a');
     expect(e.title).toBe('Bổ sung');
@@ -95,8 +99,8 @@ describe('filterToc', () => {
     expect(labels('10A')).toEqual(['Điều 10a']);
   });
 
-  it('reads Điều 5, dieu 5, Ðiều 5 and " 5." as 5', () => {
-    for (const q of ['Điều 5', 'dieu 5', 'Ðiều 5', ' 5.']) expect(labels(q)).toEqual(['Điều 5']);
+  it('reads Điều 5, dieu 5, \u00D0iều 5 and " 5." as 5', () => {
+    for (const q of ['Điều 5', 'dieu 5', '\u00D0iều 5', ' 5.']) expect(labels(q)).toEqual(['Điều 5']);
     expect(dieuQuery(' 5.')).toBe('5');
   });
 
