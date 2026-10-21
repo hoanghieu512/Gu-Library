@@ -49,6 +49,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - vitest không typecheck: luôn chạy thêm `npx tsc -b`.
 - Test thời gian tuyệt đối chập chờn khi cả bộ chạy song song. Kiểm cơ chế (spy) hoặc so tương đối với một phép làm chuẩn trong cùng lượt, chừa biên rộng.
 - Spy trên global (`console`, `Array.prototype`) phải trả lại trong `afterEach`; trả lại ở cuối test thì một assertion đỏ sẽ để spy dính sang test sau.
+- Công cụ ghi file của Claude Code có thể giải mã escape `\u00D0` trong nội dung thành chữ Ð thật (trông y hệt Đ). Viết ký tự dễ nhầm bằng escape rồi kiểm bằng `od -c`.
 - jsdom không có `Element.prototype.scrollIntoView`: gán `vi.fn` trong `beforeEach`, trả bản gốc trong `afterEach`.
 - `ViewerPage` test được trong jsdom (`src/pages/ViewerPage.test.tsx`) bằng cách giả `DocPane` (pdf.js cần `DOMMatrix`) và stub `ResizeObserver`; pane giả có nút để test tự quyết lúc nào "vẽ xong trang đầu".
 - `./gradlew assembleRelease` ghi đè APK trong `android/app/build/outputs/apk/release/`: sao lưu APK nghiệm thu trước khi build lại.
