@@ -30,7 +30,7 @@ Sidecar của văn bản luật (`kind: "legal"`) có chuỗi đơn vị `dieu` 
 
 ## Cần chốt với huynh trước khi code
 
-Dùng superpowers:brainstorming, hỏi từng câu một, rồi ghi spec vào `Docs/superpowers/specs/` và plan vào `Docs/superpowers/plans/`.
+Hỏi huynh từng câu một (dùng skill brainstorming nếu phiên có, plugin cài ở máy local không chắc có trên cloud), rồi ghi spec vào `Docs/superpowers/specs/` và plan vào `Docs/superpowers/plans/`.
 
 1. Lối vào đặt ở đâu (icon riêng cạnh 🔍, hay một tab trong sheet tìm)? Ở split thì cho pane nào?
 2. Ô lọc: gõ "5" thì Điều 5 đứng đầu rồi tới 50, 51… (giống cách xếp từ 1.42.2) hay chỉ khớp đúng?
