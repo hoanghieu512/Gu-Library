@@ -18,6 +18,7 @@ Phiên cloud 21/10. Brief `Docs/claude/briefs/2026-10-21-nha-chi-muc-ram.md`; sp
 - `2793fc6`: nối vào `SearchPage`: mount và `useIonViewWillEnter` gọi `enter`, `useIonViewDidLeave` gọi `leave`, `App` `pause`/`resume`, `onIndexCleared`. Kết quả nhớ kèm câu tra: lúc đã nhả, danh sách cũ chỉ hiện khi khớp câu trong ô. Test trang mới `src/pages/SearchPage.test.tsx`.
 - `abe5321`: `Docs/claude/lessons.md`.
 - `564f527`: sửa theo review độc lập: `release` commit hai lần bằng `flushSync` để React không giữ chỉ mục trên fiber alternate (xem Bẫy); lượt dựng thứ hai trong phiên bắt đầu thanh tiến độ từ 0.
+- Commit kế tiếp: câu gợi ý khi không ra kết quả bỏ em dash (huynh duyệt), có test khoá câu chữ.
 
 ## Quyết định
 
@@ -26,7 +27,7 @@ Phiên cloud 21/10. Brief `Docs/claude/briefs/2026-10-21-nha-chi-muc-ram.md`; sp
 - Quay lại sau khi đã nhả: giữ danh sách kết quả cũ (chạm được, giữ chỗ cuộn), dòng trạng thái dùng lại câu sẵn có "đang cập nhật chỉ mục…". Gõ câu khác trong lúc nạp thì ẩn danh sách cũ. Không thêm chữ mới trên màn.
 - Giữ `result` (mỗi tài liệu khớp một đoạn), bảng tên hiển thị và dấu vân tay khi nhả; bỏ bảng token và danh sách đơn vị.
 - Vá lỗ hổng có từ trước: "Dựng lại chỉ mục" ở Cài đặt nay luôn làm màn Tìm bỏ chỉ mục đang giữ; vào màn Tìm thì dựng lại có tiến độ.
-- Ở `SearchPage` giữ nguyên em dash trong câu "Không tìm thấy đoạn nào" (xem "Còn mở"), vì spec cấm đổi chữ trên màn khi chưa được huynh duyệt.
+- Câu gợi ý khi không ra kết quả: huynh duyệt 21/10 đổi em dash thành dấu hai chấm, nay là "Thử bớt chữ, hoặc gõ không dấu cũng được: “to tung” ra “Tố tụng”." Đây là chữ duy nhất trên màn đổi ở nhánh này.
 
 ## Bẫy đã gặp
 
@@ -36,7 +37,7 @@ Phiên cloud 21/10. Brief `Docs/claude/briefs/2026-10-21-nha-chi-muc-ram.md`; sp
 
 ## Kiểm chứng đã chạy
 
-- `npm test`: 66 file, 501 test, tất cả pass (31 test mới: `indexHold` 13, `store` 1, `useSearchIndex` 12, `SearchPage` 5).
+- `npm test`: 66 file, 502 test, tất cả pass (32 test mới: `indexHold` 13, `store` 1, `useSearchIndex` 12, `SearchPage` 6).
 - `npx tsc -b`: sạch. `npm run lint`: 0 lỗi, 10 cảnh báo (đúng số cũ).
 - Đột biến tạm, đã trả code về: bỏ kiểm số thứ tự sau `loadIndex` (2 test đỏ); bỏ xếp hàng lượt nạp (1 test đỏ); bỏ hook `leave` (3 test đỏ); luôn hiện `result` cũ (1 test đỏ); bỏ nghe `onIndexCleared` (1 test đỏ).
 - Review độc lập cả nhánh (một subagent): kết luận "With fixes": 1 Critical đã sửa ở `564f527`, 1 Minor nâng lên và đã sửa, 2 Minor để lại (xem "Còn mở").
@@ -50,9 +51,9 @@ Phiên cloud 21/10. Brief `Docs/claude/briefs/2026-10-21-nha-chi-muc-ram.md`; sp
 - [ ] Thời gian quay lại màn Tìm sau khi đã nhả tới lúc tra được (so với 0,49 s của spike 05/09; chỉ mục nay to hơn).
 - [ ] Bấm "Dựng lại chỉ mục" ở Cài đặt (cả khi vừa ở màn Tìm chưa tới 3 phút) rồi vào màn Tìm: dựng lại có tiến độ bắt đầu từ 0, không hiện chỉ mục cũ. Bấm lần hai trong cùng phiên: thanh không nhảy "178/178" rồi tụt.
 - [ ] `resume` khi đang ở màn Tìm: Trang chủ và màn Tìm cùng đi kho một lượt; xem thời gian và có giật không.
+- [ ] Gõ một câu không có trong kho: câu gợi ý hiện dấu hai chấm ("…cũng được: “to tung” ra “Tố tụng”."), không còn em dash.
 
 ## Còn mở, cần huynh quyết
 
-- [ ] Câu hiện trên màn Tìm khi không ra kết quả đang có em dash giữa "gõ không dấu cũng được" và "“to tung” ra “Tố tụng”". Đề xuất đổi em dash thành dấu hai chấm: "Thử bớt chữ, hoặc gõ không dấu cũng được: “to tung” ra “Tố tụng”." Huynh duyệt thì sửa ở local cùng lúc phát hành (một dòng trong `src/pages/SearchPage.tsx`).
 - [ ] Hai Minor của review, chưa sửa: (1) test trang "quay lại trong 3 phút" trả về đồng hồ thật trước khi `enter`, nên không thấy được lỗi "`enter` không huỷ hẹn" (test đơn vị `indexHold` đã bắt lỗi này); (2) chưa có test trang khoá việc giữ danh sách cũ trong 130 ms chờ gõ khi đang giữ chỉ mục.
-- [ ] Ghi chú phát hành cho Pé (1.43.1): Pé không thấy tính năng mới; nếu muốn ghi thì là "app nhẹ hơn khi để ở nền, ít bị đóng lại hơn", chỉ nên ghi sau khi đo trên máy thấy PSS giảm thật.
+- [ ] Ghi chú phát hành cho Pé (1.43.1): Pé không thấy tính năng mới; nếu muốn ghi thì là "app nhẹ hơn khi để ở nền, ít bị đóng lại hơn", chỉ nên ghi sau khi đo trên máy thấy PSS giảm thật. CHANGELOG nhớ ghi việc đổi câu gợi ý khi không ra kết quả.

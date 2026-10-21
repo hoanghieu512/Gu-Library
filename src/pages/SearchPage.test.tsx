@@ -125,6 +125,14 @@ describe('SearchPage: releasing the index', () => {
     expect(await screen.findByText('Luật Đất đai')).toBeInTheDocument();
   });
 
+  // Copy approved by huynh on 21/10: a colon replaces the em dash the app no longer uses.
+  it('no match: suggests fewer words or no accents, without an em dash', async () => {
+    await searchFor('dat');
+    fireEvent.change(screen.getByLabelText('Tìm trong tài liệu'), { target: { value: 'xyzzy' } });
+    expect(await screen.findByText('Không tìm thấy đoạn nào')).toBeInTheDocument();
+    expect(screen.getByText('Thử bớt chữ, hoặc gõ không dấu cũng được: “to tung” ra “Tố tụng”.')).toBeInTheDocument();
+  });
+
   it('clearing the index makes the next entry build', async () => {
     await searchFor('dat');
     act(() => life.leave());

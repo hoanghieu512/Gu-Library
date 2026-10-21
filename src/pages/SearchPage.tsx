@@ -129,7 +129,7 @@ export default function SearchPage() {
 
             {q.trim() && shown.docs.length === 0 && !refreshing && (
               <Empty title="Không tìm thấy đoạn nào">
-                Thử bớt chữ, hoặc gõ không dấu cũng được — “to tung” ra “Tố tụng”.
+                Thử bớt chữ, hoặc gõ không dấu cũng được: “to tung” ra “Tố tụng”.
                 {imageOnly > 0 && (
                   <>
                     <br />
