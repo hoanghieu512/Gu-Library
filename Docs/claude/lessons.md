@@ -1,6 +1,6 @@
 # Bài học và quyết định đã chốt
 
-Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 21/10/2026 (main `fc852b9` = 1.43.0, tag `v1.43.0`; máy Gú chạy 1.42.3).
+Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 22/10/2026 (main = 1.43.0, tag `v1.43.0`; máy Gú chạy 1.43.0 từ 21/10).
 
 Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-prod.md` §8.1. File này chỉ giữ thứ dễ quên hoặc đã từng cắn.
 
@@ -60,16 +60,20 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Shell giữ cwd sau `cd android`: mọi lệnh sau đó dùng đường dẫn tuyệt đối. Muốn chắc bundle đã vào APK thì grep trong `android/app/src/main/assets/public/assets/*.js`, đừng tin dòng "BUILD SUCCESSFUL".
 - Version được nướng vào APK lúc build: bump `package.json` thì phải build lại. Bản release đè bản debug phải gỡ trước (khác chữ ký).
 - Đo bộ nhớ phải cộng tiến trình renderer `…:sandboxed_process0`, và đúng renderer của app (UID dạng `u0a<uid>i<n>`). Cắt số theo từng lượt thao tác, đừng hồi quy cả pha. PSS cao sau phiên nặng phần lớn là trang đã swap sang zram, không phải rò.
+- `am send-trim-memory` nhận mỗi mức một lần cho một tiến trình: gửi lại cùng mức hay mức thấp hơn thì báo "Unable to set a higher trim level than current level". Một lượt đo chỉ ép được theo thứ tự tăng (vd `RUNNING_CRITICAL` rồi `COMPLETE`); muốn ép lại thì mở tiến trình mới.
+- Bỏ tham chiếu tới một đối tượng lớn trong WebView không làm PSS giảm ngay: V8 chỉ trả bộ nhớ khi tự thu gom. Ở tiền cảnh không có áp lực thì có thể không thu (chỉ mục Tìm đã nhả mà Trang chủ sau 3 phút vẫn ngang bản cũ); ở nền thì thu trong 10 s đến 2 phút. Biết đã nhả hay chưa thì nhìn hành vi (mở lại có nạp lại); thấy số giảm thì ép `RUNNING_CRITICAL` hoặc chờ ở nền 2 phút.
 - Truy vấn theo role của Testing Library chậm trong jsdom (khoảng 0,4 s mỗi lần trên 50 đến 120 hàng): đếm nhiều hàng bằng `querySelectorAll` theo `role` và `aria-label`, tìm nút bằng `queryByText(…, { selector: 'button' })`. Test phân trang của `DocSearchSheet` từng quá hạn 5 s khi cả bộ chạy song song trên Mac bận (5,4 đến 7,3 s), nay khoảng 0,9 s.
 
 ## Bẫy thiết bị (chỉ ở local)
 
 - UBS1: đồng hồ có thể tụt về năm 2024 sau khi khởi động lại; test đọc đỏ thì xem `adb shell date` trước. Gboard trên UBS1 nuốt chữ "u". Bàn phím che nút trong sheet.
+- UBS1: cài đè APK có lúc bị Play Protect hỏi "Send app for a security check?" và `adb install` treo tới khi bấm; chọn "Don't send".
 - dGen1: chỉ một lần `am force-stop` lúc renderer đang chạy là WebView đen tới khi khởi động lại máy. Mở bằng `adb shell monkey -p com.gulibrary.app -c android.intent.category.LAUNCHER 1`, không relaunch. Màn vuông 720 × 720.
 - Kiểm bảng "Có gì mới" sau khi cài: mở lần đầu bằng `monkey` (mở bằng `agent-device open` thì UBS1 không thấy bảng).
 - e2e (`e2e/`, đọc `e2e/README.md` trước): 8 test theo nhãn, khoảng 3 ph 20 s, không gọi model. Test Tìm mở một bộ luật ở trang 24 nên trạng thái đọc của kho QA đổi sau mỗi lượt.
 - Kho QA trên UBS1 ở `/sdcard/Download/kho`; kéo sidecar về Mac bằng `adb exec-out tar`.
 - Kiểm tay không cần agent-device: `adb shell uiautomator dump` thấy `aria-label` của WebView; bấm vào node **nhỏ nhất** khớp nhãn (node cha chứa chữ của mọi con), và tránh phần node nằm dưới thanh tab (gáy sách ở Trang chủ, cuối danh sách chọn tài liệu của pane dưới trên dGen1).
+- `adb shell input` bắn ngay lúc WebView đang bận (vd màn Tìm vừa nạp lại chỉ mục) thì chạm và phím có thể mất: chờ bàn phím hiện rồi mới gõ. Ô ở cuối màn Cài đặt nằm ngoài khung trên dGen1 (bounds `[0,0][0,0]`): cuộn trước khi bấm.
 - Đo "bao lâu sau trang đầu thì X hiện": `adb shell screenrecord` chỉ ghi khung khi màn đổi, `ffprobe -show_entries frame=pts_time` cho mốc từng khung. Độ giật: `dumpsys gfxinfo com.gulibrary.app reset`, thao tác, rồi đọc "Janky frames"; so với bản trước cùng cách làm, vì một lượt lệch tới vài điểm phần trăm.
 
 ## Quyết định sản phẩm đã chốt
@@ -82,11 +86,11 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Mục lục Điều (chốt 21/10): nút riêng ở footer, ở split là chữ "Mục lục" trên vạch chia cho pane dưới; lọc theo số khớp đúng trước rồi khớp phần đầu; danh sách phẳng có dòng tiêu đề Chương, không có Khoản; đánh dấu và tự cuộn tới Điều đang đọc; ô lọc không tự focus và không nhớ khi đóng; tài liệu không có Điều thì không hiện nút.
 - Lớp nền `KhoRow`, `GuSheet`, `GuDialog`: danh sách hành động do màn truyền vào. Bảy beat liên tiếp không phải sửa interface của chúng; giữ như vậy.
 
-## Việc còn mở (21/10/2026)
+## Việc còn mở (22/10/2026)
 
-- 1.42.4 và 1.43.0 đã merge và tag (APK nghiệm thu `b5c64d9` và `d8b7b7d`, e2e 8/8), máy Gú còn 1.42.3; Gú cài bản nào thì chép APK đó vào `releases/` và sửa dòng Prod trong ops doc.
+- Máy Gú lên 1.43.0 ngày 21/10 (đi thẳng từ 1.42.3, bỏ qua 1.42.4); APK `d8b7b7d` đã chép vào `releases/`. Dòng Prod trong ops doc chưa sửa.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
-- Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên): đã sửa trên nhánh `fix/search-index-ram` (phiên cloud 21/10), chờ đo và kiểm trên máy theo `Docs/claude/handoff/fix-search-index-ram.md`.
+- Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên): đã sửa trên nhánh `fix/search-index-ram` (phiên cloud 21/10), đã đo và kiểm trên UBS1, dGen1 ngày 21-22/10 (ở nền nhẹ hơn khoảng 90 đến 120 MB, e2e 10/10; kết quả trong file bàn giao), chờ huynh quyết merge và phát hành 1.43.1.
 - Mục lục Điều (bậc 1) ra ở 1.43.0. Kho QA: 72/182 tài liệu có `dieu`, dòng đầu `text` là tên Điều ở văn bản luật. Chưa hỏi Pé có cần không, có dùng không.
 - Worker bắt các Điều được trích trong bài hội thảo thành unit `dieu` (8 tài liệu ở `Hình sự chung/Tài liệu tham khảo`), nên Mục lục của chúng là các Điều rời, tên là câu văn. Sửa ở parser worker nếu cần.
