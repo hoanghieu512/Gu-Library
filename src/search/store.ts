@@ -81,12 +81,25 @@ async function writeStored(v: Stored): Promise<void> {
   db.close();
 }
 
+const CLEARED = 'gulib:search-index-cleared';
+
 export async function clearIndex(): Promise<void> {
   try {
     const db = await open();
     await tx(db, 'readwrite', (s) => s.delete(KEY));
     db.close();
-  } catch { /* không xoá được cũng không sao — dựng lại sẽ ghi đè */ }
+  } catch { /* không xoá được cũng không sao: dựng lại sẽ ghi đè */ }
+  // Even when the delete failed: the Search screen drops the index it holds and reloads.
+  window.dispatchEvent(new Event(CLEARED));
+}
+
+/**
+ * The stored index was cleared ("Dựng lại chỉ mục" in Settings). The Search screen may still hold
+ * the old index in state; it listens here to let go of it (spec 2026-10-21).
+ */
+export function onIndexCleared(cb: () => void): () => void {
+  window.addEventListener(CLEARED, cb);
+  return () => window.removeEventListener(CLEARED, cb);
 }
 
 /** Một tài liệu cần có mặt trong index, kèm dấu vân tay của sidecar. */
