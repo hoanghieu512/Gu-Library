@@ -41,6 +41,14 @@ function Body({ entries, currentPage, onPick }: {
   const reading = useMemo(() => readingEntries(entries, currentPage), [entries, currentPage]);
   const scrollTo = entries.find((e) => reading.has(e.i))?.i;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // The filter stays pinned while the list scrolls, so it can be typed deep in a long law: back to
+  // the top then, or the shorter list leaves the view past its end and the exact match above it.
+  const setFilter = (v: string) => {
+    setQ(v);
+    topRef.current?.scrollIntoView({ block: 'start' });
+  };
 
   // Only the unfiltered list carries the ref, so a filter typed in the meantime cancels the scroll.
   useEffect(() => {
@@ -54,29 +62,35 @@ function Body({ entries, currentPage, onPick }: {
   else status = `Không có Điều nào số “${dieuQuery(q)}”`;
 
   return (
-    <div style={{ padding: '4px 16px 16px' }}>
+    <div ref={topRef} style={{ padding: '0 16px 16px' }}>
+      {/* Pinned over the content's 16 px top padding (negative top and margin), opaque so rows pass under it. */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gu-white)',
-        border: '1px solid var(--gu-grey)', borderRadius: 999, padding: '9px 14px',
+        position: 'sticky', top: -16, zIndex: 1, margin: '-16px 0 0', padding: '20px 0 6px',
+        background: 'var(--gu-cream)',
       }}>
-        <input
-          value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder="Lọc theo số Điều…" aria-label="Lọc theo số Điều"
-          inputMode="numeric" enterKeyHint="done" autoComplete="off" autoCorrect="off" spellCheck={false}
-          style={{
-            flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent',
-            fontSize: 15, color: 'var(--gu-brown-deep)', fontFamily: 'inherit',
-          }}
-        />
-        {q && (
-          <IonIcon
-            icon={closeCircle} onClick={() => setQ('')} role="button" aria-label="Xoá ô lọc"
-            style={{ color: 'var(--gu-grey)', flex: '0 0 auto', cursor: 'pointer', fontSize: 18 }}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gu-white)',
+          border: '1px solid var(--gu-grey)', borderRadius: 999, padding: '9px 14px',
+        }}>
+          <input
+            value={q} onChange={(e) => setFilter(e.target.value)}
+            placeholder="Lọc theo số Điều…" aria-label="Lọc theo số Điều"
+            inputMode="numeric" enterKeyHint="done" autoComplete="off" autoCorrect="off" spellCheck={false}
+            style={{
+              flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent',
+              fontSize: 15, color: 'var(--gu-brown-deep)', fontFamily: 'inherit',
+            }}
           />
-        )}
-      </div>
+          {q && (
+            <IonIcon
+              icon={closeCircle} onClick={() => setFilter('')} role="button" aria-label="Xoá ô lọc"
+              style={{ color: 'var(--gu-grey)', flex: '0 0 auto', cursor: 'pointer', fontSize: 18 }}
+            />
+          )}
+        </div>
 
-      <div style={{ margin: '10px 2px 6px', fontSize: 12, color: 'var(--gu-grey)', minHeight: 16 }}>{status}</div>
+        <div style={{ margin: '10px 2px 0', fontSize: 12, color: 'var(--gu-grey)', minHeight: 16 }}>{status}</div>
+      </div>
 
       {rows.map((e, k) => {
         const header = !filtered && e.chapter !== '' && e.chapter !== rows[k - 1]?.chapter;

@@ -96,6 +96,23 @@ describe('DieuTocSheet', () => {
     expect((scrollIntoView.mock.contexts[0] as HTMLElement).textContent).toContain('Điều 3');
   });
 
+  it('keeps the filter and the count pinned above the list', () => {
+    render(sheet());
+    let bar = screen.getByLabelText('Lọc theo số Điều').parentElement;
+    while (bar && bar.style.position !== 'sticky') bar = bar.parentElement;
+    expect(bar).not.toBeNull();
+    expect(bar).toContainElement(screen.getByText('4 Điều'));
+    expect(bar).not.toContainElement(row('Nhảy tới Điều 1, trang 1'));
+  });
+
+  it('typing a filter brings the list back to the top', async () => {
+    render(sheet({ currentPage: 20 }));
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' }), { timeout: 1000 });
+    filter('3');
+    expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'start' });
+    expect(scrollIntoView.mock.contexts.at(-1) as HTMLElement).toContainElement(screen.getByLabelText('Lọc theo số Điều'));
+  });
+
   it('opens with an empty filter that is not focused', async () => {
     const { rerender } = render(sheet());
     filter('3');
