@@ -38,6 +38,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Ionic giữ trang trong tab sống và khớp view theo path, bỏ qua query: một link tới Viewer đang mở ở tab khác sẽ dùng lại instance cũ. Xử tham số trong `useIonViewWillEnter` đọc `history.location`, kèm mã dùng một lần.
 - Đóng `IonModal` bằng `isOpen`, đừng unmount khi đang mở (để lại `aria-hidden` treo trên router outlet). Nội dung sheet không tự đặt `overflow:auto`. `autoFocus` không ăn trong `IonModal`. Sheet có breakpoint cần `expandToScroll={false}`.
 - Nút back cứng: handler riêng đăng ký priority 50 (chế độ chọn nhiều 60), không gọi `processNextHandler` (không thì lùi hai lần).
+- `position: sticky` trong `IonContent` bám vào mép trong lớp đệm (content box) của vùng cuộn: `top: 0` để lộ một dải bằng `--padding-top` cho hàng trượt qua phía trên. Dùng `top` âm bằng lớp đệm, kèm `margin-top` âm và nền đặc (`DieuTocSheet`, đã đo trên dGen1).
 - WebView nâng chữ CSS nhỏ hơn khoảng 8 px lên 8 px: chữ nhỏ phải vẽ trong `<svg viewBox>`. `<svg>` trần không ăn cỡ của `ion-icon[slot=icon-only]`; `IonIcon src=` với data-URI không render gì.
 - Icon đã mang nghĩa trong app: `swapHorizontalOutline` là Chuyển (di chuyển file), `refresh` là làm mới, `syncCircle` là Syncthing. Tra trước khi thêm icon.
 - Bản release không in `console.*` ra logcat. **Đừng bật `loggingBehavior`** trong `capacitor.config.ts`: khi đó Capacitor stringify và in nội dung mọi lệnh plugin (sidecar, nội dung `writeFile`). Cảnh báo cần thấy ở bản release thì gọi `logWarn` (`src/plugins/appLog.ts`, đọc bằng `adb logcat -s GuApp`).
@@ -64,6 +65,8 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Kiểm bảng "Có gì mới" sau khi cài: mở lần đầu bằng `monkey` (mở bằng `agent-device open` thì UBS1 không thấy bảng).
 - e2e (`e2e/`, đọc `e2e/README.md` trước): 8 test theo nhãn, khoảng 3 ph 20 s, không gọi model. Test Tìm mở một bộ luật ở trang 24 nên trạng thái đọc của kho QA đổi sau mỗi lượt.
 - Kho QA trên UBS1 ở `/sdcard/Download/kho`; kéo sidecar về Mac bằng `adb exec-out tar`.
+- Kiểm tay không cần agent-device: `adb shell uiautomator dump` thấy `aria-label` của WebView; bấm vào node **nhỏ nhất** khớp nhãn (node cha chứa chữ của mọi con), và tránh phần node nằm dưới thanh tab (gáy sách ở Trang chủ, cuối danh sách chọn tài liệu của pane dưới trên dGen1).
+- Đo "bao lâu sau trang đầu thì X hiện": `adb shell screenrecord` chỉ ghi khung khi màn đổi, `ffprobe -show_entries frame=pts_time` cho mốc từng khung. Độ giật: `dumpsys gfxinfo com.gulibrary.app reset`, thao tác, rồi đọc "Janky frames"; so với bản trước cùng cách làm, vì một lượt lệch tới vài điểm phần trăm.
 
 ## Quyết định sản phẩm đã chốt
 
@@ -81,5 +84,6 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
 - Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên).
-- Mục lục Điều (bậc 1) đã code trên nhánh `feat/muc-luc-dieu` (phiên cloud 21/10), chờ kiểm trên máy theo `Docs/claude/handoff/feat-muc-luc-dieu.md`. Chưa hỏi Pé có cần không; chưa đếm số tài liệu có đơn vị `dieu`; chưa soi tên Điều có nằm ở dòng đầu `text` của sidecar thật không.
+- Mục lục Điều (bậc 1) trên nhánh `feat/muc-luc-dieu`: đã kiểm trên máy 21/10 (kết quả trong file bàn giao), chờ huynh duyệt câu chữ và chọn bản phát hành (đề xuất 1.43.0). Kho QA: 72/182 tài liệu có `dieu`, dòng đầu `text` là tên Điều ở văn bản luật. Chưa hỏi Pé có cần không.
+- Worker bắt các Điều được trích trong bài hội thảo thành unit `dieu` (8 tài liệu ở `Hình sự chung/Tài liệu tham khảo`), nên Mục lục của chúng là các Điều rời, tên là câu văn. Sửa ở parser worker nếu cần.
 - Judexp (repo lấy plugin SAF từ đây) cần `ensureDir` khớp tên không phân biệt hoa thường.

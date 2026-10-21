@@ -71,10 +71,20 @@ Tất cả mục trên đạt. Số đo thật:
 
 ## Phát hiện mới ở phiên local
 
-- **Ô lọc cuộn đi cùng danh sách.** Sheet mở là tự cuộn tới Điều đang đọc, nên ô lọc nằm ngoài màn ngay khi đang đọc quá vài Điều đầu (thấy trên dGen1 với Luật DN 2020 ở tr. 4 và tr. 17). Với BLDS đang ở Điều 400 thì phải cuộn ngược khoảng 400 hàng mới gõ được số, ngược mục tiêu 2 của spec. Hướng sửa: ghim ô lọc và dòng trạng thái ở đầu vùng cuộn của sheet (`position: sticky`).
+- **Ô lọc cuộn đi cùng danh sách (đã sửa, xem mục dưới).** Sheet mở là tự cuộn tới Điều đang đọc, nên ô lọc nằm ngoài màn ngay khi đang đọc quá vài Điều đầu (thấy trên dGen1 với Luật DN 2020 ở tr. 4 và tr. 17). Với BLDS đang ở Điều 400 thì phải cuộn ngược khoảng 400 hàng mới gõ được số, ngược mục tiêu 2 của spec.
 - **Tài liệu hội thảo có Điều "giả".** 8 tài liệu trong `Hình sự chung/Tài liệu tham khảo` có 1 đến 27 unit `dieu` do worker bắt các Điều được trích trong bài: số không theo thứ tự, tên là câu văn (vd Điều 298 "Việc quy định này bảo đảm vai trò của VKS ngoài chức năng công tố còn có"). Nút vẫn hiện, chạm thì tới trang có đoạn trích. Luật "phải có Điều 1" sẽ ẩn nhầm 3 văn bản thật (bản trích Luật Tư pháp người chưa thành niên, hai phần Luật Đất đai 2024), nên chỗ sửa đúng là parser của worker, không phải app.
 - **Footer chật trên máy 360 dp:** chữ gợi ý "Tới trang…" bị cắt khi có nút ≡ và tổng trang 3 chữ số (UBS1). Ô vẫn gõ được, "Nhảy" không tràn. Hướng sửa nếu cần: rút chữ gợi ý (vd "Trang…") hoặc thu hẹp lề nút.
 - dGen1 (có từ trước, không do nhánh): ở split, thanh tab che phần cuối danh sách chọn tài liệu của pane dưới; bấm hàng cuối dễ trúng tab.
+
+## Sửa sau khi kiểm máy (huynh chọn 21/10)
+
+Huynh chọn: sửa ô lọc, để nguyên bốn Minor và chữ gợi ý ở footer.
+
+- `DieuTocSheet`: ô lọc và dòng đếm nằm trong một khối `position: sticky` có nền đặc. `IonContent` có lớp đệm trên 16 px và sticky bám vào mép trong lớp đệm, nên khối dùng `top: -16` cùng `margin-top: -16px` để ghim sát mép trên mà lúc chưa cuộn vẫn đứng đúng chỗ cũ.
+- Gõ hay xoá ô lọc thì cuộn danh sách về đầu: ô lọc ghim rồi thì gõ được khi đang ở sâu, danh sách ngắn lại sẽ để vị trí cuộn kẹt quá cuối và che mất Điều khớp đúng ở trên.
+- Test đỏ trước: "keeps the filter and the count pinned above the list", "typing a filter brings the list back to the top" (cả hai đỏ trước khi sửa). Sheet test 10/10; cả bộ 470/470 khi chạy với `--testTimeout=20000`. Ở hạn mặc định 5 s, `DocSearchSheet` "exact count and paging by 50" đỏ vì quá hạn khi cả bộ chạy song song trên Mac đang tải nặng: chạy riêng 1,55 s, trong cả bộ 5,4 đến 7,3 s, đỏ cả khi bỏ thay đổi này (5567 ms, 5427 ms). Không do nhánh; đã ghi ở việc còn mở trên main. `npx tsc -b` sạch, `npm run lint` 0 lỗi, 10 cảnh báo.
+- APK `6fd1616…` (sao lưu ở `android/app/build/feat-muc-luc-dieu-2/`) cài UBS1 và dGen1 bằng `monkey`. dGen1, Luật DN 2020 ở tr. 17: mở sheet thì ô lọc và "220 Điều" ở đầu, danh sách tự cuộn tới Điều 29 đến 31; cuộn xuống Điều 77 đến 80 ô lọc vẫn ở đó; gõ "3" thì danh sách về đầu, hai Điều 3 đứng trên; ✕ về danh sách đầy đủ từ "Chương I"; chạm Điều 4 về trang 1. Ô lọc lúc ghim và lúc chưa cuộn cùng một chỗ. Cuộn sheet 220 hàng: 424 khung, 1,65% giật, p99 19 ms.
+- UBS1 (360 dp), Luật DN 2020 nhảy tới tr. 60: ô lọc và "220 Điều" ghim ở đầu, dấu "đang đọc" ở Điều 111 và 112, tiêu đề "Chương V" đúng chỗ. **e2e 8/8 · 3 ph 18 s · $0 · Haiku 5.5 (không gọi model)** trên APK `6fd1616…`.
 
 ## Còn mở, cần huynh quyết
 
