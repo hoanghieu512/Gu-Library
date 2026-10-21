@@ -2,6 +2,19 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.43.0] (2026-10-21): Mục lục Điều trong Viewer
+### Added
+- **Mục lục Điều (bậc 1 của spec §8)**: bảng Chương và Điều của tài liệu đang mở, lấy từ sidecar (spec `Docs/superpowers/specs/2026-10-21-muc-luc-dieu-design.md`, plan `Docs/superpowers/plans/2026-10-21-muc-luc-dieu.md`). Chế độ đơn: nút `listOutline` cạnh 🔍 ở footer; split: chữ "Mục lục" trên vạch chia, áp cho pane dưới. Chạm một Điều là nhảy tới trang của nó; Điều đang đọc (các Điều bắt đầu trên trang hiện tại, không có thì Điều gần nhất phía trước) được đánh dấu "đang đọc" và tự cuộn tới khi mở sheet. Tài liệu không có unit `dieu` thì không có nút.
+- Ô lọc theo số Điều (bàn phím số, không tự focus, không nhớ khi đóng): khớp đúng số trước rồi các số bắt đầu bằng chữ số đã gõ, như sheet tìm từ 1.42.2; "Điều 5", "dieu 5", "Ðiều 5" (Ð do OCR) và " 5." đều là 5. Ô lọc và dòng đếm ghim ở đầu sheet; gõ hay xoá thì danh sách cuộn về đầu.
+- Kiến trúc: logic thuần `src/viewer/dieuToc.ts` (`buildToc`, `filterToc`, `readingEntries`), bộ nạp `src/viewer/loadToc.ts` (một sidecar qua snapshot kho đã cache, trả `null` khi thiếu sidecar, JSON hỏng hay kho bị giấu), hook `src/viewer/useDieuToc.ts` (không bao giờ trả mục lục của tài liệu trước), sheet `src/components/DieuTocSheet.tsx`. Sidecar chỉ đọc sau khi pane vẽ xong trang đầu (prop `onFirstPaint` mới của `PdfView`/`DocPane`), chỉ giữ danh sách Điều.
+### Changed
+- `findDoc` của `src/search/docIndex.ts` chuyển thành `findDocInKho` trong `src/storage/khoSnapshot.ts`, dùng chung cho chỉ mục một tài liệu và Mục lục (hành vi giữ nguyên).
+### Notes
+- Code ở phiên Claude cloud 21/10 (kèm review độc lập), kiểm trên máy ở phiên local cùng ngày. Đo trên dGen1: nút hiện chậm hơn trang đầu dưới 0,16 s với bộ luật (BLDS 689 Điều, sidecar 0,87 MB), dưới 0,85 s với sidecar nặng nhất kho (8,65 MB); `openDoc` và độ giật khi cuộn ngay sau khi mở không khác 1.42.4; cuộn sheet 689 hàng 0,95% khung giật.
+- Kho QA: 72/182 tài liệu có `dieu`, 4.646 Điều; dòng đầu `text` luôn bắt đầu bằng "Điều N", 0 ca dính chữ "Điều 8Tên" hay "Điều 5 - Tên"; "CHƯƠNG" viết hoa trong `path` được nhận.
+- Để lại: worker bắt các Điều được trích trong bài hội thảo thành unit `dieu` (8 tài liệu ở `Hình sự chung/Tài liệu tham khảo`), nên Mục lục của chúng là các Điều rời; trên màn 360 dp chữ gợi ý "Tới trang…" bị cắt khi có nút mới và tổng trang 3 chữ số; bốn Minor của review (gõ dở chữ "Điều", tên Điều OCR dính chữ, chuẩn hoá cả `text` trước khi cắt dòng đầu, `DocPane` chuyển tiếp `onFirstPaint` không có test đơn vị).
+- Test phân trang của `DocSearchSheet` đếm hàng bằng selector thuộc tính thay cho truy vấn theo role (quá hạn 5 s khi cả bộ chạy song song trên máy bận), merge `15af40c`.
+
 ## [1.42.4] (2026-10-21): Dọn nốt review của bản kho bị giấu
 ### Fixed
 - **Nhập lô dừng vì kho bị giấu thì mất số file đã vào** (review 18/10 #11): Gú gửi lại cả lô sau khi khởi động lại máy, mấy file đầu thành `[Môn] x (1).pdf`. Nay `importBatch` không ném lỗi mà trả số file đã vào cùng tên các file còn lại; màn kết báo "Đã nhập k/n file trước khi dừng" và kể tên tối đa 5 file cần gửi lại.

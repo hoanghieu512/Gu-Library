@@ -5,6 +5,15 @@ import type { ReleaseNote } from './types';
 // fails when package.json's version has none. Technical history stays in CHANGELOG.md.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.43.0',
+    date: '21/10/2026',
+    items: [
+      { kind: 'new', text: 'Đang đọc một bộ luật, bấm nút danh sách nằm cạnh kính lúp ở dưới là ra Mục lục Điều: các Chương và Điều của chính văn bản đó, chạm một Điều là tới ngay trang của nó. Mở ra là thấy luôn mình đang đọc tới Điều nào. Slide hay giáo trình không có Điều thì không có nút này.' },
+      { kind: 'new', text: 'Gõ số Điều vào ô lọc trên cùng thì Điều đúng số đứng đầu, rồi tới các Điều bắt đầu bằng số đó (gõ 3 là ra Điều 3, rồi 30, 31…).' },
+      { kind: 'new', text: 'Khi chia đôi màn hình, chữ "Mục lục" trên thanh chia mở Mục lục Điều của tài liệu ở khung dưới, khung trên Pé đang đọc vẫn đứng yên.' },
+    ],
+  },
+  {
     version: '1.42.4',
     date: '21/10/2026',
     items: [
