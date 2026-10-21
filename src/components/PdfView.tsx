@@ -16,6 +16,7 @@ interface Props {
   baseScale?: number;             // cỡ chữ mặc định (zoom khởi tạo); pinch chồng lên base này
   onPageChange: (page: number, total: number) => void; // báo trang hiện tại để lưu
   jumpTo?: { page: number };      // jump command — a NEW object each time, so the same page jumps again
+  onFirstPaint?: () => void;      // once, when the first page has rendered (the Viewer then reads the Điều table)
 }
 
 const MAX_ZOOM = 4;
@@ -28,7 +29,7 @@ const DEFAULT_RATIO = 1.414;      // h/w mặc định (A4 dọc) trước khi �
 // zoom không OOM); placeholder = active cùng chiều cao → layout KHÔNG xê dịch. Điều hướng +
 // neo-zoom bằng OFFSETS THẬT (gồm cả GAP/làm tròn) → không lệch tích lũy. Giữ transform tới
 // khi DOM ở cỡ mới rồi mới clear trong useLayoutEffect → không "snap về nhỏ" (hết chớp đôi).
-export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChange, jumpTo }: Props) {
+export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChange, jumpTo, onFirstPaint }: Props) {
   const [numPages, setNumPages] = useState(0);
   const [zoom, setZoom] = useState(baseScale);    // zoom đã commit (init = cỡ chữ mặc định). State → GIỮ khi lật trang.
   const [ratios, setRatios] = useState<number[]>([]); // h/w từng trang (đo từ pdf, không render)
@@ -108,7 +109,7 @@ export default function PdfView({ bytes, initialPage, baseScale = 1, onPageChang
   };
 
   const onPageRendered = (n: number) => {
-    if (!firstPaint.current) { firstPaint.current = true; perfEnd('openDoc'); } // trang đầu vẽ xong
+    if (!firstPaint.current) { firstPaint.current = true; perfEnd('openDoc'); onFirstPaint?.(); } // trang đầu vẽ xong
     const p = pendingRender.current;
     if (!p) return;
     p.delete(n);

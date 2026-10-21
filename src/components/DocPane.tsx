@@ -12,7 +12,9 @@ import { readPdfBytes } from '../storage/safFile';
 //
 // `onErrorAction`: nếu truyền → nút empty-state thành nút này (pane tra cứu: "Chọn tài liệu khác",
 // không đá cả Viewer về Home). Không truyền → nút mặc định "Về Trang chủ" (pane chính).
-export default function DocPane({ docUri, initialPage, baseScale, onPageChange, jumpTo, onErrorAction, compactError }: {
+export default function DocPane({
+  docUri, initialPage, baseScale, onPageChange, jumpTo, onErrorAction, compactError, onFirstPaint,
+}: {
   docUri: string;
   initialPage: number;
   baseScale: number;
@@ -20,6 +22,7 @@ export default function DocPane({ docUri, initialPage, baseScale, onPageChange, 
   jumpTo?: { page: number };
   onErrorAction?: { label: string; onClick: () => void };
   compactError?: boolean;
+  onFirstPaint?: () => void;
 }) {
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [err, setErr] = useState('');
@@ -63,6 +66,7 @@ export default function DocPane({ docUri, initialPage, baseScale, onPageChange, 
       baseScale={baseScale}
       onPageChange={onPageChange ?? (() => {})}
       jumpTo={jumpTo}
+      onFirstPaint={onFirstPaint}
     />
   );
 }

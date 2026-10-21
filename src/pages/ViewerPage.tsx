@@ -3,12 +3,14 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonContent,
   IonInput, IonButton, IonFooter, IonIcon, IonSpinner, useIonViewWillEnter,
 } from '@ionic/react';
-import { browsersOutline, searchOutline } from 'ionicons/icons';
+import { browsersOutline, listOutline, searchOutline } from 'ionicons/icons';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import DocPane from '../components/DocPane';
 import DocPicker from '../components/DocPicker';
 import { useGuToast } from '../lib/useGuToast';
 import DocSearchSheet from '../components/DocSearchSheet';
+import DieuTocSheet from '../components/DieuTocSheet';
+import { useDieuToc } from '../viewer/useDieuToc';
 import { getResumePage, recordProgressBestEffort } from '../reading/store';
 import { createProgressSaver } from '../reading/progressSaver';
 import { getBaseScale } from '../viewer/fontScale';
@@ -79,6 +81,15 @@ export default function ViewerPage() {
     return seedQ ? { docUri, q: seedQ, key: nonce ?? '' } : undefined;
   });
   const [bottomJumpTo, setBottomJumpTo] = useState<{ page: number } | undefined>(undefined);
+  // Mục lục Điều (spec 2026-10-21): which pane's table is open. A pane's sidecar is read only once
+  // it has painted its first page, so the table never slows the PDF down; the button shows only
+  // when the document has at least one Điều.
+  const [tocFor, setTocFor] = useState<'top' | 'bottom' | null>(null);
+  const [topPainted, setTopPainted] = useState(false);
+  const [bottomPainted, setBottomPainted] = useState<string | null>(null);   // uri of the bottom doc that painted
+  const [bottomPage, setBottomPage] = useState(1);   // only to mark the table; the bottom pane records no progress
+  const topToc = useDieuToc(topPainted ? docUri : null);
+  const bottomToc = useDieuToc(bottomUri && bottomPainted === bottomUri ? bottomUri : null);
   const [frameH, setFrameH] = useState(0);
   const roRef = useRef<ResizeObserver | null>(null);
   // Callback-ref (không dùng useEffect) → gắn/gỡ theo dõi ngay khi khung mount, khỏi phụ thuộc
@@ -259,6 +270,7 @@ export default function ViewerPage() {
                 baseScale={baseScale}
                 onPageChange={onTopPage}
                 jumpTo={jumpTo}
+                onFirstPaint={() => setTopPainted(true)}
               />
             </div>
             {split && (
@@ -275,6 +287,19 @@ export default function ViewerPage() {
                     boxShadow: '0 1px 3px rgba(0,0,0,.35)',
                   }}>
                     {grip}
+                    {bottomToc && bottomToc.length > 0 && (
+                      <button
+                        type="button" onClick={() => setTocFor('bottom')} aria-label="Mục lục Điều của tài liệu tra cứu"
+                        onTouchStart={(e) => e.stopPropagation()}
+                        style={{
+                          background: 'none', border: 'none', padding: '0 4px', height: '100%',
+                          color: 'var(--gu-cream)', fontFamily: 'var(--gu-serif)', fontWeight: 700,
+                          fontSize: 12, cursor: 'pointer',
+                        }}
+                      >
+                        Mục lục
+                      </button>
+                    )}
                     {/* B4c.1: BỎ tên tài liệu khỏi thanh. Tên là thứ tự thêm ở B4b, không ai yêu cầu —
                         mà nội dung tài liệu đang hiện ngay dưới, và Gú vừa tự chọn nó vài giây trước.
                         Bỏ đi thì thanh mỏng lại 12px, đổi lại split có thêm chỗ đọc. Nút "Đổi" giữ,
@@ -322,12 +347,14 @@ export default function ViewerPage() {
                       initialPage={1}
                       baseScale={baseScale}
                       jumpTo={bottomJumpTo}
+                      onPageChange={(p) => setBottomPage(p)}
+                      onFirstPaint={() => setBottomPainted(bottomUri)}
                       compactError
                       onErrorAction={{ label: 'Chọn tài liệu khác', onClick: () => setBottomUri(null) }}
                     />
                   ) : (
                     // A new document must not inherit the previous one's last jump.
-                    <DocPicker onPick={(u) => { setBottomJumpTo(undefined); setBottomUri(u); }} />
+                    <DocPicker onPick={(u) => { setBottomJumpTo(undefined); setBottomPage(1); setBottomUri(u); }} />
                   )}
                 </div>
               </>
@@ -355,6 +382,15 @@ export default function ViewerPage() {
                 Trang {currentPage} / {total || '…'}
               </span>
               <div style={{ flex: 1 }} />
+              {topToc && topToc.length > 0 && (
+                <IonButton
+                  size="small" fill="clear" shape="round" aria-label="Mục lục Điều"
+                  style={{ '--padding-start': '6px', '--padding-end': '6px' } as React.CSSProperties}
+                  onClick={() => setTocFor('top')}
+                >
+                  <IonIcon slot="icon-only" icon={listOutline} style={{ fontSize: 20 }} />
+                </IonButton>
+              )}
               {/* Tìm trong tài liệu này — CÙNG hàng với ô nhảy trang, không ăn thêm chiều cao
                   vùng đọc (đáng kể trên màn vuông dGen1 480dp). */}
               <IonButton
@@ -388,6 +424,14 @@ export default function ViewerPage() {
         onClose={() => setSearchFor(null)}
         onJump={(p) => (searchFor === 'bottom' ? setBottomJumpTo({ page: p }) : setJumpTo({ page: p }))}
         seed={seed}
+      />
+      <DieuTocSheet
+        isOpen={tocFor !== null}
+        docUri={tocFor === 'bottom' ? bottomUri : tocFor === 'top' ? docUri : null}
+        entries={tocFor === 'bottom' ? bottomToc : topToc}
+        currentPage={tocFor === 'bottom' ? bottomPage : currentPage}
+        onClose={() => setTocFor(null)}
+        onJump={(p) => (tocFor === 'bottom' ? setBottomJumpTo({ page: p }) : setJumpTo({ page: p }))}
       />
       {toastNode}
     </IonPage>
