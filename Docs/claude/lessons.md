@@ -84,6 +84,6 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - 1.42.4 và 1.43.0 đã merge và tag (APK nghiệm thu `b5c64d9` và `d8b7b7d`, e2e 8/8), máy Gú còn 1.42.3; Gú cài bản nào thì chép APK đó vào `releases/` và sửa dòng Prod trong ops doc.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
-- Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên).
+- Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên). Beat kế, brief ở `Docs/claude/briefs/2026-10-21-nha-chi-muc-ram.md`.
 - Mục lục Điều (bậc 1) ra ở 1.43.0. Kho QA: 72/182 tài liệu có `dieu`, dòng đầu `text` là tên Điều ở văn bản luật. Chưa hỏi Pé có cần không, có dùng không.
 - Worker bắt các Điều được trích trong bài hội thảo thành unit `dieu` (8 tài liệu ở `Hình sự chung/Tài liệu tham khảo`), nên Mục lục của chúng là các Điều rời, tên là câu văn. Sửa ở parser worker nếu cần.
