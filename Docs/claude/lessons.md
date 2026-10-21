@@ -52,6 +52,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Shell giữ cwd sau `cd android`: mọi lệnh sau đó dùng đường dẫn tuyệt đối. Muốn chắc bundle đã vào APK thì grep trong `android/app/src/main/assets/public/assets/*.js`, đừng tin dòng "BUILD SUCCESSFUL".
 - Version được nướng vào APK lúc build: bump `package.json` thì phải build lại. Bản release đè bản debug phải gỡ trước (khác chữ ký).
 - Đo bộ nhớ phải cộng tiến trình renderer `…:sandboxed_process0`, và đúng renderer của app (UID dạng `u0a<uid>i<n>`). Cắt số theo từng lượt thao tác, đừng hồi quy cả pha. PSS cao sau phiên nặng phần lớn là trang đã swap sang zram, không phải rò.
+- Truy vấn theo role của Testing Library chậm trong jsdom (khoảng 0,4 s mỗi lần trên 50 đến 120 hàng): đếm nhiều hàng bằng `querySelectorAll` theo `role` và `aria-label`, tìm nút bằng `queryByText(…, { selector: 'button' })`. Test phân trang của `DocSearchSheet` từng quá hạn 5 s khi cả bộ chạy song song trên Mac bận (5,4 đến 7,3 s), nay khoảng 0,9 s.
 
 ## Bẫy thiết bị (chỉ ở local)
 
@@ -73,7 +74,6 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 ## Việc còn mở (21/10/2026)
 
 - 1.42.4 đã merge và tag (APK nghiệm thu `b5c64d9`, e2e 8/8), chờ cài máy Gú; cài xong thì chép APK vào `releases/` và sửa dòng Prod trong ops doc.
-- `src/components/DocSearchSheet.test.tsx` ("exact count and paging by 50") quá hạn 5 s một lần khi cả bộ chạy ngay sau một lượt khác (load 25); chạy lại cả bộ hai lần đều xanh.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
 - Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên).

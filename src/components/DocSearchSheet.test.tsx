@@ -103,12 +103,17 @@ describe('DocSearchSheet from "Xem cả N đoạn" (v1.41.0)', () => {
     const input = await screen.findByLabelText('Tìm trong tài liệu này');
     fireEvent.change(input, { target: { value: 'dac xa' } });
     expect(await screen.findByText('120 đoạn khớp')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /^Nhảy tới trang/ })).toHaveLength(50);
-    fireEvent.click(screen.getByRole('button', { name: 'Hiện thêm 50 đoạn' }));
-    expect(screen.getAllByRole('button', { name: /^Nhảy tới trang/ })).toHaveLength(100);
-    fireEvent.click(screen.getByRole('button', { name: 'Hiện thêm 20 đoạn' }));
-    expect(screen.getAllByRole('button', { name: /^Nhảy tới trang/ })).toHaveLength(120);
-    expect(screen.queryByRole('button', { name: /^Hiện thêm/ })).toBeNull();
+    // Role queries over 50 to 120 rows cost about 0.4 s each in jsdom, which pushed this test past
+    // 5 s when the whole suite runs in parallel on a busy machine. Attribute selectors and text
+    // queries limited to <button> check the same rows and buttons in a few ms.
+    const rows = () => document.querySelectorAll('[role="button"][aria-label^="Nhảy tới trang"]');
+    const moreButton = (text: string | RegExp) => screen.queryByText(text, { selector: 'button' });
+    expect(rows()).toHaveLength(50);
+    fireEvent.click(moreButton('Hiện thêm 50 đoạn')!);
+    expect(rows()).toHaveLength(100);
+    fireEvent.click(moreButton('Hiện thêm 20 đoạn')!);
+    expect(rows()).toHaveLength(120);
+    expect(moreButton(/^Hiện thêm/)).toBeNull();
   });
 
   it('a NEW seed (new key) for an already-mounted sheet replaces the query — Viewer reused from another tab', async () => {
