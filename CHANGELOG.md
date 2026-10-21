@@ -2,6 +2,19 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.42.4] (2026-10-21): Dọn nốt review của bản kho bị giấu
+### Fixed
+- **Nhập lô dừng vì kho bị giấu thì mất số file đã vào** (review 18/10 #11): Gú gửi lại cả lô sau khi khởi động lại máy, mấy file đầu thành `[Môn] x (1).pdf`. Nay `importBatch` không ném lỗi mà trả số file đã vào cùng tên các file còn lại; màn kết báo "Đã nhập k/n file trước khi dừng" và kể tên tối đa 5 file cần gửi lại.
+- **Lưu tiến độ lỗi một lần là trang đó không bao giờ được lưu lại** (review 20/10 #4): Viewer coi trang là đã lưu trước khi lưu xong. Nay `src/reading/progressSaver.ts` chỉ coi là đã lưu khi lưu thành công, chạy một lần lưu mỗi lúc (trang báo về trong lúc đó chỉ giữ trang mới nhất, vì `PdfView` báo trang ở mọi khung hình khi cuộn), và trang lưu lỗi chờ 2 giây mới thử lại để không liệt kê gốc kho mỗi khung hình lúc kho bị giấu.
+- **`createDir` không xóa được bản trùng thì folder rỗng nằm lại mà không ai biết** (review 18/10 #10): nay trả `exists; could not remove the empty copy 'x'` (`SafNames.takenMessage`), "Thư mục mới" và sheet "Lưu vào…/Chuyển tới…" thêm câu "Còn sót một thư mục trống “x”, xoá giúp nha."
+### Changed
+- `KHO_HIDDEN` đổi thành `KhoUnreadableError` **một lần ở `src/plugins/saf.ts`** cho mọi lệnh gọi (bỏ `khoWrite` phải bọc từng chỗ; `migrate.ts` và `renameDir` trước đây sót). Plugin thô nằm ở `safNative.ts`; ESLint chặn app import `SafNative` (test được phép), và chặn `src/plugins` import `src/storage`. Lỗi giữ lỗi native làm `cause`. `KhoUnreadableError` chuyển sang `src/plugins/khoUnreadable.ts`.
+- Lỗi lưu tiến độ khác lỗi kho bị giấu nay **ra logcat cả ở bản release** qua lệnh native mới `SafPlugin.logWarn` (tag `GuApp`, `adb logcat -s GuApp`). Không bật `loggingBehavior` của Capacitor: nó stringify và in nội dung mọi lệnh plugin.
+- Nhập lô dò `_inbox` một lần cho cả lô (trước đây mỗi file một `ensureDir` và một lần liệt kê gốc); copy hỏng thì file sau dò lại. "Dựng lại chỉ mục" kiểm kho bị giấu bằng một lần liệt kê gốc (`assertKhoListed`) thay vì đi cả kho.
+### Notes
+- Test: kiểm `searchDocs` không sort danh sách chỗ khớp (theo dõi cả sort của typed array), và tỉ số thời gian so với một vòng lặp qua các đơn vị dưới 25 (đo 20/10: 7,6 lúc rảnh, 8,2 đến 9,4 khi chạy cả bộ, 79 với một `findIndex` theo tài liệu cho mỗi chỗ khớp); bỏ test so thời gian với `search` từng đỏ khoảng 1/3 lượt. Mock `@capacitor/preferences` gom về `src/test/fakePreferences.ts`; spy trả lại trong `afterEach`.
+- Chưa kiểm trên máy: nhập lô (muốn thử phải nhập file thật vào kho QA), nhánh `createDir` không xóa được bản trùng.
+
 ## [1.42.3] (2026-10-18): Kho bị Android giấu thì báo khởi động lại máy, không chia đôi folder
 ### Fixed
 - **Provider giấu cả kho thì app chia đôi folder** (dGen1 17/10, sau một lần boot lỗi; phát hiện ở Judexp, repo lấy plugin SAF từ đây). `com.android.externalstorage` không thấy `/storage/emulated` nên coi cả kho là ẩn: mọi folder liệt kê rỗng nhưng tạo folder vẫn được. Hệ quả ở bản cũ: `ensureDir("_inbox")` ra `_inbox (1)` (file share nằm ở chỗ worker không đọc), mỗi lần mở "Đi in" thêm một `_print (k)`, Trang chủ trống như mất hết môn, màn Tìm dựng lại chỉ mục từ kho rỗng, lưu tiến độ đọc đẻ `_reading-<id> (1).json`. Nay native (`ensureDir`, `createDir`, `writeFile`, `copyToDir`): provider trả bản mới tên `tên (k)` (hoặc không cho biết tên) mà danh sách đọc tươi không có `tên` thì xóa bản trùng rỗng, trả `KHO_HIDDEN`. JS đổi thành `KhoUnreadableError` (`src/storage/khoHidden.ts`); Trang chủ, "Đi in", modal Nhập file và nút "Dựng lại chỉ mục" báo "Khởi động lại máy rồi mở lại app", không ghi gì vào kho; chỉ mục tìm kiếm giữ nguyên.
