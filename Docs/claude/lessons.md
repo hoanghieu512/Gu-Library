@@ -1,6 +1,6 @@
 # Bài học và quyết định đã chốt
 
-Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 21/10/2026 (main `fdc66ce` = 1.42.3 + dọn review; máy Gú chạy 1.42.3).
+Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 21/10/2026 (main `4605189` = 1.42.4, tag `v1.42.4`; máy Gú chạy 1.42.3).
 
 Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-prod.md` §8.1. File này chỉ giữ thứ dễ quên hoặc đã từng cắn.
 
@@ -72,7 +72,8 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 
 ## Việc còn mở (21/10/2026)
 
-- 1.42.4 đã chuẩn bị trên nhánh local `release/1.42.4`, chờ nghiệm thu trên máy và duyệt ghi chú.
+- 1.42.4 đã merge và tag (APK nghiệm thu `b5c64d9`, e2e 8/8), chờ cài máy Gú; cài xong thì chép APK vào `releases/` và sửa dòng Prod trong ops doc.
+- `src/components/DocSearchSheet.test.tsx` ("exact count and paging by 50") quá hạn 5 s một lần khi cả bộ chạy ngay sau một lượt khác (load 25); chạy lại cả bộ hai lần đều xanh.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
 - Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên).
