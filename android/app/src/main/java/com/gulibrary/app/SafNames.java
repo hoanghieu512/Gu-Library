@@ -32,4 +32,11 @@ final class SafNames {
         }
         return -1;
     }
+
+    // What createDir rejects with when `name` is taken: "exists", which JS shows as "Đã tồn tại", and
+    // when the copy the provider made could not be removed, its name, so the app can say an empty
+    // folder was left behind (src/storage/createDirError.ts reads this shape).
+    static String takenMessage(boolean copyRemoved, String copyName) {
+        return copyRemoved ? "exists" : "exists; could not remove the empty copy '" + copyName + "'";
+    }
 }

@@ -4,9 +4,10 @@ export interface SafEntry {
   name: string;
   isDirectory: boolean;
   uri: string;
-  // Dấu vân tay để index tìm kiếm biết file nào đổi (v1.38.0). Về cùng cursor với listFolder,
-  // KHÔNG tốn thêm vòng SAF. **-1 = DocumentsProvider không trả cột đó** → phải coi như "đã đổi"
-  // và đọc lại, đừng coi là bằng nhau (hai file "cùng -1" không nói lên điều gì).
+  // Fingerprint that lets the search index tell which files changed (v1.38.0). Comes back on the
+  // same cursor as listFolder, so it costs no extra SAF round trip. **-1 = the DocumentsProvider
+  // does not return that column**: treat it as changed and read again, never as equal (two files
+  // that are both -1 say nothing).
   size?: number;
   lastModified?: number;
 }
@@ -18,7 +19,7 @@ export interface SafPlugin {
   listFolder(options: { uri: string }): Promise<{ entries: SafEntry[] }>;
   readFile(options: { uri: string }): Promise<{ data: string }>;
   readFileBase64(options: { uri: string }): Promise<{ data: string }>;
-  probeReadable(options: { uri: string }): Promise<void>; // mở thử (v1.26.0): gọi trước fetch PDF, gone/thu-quyền → reject
+  probeReadable(options: { uri: string }): Promise<void>; // open test (v1.26.0): call before fetching a PDF; rejects when the file is gone or access was revoked
 
   copyToDir(options: { srcUri: string; dirUri: string; name: string }): Promise<{ uri: string; name: string }>;
   /* TEMP M6 spike */
@@ -27,6 +28,8 @@ export interface SafPlugin {
   renameDir(options: { uri: string; newName: string }): Promise<{ uri: string }>;
   writeFile(options: { dirUri: string; name: string; content: string }): Promise<{ uri: string }>;
   deleteFile(options: { uri: string }): Promise<void>;
+  /** android.util.Log.w under the tag GuApp; see appLog.ts. */
+  logWarn(options: { message: string }): Promise<void>;
 }
 
 // The plugin as the native side answers. Code outside src/plugins goes through `Saf` (saf.ts);

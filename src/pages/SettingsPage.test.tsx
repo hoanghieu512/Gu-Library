@@ -3,17 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { invalidateKho } from '../storage/khoSnapshot';
-import { KHO_UNREADABLE_MESSAGE } from '../storage/khoHidden';
+import { KHO_UNREADABLE_MESSAGE } from '../plugins/khoUnreadable';
 import SettingsPage from './SettingsPage';
+import { prefs } from '../test/fakePreferences';
 
-const prefs = vi.hoisted(() => new Map<string, string>());
-vi.mock('@capacitor/preferences', () => ({
-  Preferences: {
-    get: async ({ key }: { key: string }) => ({ value: prefs.get(key) ?? null }),
-    set: async ({ key, value }: { key: string; value: string }) => { prefs.set(key, value); },
-    remove: async ({ key }: { key: string }) => { prefs.delete(key); },
-  },
-}));
+vi.mock('@capacitor/preferences', () => import('../test/fakePreferences'));
 vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 vi.mock('../sync/useSyncStatus', () => ({ useSyncStatus: () => ({ light: 'unconfigured', refresh: () => {} }) }));
 vi.mock('../sync/SyncSettings', () => ({ default: () => null }));
@@ -45,6 +39,21 @@ describe('SettingsPage: "Dựng lại chỉ mục tìm kiếm"', () => {
     fireEvent.click(screen.getByText('Dựng lại chỉ mục tìm kiếm'));
     await waitFor(() => expect(toast.result).toHaveBeenCalledWith(expect.stringContaining('Đã xoá chỉ mục'), true));
     expect(open).toHaveBeenCalled();
+  });
+
+  // Review of 18/10: the check walked the whole kho (every folder, every .display.json), and the
+  // next visit to Tìm walked it again; one root listing answers whether Android hides it.
+  it('checks the kho with one root listing, not a walk', async () => {
+    kho.mkdir('Logic/Slide');
+    kho.put('Logic/bai1.pdf');
+    kho.put('Logic/bai1.display.json', '{"name":"Bài một"}');
+    render(<SettingsPage />);
+    const list = vi.spyOn(SafNative, 'listFolder');
+    const read = vi.spyOn(SafNative, 'readFile');
+    fireEvent.click(screen.getByText('Dựng lại chỉ mục tìm kiếm'));
+    await waitFor(() => expect(toast.result).toHaveBeenCalledWith(expect.stringContaining('Đã xoá chỉ mục'), true));
+    expect(list.mock.calls.map(([o]) => o.uri)).toEqual([ROOT]);
+    expect(read).not.toHaveBeenCalled();
   });
 
   // A hidden kho reads as empty: clearing the index then leaves nothing to rebuild it from.

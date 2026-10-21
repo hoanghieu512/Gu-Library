@@ -8,15 +8,9 @@ import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { invalidateKho } from '../storage/khoSnapshot';
 import HomePage from './HomePage';
+import { prefs } from '../test/fakePreferences';
 
-const prefs = vi.hoisted(() => new Map<string, string>());
-vi.mock('@capacitor/preferences', () => ({
-  Preferences: {
-    get: async ({ key }: { key: string }) => ({ value: prefs.get(key) ?? null }),
-    set: async ({ key, value }: { key: string; value: string }) => { prefs.set(key, value); },
-    remove: async ({ key }: { key: string }) => { prefs.delete(key); },
-  },
-}));
+vi.mock('@capacitor/preferences', () => import('../test/fakePreferences'));
 vi.mock('@capacitor/app', () => ({ App: { addListener: async () => ({ remove: () => {} }) } }));
 vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 vi.mock('../sync/useSyncStatus', () => ({ useSyncStatus: () => ({ light: 'unconfigured', refresh: () => {} }) }));

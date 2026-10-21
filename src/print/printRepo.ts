@@ -6,7 +6,7 @@ import { emitKhoChanged } from '../lib/khoEvents';
 import { parseDisplayName } from '../storage/displayName';
 import { printFlagName, printedNameFor, isSentMatch } from './printName';
 import { getKhoSnapshot, countFlagged } from '../storage/khoSnapshot';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 import { ensureKhoDir } from '../storage/khoRoot';
 
 const PRINT_DIR = '_print';

@@ -6,6 +6,7 @@ import {
 } from '@ionic/react';
 import { MON_PALETTE } from '../storage/palette';
 import { validateFolderName, dupFolderError } from '../storage/folderName';
+import { withLeftoverNote } from '../storage/createDirError';
 import NameField from './NameField';
 
 interface Props {
@@ -57,7 +58,7 @@ export default function CreateFolderModal({
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes('exists')) {
-        setError(dupFolderError(noun));
+        setError(withLeftoverNote(dupFolderError(noun), msg));
       } else {
         setError(msg || 'Lỗi không xác định');
       }

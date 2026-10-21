@@ -2,7 +2,7 @@
 // empty root is a new kho rather than one Android is hiding.
 
 import { Saf } from '../plugins/saf';
-import { KhoUnreadableError } from './khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 
 /**
  * Saf.ensureDir for a folder at the kho root (_inbox, _print), refusing a kho Android is hiding.
@@ -26,4 +26,13 @@ export async function ensureKhoDir(root: string, name: string): Promise<string> 
  */
 export async function assertRootListed(root: string, rootEntries: readonly unknown[]): Promise<void> {
   if (rootEntries.length === 0) await ensureKhoDir(root, '_inbox');
+}
+
+/**
+ * Whether Android is hiding the kho, from one root listing: throws KhoUnreadableError when it is.
+ * Cheaper than a snapshot, which walks every folder to find out the same thing.
+ */
+export async function assertKhoListed(root: string): Promise<void> {
+  const { entries } = await Saf.listFolder({ uri: root });
+  await assertRootListed(root, entries);
 }

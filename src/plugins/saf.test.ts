@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Saf } from './saf';
 import { SafNative } from './safNative';
-import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../storage/khoHidden';
+import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from './khoUnreadable';
 
 vi.mock('./safNative', () => ({ SafNative: {} }));
 
@@ -20,6 +20,21 @@ describe('Saf', () => {
     expect(err).toBeInstanceOf(KhoUnreadableError);
     expect((err as KhoUnreadableError).message).toBe(KHO_UNREADABLE_MESSAGE);
     expect((err as KhoUnreadableError).detail).toBe(native.message);
+  });
+
+  // Review of 20/10: the stack pointed at the wrapper and nothing said which call failed.
+  it('keeps the native error as the cause', async () => {
+    const native = hidden();
+    Object.assign(SafNative, { writeFile: async () => { throw native; } });
+    const err = await Saf.writeFile({ dirUri: 'd', name: '_mon.json', content: '{}' }).catch((e: unknown) => e);
+    expect((err as KhoUnreadableError).cause).toBe(native);
+  });
+
+  it('still has a detail when the native rejection carries no message', async () => {
+    Object.assign(SafNative, { ensureDir: async () => { throw { code: 'KHO_HIDDEN' }; } });
+    const err = await Saf.ensureDir({ parentUri: 'p', name: '_inbox' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(KhoUnreadableError);
+    expect((err as KhoUnreadableError).detail).toBe('KHO_HIDDEN');
   });
 
   // When each caller wrapped its own call, reading/migrate.ts and folderRepo's renameDir were missed.

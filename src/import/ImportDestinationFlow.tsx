@@ -5,13 +5,13 @@ import ChooseMonSheet from './ChooseMonSheet';
 import ImportProgressModal from './ImportProgressModal';
 import { importBatch } from './inboxRepo';
 import { perfStart, perfEnd } from '../perf/perf';
-import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../storage/khoHidden';
+import { KHO_UNREADABLE_MESSAGE } from '../plugins/khoUnreadable';
 
 // Sheet chọn đích + copy cả lô (dùng chung ShareReceiver + AddPage). batch>0 = mở sheet.
 // v1.12.0: modal tiến trình (vòng % + Hủy) → modal success (Xem kho). CHỈ một điểm kết (không toast lặp).
 export default function ImportDestinationFlow({ batch, onClear, onAddMore }: { batch: SharedFile[]; onClear: () => void; onAddMore?: () => void }) {
   const history = useHistory();
-  const [modal, setModal] = useState<{ open: boolean; phase: 'importing' | 'done'; done: number; total: number; ok: number; problem?: string }>(
+  const [modal, setModal] = useState<{ open: boolean; phase: 'importing' | 'done'; done: number; total: number; ok: number; problem?: string; left?: string[] }>(
     { open: false, phase: 'importing', done: 0, total: 0, ok: 0 },
   );
   const cancelRef = useRef(false);
@@ -26,21 +26,16 @@ export default function ImportDestinationFlow({ batch, onClear, onAddMore }: { b
     cancelRef.current = false;
     setModal({ open: true, phase: 'importing', done: 0, total: files.length, ok: 0 });
     perfStart('importBatch'); // đo copy cả lô vào _inbox (⏳ xuất hiện khi copy xong)
-    let ok = 0;
-    let problem: string | undefined;
-    try {
-      ({ ok } = await importBatch(
-        files, path,
-        (done) => setModal((m) => ({ ...m, done })),   // % + "Đang nhập i/tổng…"
-        () => cancelRef.current,                        // Hủy → dừng ở ranh giới file
-      ));
-    } catch (err) {
-      // Android is hiding the kho: the batch stopped, so end on what to do instead of hanging on "Đang nhập…".
-      if (!(err instanceof KhoUnreadableError)) throw err;
-      problem = KHO_UNREADABLE_MESSAGE;
-    }
+    const r = await importBatch(
+      files, path,
+      (done) => setModal((m) => ({ ...m, done })),   // % + "Đang nhập i/tổng…"
+      () => cancelRef.current,                        // Hủy → dừng ở ranh giới file
+    );
     perfEnd('importBatch');
-    setModal((m) => ({ ...m, phase: 'done', ok, problem }));   // điểm kết duy nhất
+    // Android is hiding the kho: the batch stopped, so end on what to do (and what is left to share
+    // again) instead of hanging on "Đang nhập…".
+    const problem = r.khoUnreadable ? KHO_UNREADABLE_MESSAGE : undefined;
+    setModal((m) => ({ ...m, phase: 'done', ok: r.ok, problem, left: r.khoUnreadable?.left }));   // điểm kết duy nhất
   };
 
   const note = batch.length === 0 ? null : batch.length === 1 ? batch[0].name : `${batch.length} file`;
@@ -55,6 +50,7 @@ export default function ImportDestinationFlow({ batch, onClear, onAddMore }: { b
         total={modal.total}
         ok={modal.ok}
         problem={modal.problem}
+        left={modal.left}
         onCancel={() => { cancelRef.current = true; }}
         onViewKho={() => { setModal((m) => ({ ...m, open: false })); history.push('/home'); }}
         onAddMore={onAddMore ? () => { pendingAddMore.current = true; setModal((m) => ({ ...m, open: false })); } : undefined}

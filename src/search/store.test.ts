@@ -2,19 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { displayNameMap, refreshIndex, stampOf } from './store';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT } from '../test/fakeSaf';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 import type { KhoFolder } from '../storage/khoSnapshot';
 import type { Document, Mon } from '../storage/types';
 import { indexDoc, mergeShards, search } from './invertedIndex';
+import { prefs } from '../test/fakePreferences';
 
-const prefs = vi.hoisted(() => new Map<string, string>());
-vi.mock('@capacitor/preferences', () => ({
-  Preferences: {
-    get: async ({ key }: { key: string }) => ({ value: prefs.get(key) ?? null }),
-    set: async ({ key, value }: { key: string; value: string }) => { prefs.set(key, value); },
-    remove: async ({ key }: { key: string }) => { prefs.delete(key); },
-  },
-}));
+vi.mock('@capacitor/preferences', () => import('../test/fakePreferences'));
 vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
 
 const DOC_A = { pdfUri: 'uri://a.pdf', name: 'Luật Đất đai', mon: 'Đất Đai' };

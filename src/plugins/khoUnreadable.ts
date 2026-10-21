@@ -16,8 +16,8 @@ export const KHO_UNREADABLE_MESSAGE =
  */
 export class KhoUnreadableError extends Error {
   readonly detail: string;
-  constructor(detail: string) {
-    super(KHO_UNREADABLE_MESSAGE);
+  constructor(detail: string, options?: ErrorOptions) {
+    super(KHO_UNREADABLE_MESSAGE, options);
     this.name = 'KhoUnreadableError';
     this.detail = detail;
   }

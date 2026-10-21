@@ -12,7 +12,7 @@ import { listMon } from '../storage/repo';
 import KhoRow, { StatusPill } from '../components/KhoRow';
 import MonSwatch from '../components/MonSwatch';
 import KhoUnreadableNotice from '../components/KhoUnreadableNotice';
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from '../plugins/khoUnreadable';
 
 export default function PrintPage() {
   const [rows, setRows] = useState<PrintRow[]>([]);

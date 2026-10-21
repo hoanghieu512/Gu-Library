@@ -51,4 +51,17 @@ public class SafNamesTest {
     public void picksNothingFromAnEmptyListing() {
         assertEquals(-1, SafNames.pick(Collections.<String>emptyList(), "_inbox"));
     }
+
+    // createDir refuses a taken name with "exists", which JS shows as "Đã tồn tại".
+    @Test
+    public void takenMessageIsExistsWhenTheCopyWasRemoved() {
+        assertEquals("exists", SafNames.takenMessage(true, "Slide (1)"));
+    }
+
+    // Review of 18/10: a copy that could not be removed stayed in the synced kho with nobody told.
+    // src/storage/createDirError.ts reads this exact shape.
+    @Test
+    public void takenMessageNamesTheCopyLeftBehind() {
+        assertEquals("exists; could not remove the empty copy 'Slide (1)'", SafNames.takenMessage(false, "Slide (1)"));
+    }
 }

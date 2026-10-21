@@ -1,4 +1,4 @@
-import { KhoUnreadableError } from '../storage/khoHidden';
+import { KhoUnreadableError } from './khoUnreadable';
 import { SafNative, type SafPlugin } from './safNative';
 
 export type { SafEntry, SafPlugin } from './safNative';
@@ -20,7 +20,7 @@ export const Saf: SafPlugin = new Proxy(SafNative, {
         return await value.apply(target, args);
       } catch (err) {
         if ((err as { code?: string } | null | undefined)?.code === HIDDEN_CODE) {
-          throw new KhoUnreadableError((err as Error).message);
+          throw new KhoUnreadableError((err as { message?: string }).message ?? HIDDEN_CODE, { cause: err });
         }
         throw err;
       }
