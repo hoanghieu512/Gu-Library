@@ -153,3 +153,23 @@ export function folderByPath(snap: KhoSnapshot, segs: string[]): KhoFolder | nul
   }
   return node;
 }
+
+/** Where a document's sidecar is, from its pdf uri: the in-document search and the Điều table. */
+export function findDocInKho(snap: KhoSnapshot, pdfUri: string): { jsonUri: string; name: string; mon: string } | null {
+  const walk = (f: KhoFolder, mon: string): { jsonUri: string; name: string; mon: string } | null => {
+    for (const d of f.listing.documents) {
+      if (d.pdfUri === pdfUri) return { jsonUri: d.jsonUri, name: d.fileBase ?? d.name, mon };
+    }
+    for (const c of f.children) {
+      const hit = walk(c, mon);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  for (const m of snap.mons) {
+    const f = snap.monFolders.get(m.uri);
+    const hit = f ? walk(f, m.name) : null;
+    if (hit) return hit;
+  }
+  return null;
+}

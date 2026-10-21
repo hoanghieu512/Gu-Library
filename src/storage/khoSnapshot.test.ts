@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { foldSummary, countFlagged, folderByPath, getKhoSnapshot, type KhoFolder, type KhoSnapshot } from './khoSnapshot';
+import {
+  foldSummary, countFlagged, folderByPath, findDocInKho, getKhoSnapshot, type KhoFolder, type KhoSnapshot,
+} from './khoSnapshot';
 import type { Document, FolderListing } from './types';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
@@ -58,6 +60,20 @@ describe('folderByPath', () => {
     expect(folderByPath(snap, ['Logic', 'KhongCo'])).toBeNull();
     expect(folderByPath(snap, ['SaiMon'])).toBeNull();
     expect(folderByPath(snap, [])).toBeNull();
+  });
+});
+
+describe('findDocInKho', () => {
+  const sub = folder('Slide', 'u:Slide', [doc('x')]);
+  const snap: KhoSnapshot = {
+    root: 'r', rootEntries: [], mons: [{ name: 'Logic', uri: 'u:Logic', meta: {} }],
+    monFolders: new Map([['u:Logic', folder('Logic', 'u:Logic', [doc('a')], [sub])]]), byUri: new Map(), inboxEntries: [],
+  };
+  it('finds a document in a sub-folder', () => {
+    expect(findDocInKho(snap, 'u:x.pdf')).toEqual({ jsonUri: 'u:x.json', name: 'x', mon: 'Logic' });
+  });
+  it('null for a document the kho does not have', () => {
+    expect(findDocInKho(snap, 'u:nope.pdf')).toBeNull();
   });
 });
 
