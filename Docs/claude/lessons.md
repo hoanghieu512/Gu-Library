@@ -1,6 +1,6 @@
 # Bài học và quyết định đã chốt
 
-Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 21/10/2026 (main `4605189` = 1.42.4, tag `v1.42.4`; máy Gú chạy 1.42.3).
+Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 21/10/2026 (main `fc852b9` = 1.43.0, tag `v1.43.0`; máy Gú chạy 1.42.3).
 
 Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-prod.md` §8.1. File này chỉ giữ thứ dễ quên hoặc đã từng cắn.
 
@@ -11,7 +11,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - File đi kèm tài liệu do app sở hữu: `<base>.print.json` (cờ cần in), `<base>.display.json` (tên hiển thị). App không bao giờ sửa sidecar.
 - `src/storage/khoSnapshot.ts`: một lượt đi cả kho thành cây trong RAM của phiên; mọi phép đếm, tóm tắt, danh sách đọc dở đều dẫn xuất từ cây đó. `emitKhoChanged` bỏ cache; thao tác lô bọc `coalesceKhoChanged` để lô N thao tác chỉ phát một lần.
 - Chỉ mục tìm kiếm toàn kho nằm trong IndexedDB của từng máy, phái sinh, không sync, chẻ theo tài liệu (`DocShard`). Dấu vân tay là `size` + `lastModified` từ `listFolder`; giá trị `-1` nghĩa là provider không trả cột đó, phải coi như đã đổi. "Tìm trong tài liệu này" ở Viewer index riêng một tài liệu (`src/search/docIndex.ts`, khoảng 80 ms), không nạp chỉ mục toàn kho (khoảng 130 MB).
-- Mục lục Điều (`src/viewer/dieuToc.ts`, nhánh `feat/muc-luc-dieu`): đọc đúng một sidecar sau khi pane vẽ xong trang đầu (`onFirstPaint` của `PdfView`/`DocPane`), chỉ giữ danh sách Điều nhỏ; nút chỉ hiện khi tài liệu có đơn vị `dieu`. Tìm sidecar của một tài liệu qua `findDocInKho` (`khoSnapshot.ts`), dùng chung với `docIndex`.
+- Mục lục Điều (`src/viewer/dieuToc.ts`, từ 1.43.0): đọc đúng một sidecar sau khi pane vẽ xong trang đầu (`onFirstPaint` của `PdfView`/`DocPane`), chỉ giữ danh sách Điều nhỏ; nút chỉ hiện khi tài liệu có đơn vị `dieu`. Tìm sidecar của một tài liệu qua `findDocInKho` (`khoSnapshot.ts`), dùng chung với `docIndex`.
 - Đọc PDF: `Saf.probeReadable` rồi `fetch(Capacitor.convertFileSrc(uri))`, file đi thẳng vào renderer, không base64. Luật: nhiều file nhỏ (sidecar) đi `Saf.readFile` qua bridge, một file lớn đi `fetch` (đo 178 sidecar: bridge 8,7 s, fetch 14,2 s).
 - Viewer (`src/components/PdfView.tsx`): chỉ render vài trang quanh khung nhìn, ô mỗi trang cao cố định theo tỉ lệ trang; pinch-zoom xem trước bằng CSS transform rồi mới vẽ lại nét. Nhảy trang bằng `scrollTop`; lệnh nhảy là đối tượng `{page}` qua `src/viewer/jumpGate.ts` (để lệnh tới sớm không bị bước khôi phục trang ghi đè); trang hiện tại do `src/viewer/currentPage.ts` quyết (`pageInView`, `pageHold`).
 - **pdf.js vẽ ra canvas, không có lớp chữ.** Vì vậy không tô sáng được chữ trên trang, "tìm trong tài liệu" trả về sheet đoạn trích, và cross-link bấm ngay trong trang là phần đắt.
@@ -81,10 +81,9 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 
 ## Việc còn mở (21/10/2026)
 
-- 1.42.4 đã merge và tag (APK nghiệm thu `b5c64d9`, e2e 8/8), chờ cài máy Gú; cài xong thì chép APK vào `releases/` và sửa dòng Prod trong ops doc.
+- 1.42.4 và 1.43.0 đã merge và tag (APK nghiệm thu `b5c64d9` và `d8b7b7d`, e2e 8/8), máy Gú còn 1.42.3; Gú cài bản nào thì chép APK đó vào `releases/` và sửa dòng Prod trong ops doc.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
 - Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên).
-- Mục lục Điều (bậc 1) trên nhánh `feat/muc-luc-dieu`: đã kiểm trên máy 21/10 (kết quả trong file bàn giao), chờ huynh duyệt câu chữ và chọn bản phát hành (đề xuất 1.43.0). Kho QA: 72/182 tài liệu có `dieu`, dòng đầu `text` là tên Điều ở văn bản luật. Chưa hỏi Pé có cần không.
+- Mục lục Điều (bậc 1) ra ở 1.43.0. Kho QA: 72/182 tài liệu có `dieu`, dòng đầu `text` là tên Điều ở văn bản luật. Chưa hỏi Pé có cần không, có dùng không.
 - Worker bắt các Điều được trích trong bài hội thảo thành unit `dieu` (8 tài liệu ở `Hình sự chung/Tài liệu tham khảo`), nên Mục lục của chúng là các Điều rời, tên là câu văn. Sửa ở parser worker nếu cần.
-- Judexp (repo lấy plugin SAF từ đây) cần `ensureDir` khớp tên không phân biệt hoa thường.

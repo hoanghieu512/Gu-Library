@@ -4,8 +4,8 @@
 Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
 - **App** *(Mac ghi dòng này)*: **Prod (máy Gú) = v1.42.3** (cài 2026-10-20, APK `b909450`) ·
-  **main = v1.42.4** (tag `v1.42.4`, merge `4605189`; APK nghiệm thu `b5c64d9` chờ cài máy Gú) ·
-  cập nhật 2026-10-21
+  **main = v1.43.0** (tag `v1.43.0`, merge `fc852b9`: Mục lục Điều; APK nghiệm thu 1.43.0 `d8b7b7d`
+  và 1.42.4 `b5c64d9` chưa lên máy Gú) · cập nhật 2026-10-21
 
 - **Worker** *(Atomman ghi dòng này)*: v0.20.2 (OCR trang ảnh: QA + Prod đã bật, tồn đã xong) · cập nhật 2026-10-08
 
