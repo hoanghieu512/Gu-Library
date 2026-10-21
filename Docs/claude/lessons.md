@@ -11,6 +11,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - File đi kèm tài liệu do app sở hữu: `<base>.print.json` (cờ cần in), `<base>.display.json` (tên hiển thị). App không bao giờ sửa sidecar.
 - `src/storage/khoSnapshot.ts`: một lượt đi cả kho thành cây trong RAM của phiên; mọi phép đếm, tóm tắt, danh sách đọc dở đều dẫn xuất từ cây đó. `emitKhoChanged` bỏ cache; thao tác lô bọc `coalesceKhoChanged` để lô N thao tác chỉ phát một lần.
 - Chỉ mục tìm kiếm toàn kho nằm trong IndexedDB của từng máy, phái sinh, không sync, chẻ theo tài liệu (`DocShard`). Dấu vân tay là `size` + `lastModified` từ `listFolder`; giá trị `-1` nghĩa là provider không trả cột đó, phải coi như đã đổi. "Tìm trong tài liệu này" ở Viewer index riêng một tài liệu (`src/search/docIndex.ts`, khoảng 80 ms), không nạp chỉ mục toàn kho (khoảng 130 MB).
+- Mục lục Điều (`src/viewer/dieuToc.ts`, nhánh `feat/muc-luc-dieu`): đọc đúng một sidecar sau khi pane vẽ xong trang đầu (`onFirstPaint` của `PdfView`/`DocPane`), chỉ giữ danh sách Điều nhỏ; nút chỉ hiện khi tài liệu có đơn vị `dieu`. Tìm sidecar của một tài liệu qua `findDocInKho` (`khoSnapshot.ts`), dùng chung với `docIndex`.
 - Đọc PDF: `Saf.probeReadable` rồi `fetch(Capacitor.convertFileSrc(uri))`, file đi thẳng vào renderer, không base64. Luật: nhiều file nhỏ (sidecar) đi `Saf.readFile` qua bridge, một file lớn đi `fetch` (đo 178 sidecar: bridge 8,7 s, fetch 14,2 s).
 - Viewer (`src/components/PdfView.tsx`): chỉ render vài trang quanh khung nhìn, ô mỗi trang cao cố định theo tỉ lệ trang; pinch-zoom xem trước bằng CSS transform rồi mới vẽ lại nét. Nhảy trang bằng `scrollTop`; lệnh nhảy là đối tượng `{page}` qua `src/viewer/jumpGate.ts` (để lệnh tới sớm không bị bước khôi phục trang ghi đè); trang hiện tại do `src/viewer/currentPage.ts` quyết (`pageInView`, `pageHold`).
 - **pdf.js vẽ ra canvas, không có lớp chữ.** Vì vậy không tô sáng được chữ trên trang, "tìm trong tài liệu" trả về sheet đoạn trích, và cross-link bấm ngay trong trang là phần đắt.
@@ -48,6 +49,8 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - vitest không typecheck: luôn chạy thêm `npx tsc -b`.
 - Test thời gian tuyệt đối chập chờn khi cả bộ chạy song song. Kiểm cơ chế (spy) hoặc so tương đối với một phép làm chuẩn trong cùng lượt, chừa biên rộng.
 - Spy trên global (`console`, `Array.prototype`) phải trả lại trong `afterEach`; trả lại ở cuối test thì một assertion đỏ sẽ để spy dính sang test sau.
+- jsdom không có `Element.prototype.scrollIntoView`: gán `vi.fn` trong `beforeEach`, trả bản gốc trong `afterEach`.
+- `ViewerPage` test được trong jsdom (`src/pages/ViewerPage.test.tsx`) bằng cách giả `DocPane` (pdf.js cần `DOMMatrix`) và stub `ResizeObserver`; pane giả có nút để test tự quyết lúc nào "vẽ xong trang đầu".
 - `./gradlew assembleRelease` ghi đè APK trong `android/app/build/outputs/apk/release/`: sao lưu APK nghiệm thu trước khi build lại.
 - Shell giữ cwd sau `cd android`: mọi lệnh sau đó dùng đường dẫn tuyệt đối. Muốn chắc bundle đã vào APK thì grep trong `android/app/src/main/assets/public/assets/*.js`, đừng tin dòng "BUILD SUCCESSFUL".
 - Version được nướng vào APK lúc build: bump `package.json` thì phải build lại. Bản release đè bản debug phải gỡ trước (khác chữ ký).
@@ -68,6 +71,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Không hạ cỡ chữ theo độ dài tên; tên dài cắt đuôi bằng `…`.
 - Kho có lưới lùi `.stversions` khoảng 30 ngày, nên câu xác nhận xoá không doạ "không thể hoàn tác".
 - Ghi chú phát hành (`src/whatsNew/notes.ts`) viết cho "Pé", chỉ nói điều Pé thấy hoặc cảm được; huynh duyệt câu chữ mỗi bản.
+- Mục lục Điều (chốt 21/10): nút riêng ở footer, ở split là chữ "Mục lục" trên vạch chia cho pane dưới; lọc theo số khớp đúng trước rồi khớp phần đầu; danh sách phẳng có dòng tiêu đề Chương, không có Khoản; đánh dấu và tự cuộn tới Điều đang đọc; ô lọc không tự focus và không nhớ khi đóng; tài liệu không có Điều thì không hiện nút.
 - Lớp nền `KhoRow`, `GuSheet`, `GuDialog`: danh sách hành động do màn truyền vào. Bảy beat liên tiếp không phải sửa interface của chúng; giữ như vậy.
 
 ## Việc còn mở (21/10/2026)
@@ -76,5 +80,5 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
 - Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên).
-- Tính năng kế: Mục lục Điều (bậc 1), brief ở `Docs/claude/briefs/2026-10-21-muc-luc-dieu.md`. Chưa hỏi Pé có cần không; chưa đếm số tài liệu có đơn vị `dieu`.
+- Mục lục Điều (bậc 1) đã code trên nhánh `feat/muc-luc-dieu` (phiên cloud 21/10), chờ kiểm trên máy theo `Docs/claude/handoff/feat-muc-luc-dieu.md`. Chưa hỏi Pé có cần không; chưa đếm số tài liệu có đơn vị `dieu`; chưa soi tên Điều có nằm ở dòng đầu `text` của sidecar thật không.
 - Judexp (repo lấy plugin SAF từ đây) cần `ensureDir` khớp tên không phân biệt hoa thường.
