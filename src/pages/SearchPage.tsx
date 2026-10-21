@@ -1,20 +1,30 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonSpinner } from '@ionic/react';
+import {
+  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonSpinner,
+  useIonViewWillEnter, useIonViewDidLeave,
+} from '@ionic/react';
+import { App } from '@capacitor/app';
 import { useHistory } from 'react-router-dom';
 import { searchOutline, closeCircle } from 'ionicons/icons';
-import { loadIndex, refreshIndex } from '../search/store';
+import { onIndexCleared } from '../search/store';
 import { useDisplayNames } from '../search/useDisplayNames';
+import { useSearchIndex } from '../search/useSearchIndex';
+import { createIndexHold } from '../search/indexHold';
 import { searchDocs, parseQuery } from '../search/invertedIndex';
-import type { DocSearchResult, SearchIndex } from '../search/invertedIndex';
+import type { DocSearchResult } from '../search/invertedIndex';
 import { viewerUrl } from '../nav/viewerUrl';
 import DocResultList from '../components/DocResultList';
 
-// Màn Tìm — tra toàn văn trong kho (Phase 2, spec §7).
+// Màn Tìm: tra toàn văn trong kho (Phase 2, spec §7).
 //
 // Chỉ mục nằm trong IndexedDB của máy, KHÔNG vào cây Syncthing (spec §4.3: dữ liệu phái sinh).
-// Lần đầu phải đọc hết sidecar nên mất chục giây — có tiến độ nhìn thấy được; những lần sau nạp
+// Lần đầu phải đọc hết sidecar nên mất chục giây, có tiến độ nhìn thấy được; những lần sau nạp
 // lại chưa tới một giây, rồi làm mới NGẦM ở phía sau nên gõ được ngay, không phải chờ.
+//
+// Ionic keeps this page alive for the whole session, so the index is let go 3 minutes after Search
+// is left, or at once when the app goes to the background (`indexHold`, spec 2026-10-21). Coming
+// back reloads it under the results still on screen.
 
 const PAD = {
   '--padding-start': '16px', '--padding-end': '16px',
@@ -24,64 +34,43 @@ const PAD = {
 const DEBOUNCE_MS = 130;   // batches keystrokes, not waiting on the search — UBS1 v1.41.0: whole words ≤ 37 ms, half-typed "th" 132–144 ms
 const NO_RESULT: DocSearchResult = { total: 0, docs: [] };
 
-type Phase = 'loading' | 'building' | 'ready';
-
 export default function SearchPage() {
   const history = useHistory();
-  const [phase, setPhase] = useState<Phase>('loading');
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [refreshing, setRefreshing] = useState(false);
   const [q, setQ] = useState('');
-  const [result, setResult] = useState<DocSearchResult>(NO_RESULT);
-  // Index để trong STATE chứ không phải ref: đọc ref lúc render là sai (không kích hoạt vẽ lại,
-  // và React đồng thời có thể đọc bản cũ). Đổi index chỉ xảy ra 1–2 lần mỗi lần vào màn.
-  const [ix, setIx] = useState<SearchIndex | null>(null);
-  // Dấu vân tay của lượt dựng gần nhất — để làm mới đối chiếu mà khỏi đọc lại IndexedDB.
-  const stamps = useRef<Map<string, string> | null>(null);
+  // The query each result was made for: while the index is released, results show only for it.
+  const [result, setResult] = useState<{ q: string; r: DocSearchResult }>({ q: '', r: NO_RESULT });
   // Renamed documents (pdfUri → name), fresh from every refresh and every rename (khoChanged);
   // cards fall back to the file name.
   const [names, setNames] = useDisplayNames();
-  const alive = useRef(true);
+  const { ix, phase, progress, refreshing, acquire, release } = useSearchIndex(setNames);
+  const [hold] = useState(() => createIndexHold({ acquire, release }));
 
   useEffect(() => {
-    alive.current = true;
-    (async () => {
-      const cached = await loadIndex();
-      if (!alive.current) return;
-      if (cached) {
-        setIx(cached.index);
-        stamps.current = cached.stamps;
-        setPhase('ready');
-        // Làm mới NGẦM: kho có thể đã nhận file mới từ Atomman. Không chặn ô nhập.
-        setRefreshing(true);
-        try {
-          const r = await refreshIndex(stamps.current ?? undefined);
-          if (alive.current) setNames(r.names);
-          if (alive.current && r.changed && r.index) { setIx(r.index); stamps.current = r.stamps ?? null; }
-        } catch { /* giữ index cũ — tìm trên bản cũ vẫn hơn không tìm được */ }
-        if (alive.current) setRefreshing(false);
-      } else {
-        // Chưa có gì: dựng lần đầu, hiện tiến độ vì nó lâu.
-        setPhase('building');
-        try {
-          const r = await refreshIndex(undefined, (p) => alive.current && setProgress(p));
-          if (!alive.current) return;
-          setNames(r.names);
-          if (r.index) { setIx(r.index); stamps.current = r.stamps ?? null; }
-        } catch { /* để ready với index rỗng → hiện "chưa tra được", không treo màn */ }
-        if (alive.current) setPhase('ready');
-      }
-    })();
-    return () => { alive.current = false; };
-  }, [setNames]); // a useState setter — stable, so this still runs once on mount
+    hold.enter();                      // first entrance; later ones come through useIonViewWillEnter
+    const offCleared = onIndexCleared(() => hold.invalidate());
+    // The background is where Android kills the apps that hold the most: let go at once.
+    const pause = App.addListener('pause', () => hold.pause());
+    const resume = App.addListener('resume', () => hold.resume());
+    return () => {
+      hold.dispose();
+      offCleared();
+      pause.then((h) => h.remove());
+      resume.then((h) => h.remove());
+    };
+  }, [hold]);
+  useIonViewWillEnter(() => hold.enter());
+  useIonViewDidLeave(() => hold.leave());
 
   useEffect(() => {
     // Chưa có index thì không đặt state ở đây (đặt đồng bộ trong effect gây vẽ lại dây chuyền);
-    // `result` vốn đã rỗng và chỉ có một chiều null -> có index, không bao giờ ngược lại.
+    // the last result stays, and shows again once the index is back.
     if (!ix) return;
-    const t = setTimeout(() => setResult(q.trim() ? searchDocs(ix, q) : NO_RESULT), DEBOUNCE_MS);
+    const t = setTimeout(() => setResult({ q, r: q.trim() ? searchDocs(ix, q) : NO_RESULT }), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [q, ix]);
+  // With the index held, the last result stays on screen while a new query waits out the debounce,
+  // as before. Released, it shows only for the query that made it.
+  const shown = ix || result.q === q ? result.r : NO_RESULT;
 
   const openPage = (pdfUri: string, page: number) => history.push(viewerUrl(pdfUri, { page }));
   // "Xem cả N đoạn": the document at the page being read, with its in-document search holding q.
@@ -133,12 +122,12 @@ export default function SearchPage() {
               {refreshing && <IonSpinner name="dots" style={{ width: 18, height: 12 }} />}
               {refreshing ? 'đang cập nhật chỉ mục…'
                 : q.trim()
-                  ? `${result.total.toLocaleString('vi-VN')} đoạn · ${result.docs.length.toLocaleString('vi-VN')} tài liệu`
+                  ? `${shown.total.toLocaleString('vi-VN')} đoạn · ${shown.docs.length.toLocaleString('vi-VN')} tài liệu`
                   : `đã đọc ${docCount} tài liệu`
                     + (imageOnly ? ` · ${imageOnly} tài liệu là ảnh, chưa tra được chữ` : '')}
             </div>
 
-            {q.trim() && result.docs.length === 0 && !refreshing && (
+            {q.trim() && shown.docs.length === 0 && !refreshing && (
               <Empty title="Không tìm thấy đoạn nào">
                 Thử bớt chữ, hoặc gõ không dấu cũng được — “to tung” ra “Tố tụng”.
                 {imageOnly > 0 && (
@@ -158,7 +147,7 @@ export default function SearchPage() {
             )}
 
             {/* Keyed by the query: a new query starts again at the first page of cards. */}
-            <DocResultList key={q} docs={result.docs} seq={seq} names={names} onOpenPage={openPage} onOpenAll={openAll} />
+            <DocResultList key={q} docs={shown.docs} seq={seq} names={names} onOpenPage={openPage} onOpenAll={openAll} />
           </>
         )}
       </IonContent>
