@@ -158,6 +158,42 @@ describe('useSearchIndex', () => {
     expect(result.current.ix).toBe(index);
   });
 
+  // React keeps the previous state on the fiber's alternate until the component renders again; one
+  // render after release would leave the old index reachable while Search sits unseen (review 21/10).
+  it('release renders twice so React lets go of the old index', async () => {
+    let renders = 0;
+    const onNames = vi.fn();
+    const { result } = renderHook(() => { renders++; return useSearchIndex(onNames); });
+    act(() => result.current.acquire());
+    await waitFor(() => expect(loads).toHaveLength(1));
+    await act(async () => { loads[0].resolve(cached); });
+    await waitFor(() => expect(refreshes).toHaveLength(1));
+    await act(async () => { refreshes[0].resolve(unchanged); });
+    await waitFor(() => expect(result.current.refreshing).toBe(false));
+    const before = renders;
+    act(() => result.current.release());
+    expect(result.current.ix).toBeNull();
+    expect(renders - before).toBeGreaterThanOrEqual(2);
+  });
+
+  it('a later build starts its progress from zero', async () => {
+    const { result } = renderHook(() => useSearchIndex(vi.fn()));
+    act(() => result.current.acquire());
+    await waitFor(() => expect(loads).toHaveLength(1));
+    await act(async () => { loads[0].resolve(null); });
+    await waitFor(() => expect(refreshes).toHaveLength(1));
+    const onProgress = vi.mocked(refreshIndex).mock.calls[0][1] as (p: RefreshProgress) => void;
+    act(() => onProgress({ done: 2, total: 2, reused: 0 }));
+    await act(async () => { refreshes[0].resolve({ ...unchanged, changed: true, index, stamps: new Map() }); });
+    await waitFor(() => expect(result.current.ix).toBe(index));
+    act(() => result.current.release());
+    act(() => result.current.acquire());
+    await waitFor(() => expect(loads).toHaveLength(2));
+    await act(async () => { loads[1].resolve(null); });
+    await waitFor(() => expect(result.current.phase).toBe('building'));
+    expect(result.current.progress).toEqual({ done: 0, total: 0 });
+  });
+
   it('acquire and release keep their identity', async () => {
     const { result, rerender } = renderHook(() => useSearchIndex(vi.fn()));
     const { acquire, release } = result.current;

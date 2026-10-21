@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { loadIndex, refreshIndex } from './store';
 import type { SearchIndex } from './invertedIndex';
 
@@ -29,6 +30,7 @@ export function useSearchIndex(onNames: (names: Map<string, string>) => void): {
   const [phase, setPhase] = useState<Phase>('loading');
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [refreshing, setRefreshing] = useState(false);
+  const [, setFlushes] = useState(0);
   // Dấu vân tay của lượt dựng gần nhất: để làm mới đối chiếu mà khỏi đọc lại IndexedDB. Kept on
   // release; the next load takes the latest ones from IndexedDB anyway.
   const stamps = useRef<Map<string, string> | null>(null);
@@ -58,6 +60,7 @@ export function useSearchIndex(onNames: (names: Map<string, string>) => void): {
     } else {
       // Chưa có gì: dựng lần đầu, hiện tiến độ vì nó lâu.
       setPhase('building');
+      setProgress({ done: 0, total: 0 });   // a second build in the session ("Dựng lại") starts from zero
       try {
         const r = await refreshIndex(undefined, (p) => setProgress({ done: p.done, total: p.total }));
         if (!live()) return;
@@ -76,9 +79,16 @@ export function useSearchIndex(onNames: (names: Map<string, string>) => void): {
     chain.current = chain.current.then(() => run(my)).catch(() => { /* never break the queue */ });
   }, [run]);
 
+  // Two synchronous commits, not one: React keeps the previous state on the fiber's alternate until
+  // the component renders again, and nothing renders a Search page left behind the Viewer or in the
+  // background, so after a single render the old index stayed reachable (review 21/10, measured with
+  // React production builds). flushSync also commits inside the `pause` handler itself, before the
+  // WebView is backgrounded. Callers: a timer, Capacitor `pause`, a window event; never render or
+  // an effect.
   const release = useCallback(() => {
     gen.current++;
-    setIx(null);
+    flushSync(() => setIx(null));
+    flushSync(() => setFlushes((n) => n + 1));
   }, []);
 
   return { ix, phase, progress, refreshing, acquire, release };
