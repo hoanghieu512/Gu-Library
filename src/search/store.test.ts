@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { displayNameMap, refreshIndex, stampOf } from './store';
+import { clearIndex, displayNameMap, onIndexCleared, refreshIndex, stampOf } from './store';
 import { SafNative } from '../plugins/safNative';
 import { fakeKho, ROOT } from '../test/fakeSaf';
 import { KhoUnreadableError } from '../plugins/khoUnreadable';
@@ -117,5 +117,22 @@ describe('refreshIndex: a kho Android will not list', () => {
   it('refuses without reading or replacing the stored index', async () => {
     await expect(refreshIndex()).rejects.toBeInstanceOf(KhoUnreadableError);
     expect(open).not.toHaveBeenCalled();
+  });
+});
+
+// The Search screen keeps its index in state for a while after leaving (spec 2026-10-21): clearing
+// the stored index must reach it, or "Dựng lại chỉ mục" would come back to the old index.
+describe('clearIndex: tells the Search screen', () => {
+  beforeEach(() => { vi.stubGlobal('indexedDB', { open: () => { throw new Error('no idb'); } }); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('calls listeners after clearing, even when IndexedDB fails', async () => {
+    const cb = vi.fn();
+    const off = onIndexCleared(cb);
+    await clearIndex();
+    expect(cb).toHaveBeenCalledTimes(1);
+    off();
+    await clearIndex();
+    expect(cb).toHaveBeenCalledTimes(1);
   });
 });
