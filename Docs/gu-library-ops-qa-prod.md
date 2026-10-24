@@ -3,9 +3,9 @@
 ***Bản hợp nhất** — nguồn chân lý duy nhất, phải khớp về cả repo app, repo worker lẫn
 Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
-- **App** *(Mac ghi dòng này)*: **Prod (máy Gú) = v1.43.0** (cài 2026-10-21, APK `d8b7b7d`; đi
-  thẳng từ 1.42.3, 1.42.4 không lên máy Gú) · **main = v1.43.0** (tag `v1.43.0`) + nhả chỉ mục Tìm
-  khỏi RAM (merge `185eefb`, đã kiểm UBS1 + dGen1, chờ phát hành 1.43.1) · cập nhật 2026-10-22
+- **App** *(Mac ghi dòng này)*: **Prod (máy Gú) = v1.43.0** (cài 2026-10-21, APK `d8b7b7d`) ·
+  **main = v1.43.1** (tag `v1.43.1`, merge `0676bbb`: màn Tìm nhả chỉ mục khỏi RAM; APK nghiệm thu
+  1.43.1 `7502667` chưa lên máy Gú) · cập nhật 2026-10-24
 
 - **Worker** *(Atomman ghi dòng này)*: v0.20.2 (OCR trang ảnh: QA + Prod đã bật, tồn đã xong) · cập nhật 2026-10-08
 

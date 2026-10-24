@@ -1,6 +1,6 @@
 # Bài học và quyết định đã chốt
 
-Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 22/10/2026 (main = 1.43.0, tag `v1.43.0`; máy Gú chạy 1.43.0 từ 21/10).
+Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 24/10/2026 (main = 1.43.1, tag `v1.43.1`; máy Gú chạy 1.43.0 từ 21/10).
 
 Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-prod.md` §8.1. File này chỉ giữ thứ dễ quên hoặc đã từng cắn.
 
@@ -70,7 +70,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - UBS1: cài đè APK có lúc bị Play Protect hỏi "Send app for a security check?" và `adb install` treo tới khi bấm; chọn "Don't send".
 - dGen1: chỉ một lần `am force-stop` lúc renderer đang chạy là WebView đen tới khi khởi động lại máy. Mở bằng `adb shell monkey -p com.gulibrary.app -c android.intent.category.LAUNCHER 1`, không relaunch. Màn vuông 720 × 720.
 - Kiểm bảng "Có gì mới" sau khi cài: mở lần đầu bằng `monkey` (mở bằng `agent-device open` thì UBS1 không thấy bảng).
-- e2e (`e2e/`, đọc `e2e/README.md` trước): 10 test theo nhãn (hai test Mục lục Điều từ 1.43.0), khoảng 4 ph, không gọi model. Test Tìm mở một bộ luật ở trang 24 và test Mục lục đưa Luật DN 2020 tới trang 23, nên trạng thái đọc của kho QA đổi sau mỗi lượt. Ô nhập trong WebView không mang `aria-label` sang cây Android (`textbox` không tên); hàng nằm ngoài màn không có trong cây.
+- e2e (`e2e/`, đọc `e2e/README.md` trước): 10 test theo nhãn (hai test Mục lục Điều từ 1.43.0), khoảng 4 ph, không gọi model. Test Tìm mở một bộ luật ở trang 24 và test Mục lục đưa Luật DN 2020 tới trang 23, nên trạng thái đọc của kho QA đổi sau mỗi lượt. Ô nhập trong WebView không mang `aria-label` sang cây Android (`textbox` không tên); hàng nằm ngoài màn không có trong cây. Kho QA thêm môn là hàng trong danh sách (bộ chọn của khung dưới) có thể bị đẩy xuống dưới thanh tab và cú chạm trúng tab (23/10, môn "Hình sự"): hàng nào chạm trong danh sách thì chờ rồi `revealAboveTabBar` trước.
 - Kho QA trên UBS1 ở `/sdcard/Download/kho`; kéo sidecar về Mac bằng `adb exec-out tar`.
 - Kiểm tay không cần agent-device: `adb shell uiautomator dump` thấy `aria-label` của WebView; bấm vào node **nhỏ nhất** khớp nhãn (node cha chứa chữ của mọi con), và tránh phần node nằm dưới thanh tab (gáy sách ở Trang chủ, cuối danh sách chọn tài liệu của pane dưới trên dGen1).
 - `adb shell input` bắn ngay lúc WebView đang bận (vd màn Tìm vừa nạp lại chỉ mục) thì chạm và phím có thể mất: chờ bàn phím hiện rồi mới gõ. Ô ở cuối màn Cài đặt nằm ngoài khung trên dGen1 (bounds `[0,0][0,0]`): cuộn trước khi bấm.
@@ -86,11 +86,11 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Mục lục Điều (chốt 21/10): nút riêng ở footer, ở split là chữ "Mục lục" trên vạch chia cho pane dưới; lọc theo số khớp đúng trước rồi khớp phần đầu; danh sách phẳng có dòng tiêu đề Chương, không có Khoản; đánh dấu và tự cuộn tới Điều đang đọc; ô lọc không tự focus và không nhớ khi đóng; tài liệu không có Điều thì không hiện nút.
 - Lớp nền `KhoRow`, `GuSheet`, `GuDialog`: danh sách hành động do màn truyền vào. Bảy beat liên tiếp không phải sửa interface của chúng; giữ như vậy.
 
-## Việc còn mở (22/10/2026)
+## Việc còn mở (24/10/2026)
 
-- Máy Gú lên 1.43.0 ngày 21/10 (đi thẳng từ 1.42.3, bỏ qua 1.42.4); APK `d8b7b7d` đã chép vào `releases/`, dòng Prod trong ops doc đã sửa (22/10).
+- 1.43.1 đã merge và tag (APK nghiệm thu `7502667`, e2e 10/10), máy Gú còn 1.43.0 (từ 21/10); Gú cài thì chép APK vào `releases/` và sửa dòng Prod trong ops doc.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
-- Chỉ mục tìm kiếm nằm lại trong RAM sau khi rời màn Tìm (khoảng 130 MB tới hết phiên): đã sửa trên nhánh `fix/search-index-ram` (phiên cloud 21/10), đã đo và kiểm trên UBS1, dGen1 ngày 21-22/10 (ở nền nhẹ hơn khoảng 90 đến 120 MB, e2e 10/10; số đo trong log phiên ở vault), merge `185eefb` vào `main` 22/10, chờ phát hành 1.43.1.
+- Nhả chỉ mục tìm kiếm khỏi RAM ra ở 1.43.1 (ở nền nhẹ hơn khoảng 90 đến 120 MB; số đo ở CHANGELOG và ops doc §8.1). Còn để lại: quay lại màn Tìm sau khi đã nhả thì WebView bận khoảng 1 s; hai Minor của review; toast "Đã xoá chỉ mục" ở Cài đặt còn em dash.
 - Mục lục Điều (bậc 1) ra ở 1.43.0. Kho QA: 72/182 tài liệu có `dieu`, dòng đầu `text` là tên Điều ở văn bản luật. Chưa hỏi Pé có cần không, có dùng không.
 - Worker bắt các Điều được trích trong bài hội thảo thành unit `dieu` (8 tài liệu ở `Hình sự chung/Tài liệu tham khảo`), nên Mục lục của chúng là các Điều rời, tên là câu văn. Sửa ở parser worker nếu cần.
