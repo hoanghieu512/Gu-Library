@@ -1,5 +1,6 @@
 import { test, expect } from 'e2e';
-import { exact, footer, footerAt, gotoPage, openByPath, toTab } from './helpers.ts';
+import type { Screen } from 'e2e';
+import { exact, footer, footerAt, gotoPage, openByPath, revealAboveTabBar, toTab } from './helpers.ts';
 import type { DocPath } from './helpers.ts';
 
 // Mục lục Điều (1.43.0), by labels only (no model). A known QA-kho law and one of its Điều with
@@ -40,6 +41,15 @@ test('Mục lục Điều: filter by number, tap the Điều, the Viewer lands o
 // off screen are not in Android's tree). After the jump, reopening shows Điều 45 and not Điều 1.
 const PORTRAIT: DocPath = { mon: /^Mở môn Hình sự chung \(/, folder: /^Ôn tập thi \d+ tài liệu$/, doc: 'ĐỀ CƯƠNG CHI TIẾT MÔN HSPC' };
 
+// A subject added to the QA kho can push a picker row under the tab bar (23/10: "Hình sự" above
+// "Luật Công Chứng"), and a tap there opens the "Thêm" tab. Wait for the row, lift it, then tap.
+async function tapPickerRow(screen: Screen, name: RegExp): Promise<void> {
+  const row = screen.getByRole('button', { name });
+  await row.waitFor({ timeout: 10000 });
+  await revealAboveTabBar(screen, row);
+  await row.tap();
+}
+
 test('split: "Mục lục" on the divider jumps the bottom pane, the top page stays', async ({ app, agent, screen }) => {
   await app.open();
   await toTab(screen, agent, 'Trang chủ');
@@ -48,9 +58,9 @@ test('split: "Mục lục" on the divider jumps the bottom pane, the top page st
 
   await screen.getByRole('button', { name: exact('Chia đôi màn hình') }).tap();
   await expect(screen.getByText(exact('Chọn tài liệu để tra cứu'))).toBeVisible();
-  await screen.getByRole('button', { name: exact('Mở môn Luật Công Chứng') }).tap();
-  await screen.getByRole('button', { name: /^Mở thư mục mới$/ }).tap();
-  await screen.getByRole('button', { name: exact(`Mở ${LAW.doc} ở khung dưới`) }).tap();
+  await tapPickerRow(screen, exact('Mở môn Luật Công Chứng'));
+  await tapPickerRow(screen, /^Mở thư mục mới$/);
+  await tapPickerRow(screen, exact(`Mở ${LAW.doc} ở khung dưới`));
 
   // Shown only once the bottom pane has painted its first page and its sidecar has Điều.
   const divider = screen.getByRole('button', { name: exact('Mục lục Điều của tài liệu tra cứu') });
