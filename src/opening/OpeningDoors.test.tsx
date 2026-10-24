@@ -156,6 +156,16 @@ describe('OpeningDoors: skipping', () => {
     expect(btn()).toBeNull();
   });
 
+  it('tap while the doors swing goes straight to Home', async () => {
+    render(<OpeningDoors />);
+    await flush();
+    act(() => markHomeReady());
+    await advance(400);
+    expect(stateOf()).toBe('opening');
+    fireEvent.click(btn()!);
+    expect(btn()).toBeNull();
+  });
+
   it('tap on the cover goes straight to Home', async () => {
     vi.mocked(getOpeningEnabled).mockReturnValue(new Promise(() => {}));
     render(<OpeningDoors />);
@@ -233,6 +243,32 @@ describe('OpeningDoors: the WebView busy spell after Home draws', () => {
     expect(stateOf()).toBe('closed');
     act(() => smooth.pending[0]());
     expect(stateOf()).toBe('opening');
+  });
+
+  // Review 25/10: a ready Home cancelled the deadline outright, so a switch read or image decode
+  // that hung after Home was ready left the cream cover up for good.
+  it('Home ready, then a read that never settles: the cover is gone at 4 s', async () => {
+    vi.mocked(getOpeningEnabled).mockReturnValue(new Promise(() => {}));
+    render(<OpeningDoors />);
+    await advance(2800);
+    act(() => markHomeReady());
+    await advance(1199);
+    expect(stateOf()).toBe('cover');
+    await advance(1);
+    expect(btn()).toBeNull();
+    expect(await isDone()).toBe(true);
+  });
+
+  it('Home ready, then a read that settles after 4 s: no doors at all', async () => {
+    let resolve: (on: boolean) => void = () => {};
+    vi.mocked(getOpeningEnabled).mockReturnValue(new Promise((r) => { resolve = r; }));
+    render(<OpeningDoors />);
+    await advance(2800);
+    act(() => markHomeReady());
+    await advance(2200);
+    await act(async () => { resolve(true); });
+    await flush();
+    expect(btn()).toBeNull();
   });
 
   it('unmount cancels the wait', async () => {

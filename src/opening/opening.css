@@ -121,12 +121,15 @@
 
 .gu-opening__panda {
   position: absolute;
-  left: 50%;
+  /* Centred whatever the art's aspect (left/right 0 + auto margins on a replaced element): a margin
+     of minus half the height only centred the square placeholder; transform is kept for animation. */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   bottom: calc(6vh + env(safe-area-inset-bottom, 0px));
   z-index: 5;
   height: min(36vh, 60vw);
   width: auto;
-  margin-left: calc(min(36vh, 60vw) / -2);
   transform-origin: 50% 100%;
   will-change: transform;
   pointer-events: none;

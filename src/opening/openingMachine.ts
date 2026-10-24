@@ -2,7 +2,8 @@
 //   cover    plain cream, same as the splash, while the switch and the images are read
 //   closed   doors shut, panda in front, waiting for Home to draw and for MIN_SHOWN_MS
 //   opening  doors swing open and the overlay fades into Home (OPEN_MS)
-//   fastOpen skipped by a tap, back, a share or a crash flag (FAST_MS)
+//   fastOpen skipped by a tap, back, a share or a crash flag while shut (FAST_MS); a skip mid-swing
+//            goes straight to done, Home is already showing behind the doors
 //   done     overlay gone for good in this WebView load
 
 export const MIN_SHOWN_MS = 400;
@@ -19,7 +20,9 @@ export type OpeningEvent =
   | { type: 'start'; play: boolean }
   | { type: 'homeReady' }
   | { type: 'minElapsed' }
-  | { type: 'deadline' }
+  // homeSignalled: Home said it was ready and the doors wait for smooth frames (their own cap), so
+  // the deadline then only ends a cover and leaves shut doors alone.
+  | { type: 'deadline'; homeSignalled: boolean }
   | { type: 'skip'; reason: SkipReason }
   | { type: 'animEnd' };
 
@@ -52,11 +55,11 @@ function transition(m: OpeningModel, e: OpeningEvent): OpeningModel {
       return { ...m, minElapsed: true };
     case 'deadline':
       if (m.state === 'cover') return { ...m, state: 'done' };
-      if (m.state === 'closed') return { ...m, state: 'opening' };
+      if (m.state === 'closed' && !e.homeSignalled) return { ...m, state: 'opening' };
       return m;
     case 'skip':
-      if (m.state === 'cover') return { ...m, state: 'done' };
-      if (m.state === 'closed' || m.state === 'opening') return { ...m, state: 'fastOpen' };
+      if (m.state === 'cover' || m.state === 'opening') return { ...m, state: 'done' };
+      if (m.state === 'closed') return { ...m, state: 'fastOpen' };
       return m;
     case 'animEnd':
       if (m.state === 'opening' || m.state === 'fastOpen') return { ...m, state: 'done' };

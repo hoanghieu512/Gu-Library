@@ -55,14 +55,16 @@ export default function OpeningDoors() {
 
   useEffect(() => {
     let alive = true;
-    const deadline = setTimeout(() => dispatch({ type: 'deadline' }), DEADLINE_MS);
+    let homeSignalled = false;
+    const deadline = setTimeout(() => dispatch({ type: 'deadline', homeSignalled }), DEADLINE_MS);
     // Home being ready is passed on only once the WebView paints smoothly again (smoothFrames.ts):
     // opened during Home's busy spell, the doors would swing without a single frame on screen.
     let cancelSmooth = () => {};
     const off = subscribeOpening((e) => {
       if (e.type !== 'homeReady') { dispatch(e); return; }
-      // Home did get ready: the deadline is for a Home that never does. The smooth wait has its own cap.
-      clearTimeout(deadline);
+      // Home did get ready: from now on the deadline only ends a cover (a switch read or an image
+      // decode that hangs); shut doors wait for smooth frames, which has its own cap.
+      homeSignalled = true;
       cancelSmooth();
       cancelSmooth = afterSmoothFrames(() => dispatch(e));
     });

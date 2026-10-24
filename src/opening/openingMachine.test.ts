@@ -6,7 +6,9 @@ const HOME = { type: 'homeReady' } as const;
 const MIN = { type: 'minElapsed' } as const;
 const SKIP = { type: 'skip', reason: 'tap' } as const;
 const END = { type: 'animEnd' } as const;
-const DEADLINE = { type: 'deadline' } as const;
+const DEADLINE = { type: 'deadline', homeSignalled: false } as const;
+// Home said it was ready and the doors now wait for smooth frames: the deadline only ends a cover.
+const DEADLINE_HOME = { type: 'deadline', homeSignalled: true } as const;
 
 const run = (...events: OpeningEvent[]): OpeningModel => events.reduce(step, initialModel());
 
@@ -34,11 +36,22 @@ describe('openingMachine', () => {
     expect(run(START, HOME, MIN, DEADLINE).state).toBe('opening');
   });
 
-  it('skip: cover ends, closed and opening fast-open, fastOpen stays', () => {
+  it('deadline after Home signalled: a cover still ends, shut doors keep waiting', () => {
+    expect(run(DEADLINE_HOME).state).toBe('done');
+    expect(run(START, DEADLINE_HOME).state).toBe('closed');
+    expect(run(START, MIN, DEADLINE_HOME, HOME).state).toBe('opening');
+  });
+
+  it('skip: cover ends, closed fast-opens, fastOpen stays', () => {
     expect(run(SKIP).state).toBe('done');
     expect(run(START, SKIP).state).toBe('fastOpen');
-    expect(run(START, HOME, MIN, SKIP).state).toBe('fastOpen');
     expect(run(START, SKIP, SKIP).state).toBe('fastOpen');
+  });
+
+  // Mid-swing Home is already showing behind the doors: switching to the fast animations made the
+  // panda and the overlay flash back (review 25/10). Straight to Home instead.
+  it('skip while the doors swing goes straight to done', () => {
+    expect(run(START, HOME, MIN, SKIP).state).toBe('done');
   });
 
   it('animEnd finishes opening and fastOpen, is ignored while closed', () => {
