@@ -6,6 +6,7 @@ import {
 } from './openingMachine';
 import { finishOpening, subscribeOpening } from './homeReady';
 import { getOpeningEnabled } from './openingPref';
+import { afterSmoothFrames } from './smoothFrames';
 
 // The bookcase doors over Home on a cold start (spec 2026-10-24-mo-cua-tu-sach §5.3). Mounted once
 // in App, so a resume never replays it. The rules live in openingMachine; this file owns the
@@ -55,11 +56,21 @@ export default function OpeningDoors() {
   useEffect(() => {
     let alive = true;
     const deadline = setTimeout(() => dispatch({ type: 'deadline' }), DEADLINE_MS);
-    const off = subscribeOpening(dispatch);
+    // Home being ready is passed on only once the WebView paints smoothly again (smoothFrames.ts):
+    // opened during Home's busy spell, the doors would swing without a single frame on screen.
+    let cancelSmooth = () => {};
+    const off = subscribeOpening((e) => {
+      if (e.type !== 'homeReady') { dispatch(e); return; }
+      // Home did get ready: the deadline is for a Home that never does. The smooth wait has its own cap.
+      clearTimeout(deadline);
+      cancelSmooth();
+      cancelSmooth = afterSmoothFrames(() => dispatch(e));
+    });
     shouldPlay().then((play) => { if (alive) dispatch({ type: 'start', play }); });
     return () => {
       alive = false;
       clearTimeout(deadline);
+      cancelSmooth();
       off();
       finishOpening();
     };
@@ -99,6 +110,7 @@ export default function OpeningDoors() {
         if (e.animationName === 'gu-opening-out' || e.animationName === 'gu-opening-fast') dispatch({ type: 'animEnd' });
       }}
     >
+      <div className="gu-opening__cover" aria-hidden />
       {doorsUp && (
         <div className="gu-opening__stage" aria-hidden>
           <div className="gu-opening__glow" />

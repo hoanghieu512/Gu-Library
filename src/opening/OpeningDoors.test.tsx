@@ -6,6 +6,15 @@ import { FAST_MS, FALLBACK_SLACK_MS, OPEN_MS } from './openingMachine';
 import { markHomeReady, skipOpening, whenOpeningDone, resetOpeningForTest } from './homeReady';
 
 vi.mock('./openingPref', () => ({ getOpeningEnabled: vi.fn() }));
+// Frames are smooth at once unless a test holds them back to play the WebView's busy spell.
+const smooth = vi.hoisted(() => ({ immediate: true, pending: [] as (() => void)[], cancelled: 0 }));
+vi.mock('./smoothFrames', () => ({
+  afterSmoothFrames: (done: () => void) => {
+    if (smooth.immediate) { done(); return () => {}; }
+    smooth.pending.push(done);
+    return () => { smooth.cancelled++; };
+  },
+}));
 
 const flush = () => act(() => vi.advanceTimersByTimeAsync(0));
 const advance = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
@@ -28,6 +37,9 @@ beforeEach(() => {
   vi.useFakeTimers();
   resetOpeningForTest();
   reduced = false;
+  smooth.immediate = true;
+  smooth.pending = [];
+  smooth.cancelled = 0;
   vi.stubGlobal('matchMedia', () => ({ matches: reduced }));
   vi.mocked(getOpeningEnabled).mockReset().mockResolvedValue(true);
 });
@@ -195,5 +207,40 @@ describe('OpeningDoors: lifecycle', () => {
     act(() => { markHomeReady(); skipOpening('tap'); });
     await advance(5000);
     expect(btn()).toBeNull();
+  });
+});
+
+describe('OpeningDoors: the WebView busy spell after Home draws', () => {
+  it('opens only once the WebView paints smoothly again', async () => {
+    smooth.immediate = false;
+    render(<OpeningDoors />);
+    await flush();
+    await advance(400);
+    act(() => markHomeReady());
+    await advance(1000);
+    expect(stateOf()).toBe('closed');
+    act(() => smooth.pending[0]());
+    expect(stateOf()).toBe('opening');
+  });
+
+  it('once Home is ready the 4 s deadline no longer forces the doors open', async () => {
+    smooth.immediate = false;
+    render(<OpeningDoors />);
+    await flush();
+    await advance(400);
+    act(() => markHomeReady());
+    await advance(5000);
+    expect(stateOf()).toBe('closed');
+    act(() => smooth.pending[0]());
+    expect(stateOf()).toBe('opening');
+  });
+
+  it('unmount cancels the wait', async () => {
+    smooth.immediate = false;
+    const { unmount } = render(<OpeningDoors />);
+    await flush();
+    act(() => markHomeReady());
+    unmount();
+    expect(smooth.cancelled).toBe(1);
   });
 });

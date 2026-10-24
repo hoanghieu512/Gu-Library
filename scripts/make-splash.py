@@ -17,6 +17,10 @@ Writes WebP (lossy, alpha where needed) to keep the APK small; minSdk 24 reads i
   res/drawable*/splash.webp            one per drawable*/splash.* already there (same size),
                                        cream #E9E5CD with the badge centred at 30% of the short
                                        side (pre-Android 12). An old splash.png is replaced.
+  public/splash-badge.webp             480 x 480 badge, transparent corners. On a cold start the
+                                       system splash ends at the activity's first (cream) frame
+                                       while the WebView still boots for about 0.8 s (UBS1), so
+                                       index.html and the doors' cover draw this badge instead.
 The badge is the white square of assets/icon-foreground.png (the app icon) cut to a circle.
 """
 from pathlib import Path
@@ -44,6 +48,10 @@ def main() -> None:
     out.parent.mkdir(exist_ok=True)
     icon.save(out, quality=88, method=6)
     print(out.relative_to(ROOT), icon.size, out.stat().st_size)
+
+    web = ROOT / 'public/splash-badge.webp'
+    badge(480).save(web, quality=88, method=6)
+    print(web.relative_to(ROOT), (480, 480), web.stat().st_size)
 
     for f in sorted(RES.glob('drawable*/splash.*')):
         w, h = Image.open(f).size

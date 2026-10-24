@@ -14,13 +14,25 @@
   border: 0;
   outline: none;
   appearance: none;
-  background: #E9E5CD; /* same cream as the splash and the WebView */
+  background: transparent; /* the cream lives on .gu-opening__cover */
   font: inherit;
   color: inherit;
   cursor: default;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Cream and the panda badge, same as the splash and index.html. Shown in cover; once the doors are
+   fully in (150 ms) it goes, so Home is painted behind the shut doors and not first when they open
+   (UBS1: opening right after the cream left cost a 0.33 s freeze that hid the start of the swing). */
+.gu-opening__cover {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: #E9E5CD url('/splash-badge.webp') center / 30vmin no-repeat;
+}
+.gu-opening--cover .gu-opening__cover { opacity: 1; }
+.gu-opening--closed .gu-opening__cover { animation: gu-cover-out 1ms linear 150ms both; }
 
 .gu-opening__stage {
   position: absolute;
@@ -125,9 +137,7 @@
 .gu-opening--closed .gu-opening__panda { animation: gu-panda-bob 1.2s ease-in-out infinite alternate; }
 .gu-opening--closed .gu-opening__seam { animation: gu-seam-pulse 1.2s ease-in-out infinite alternate; }
 
-/* opening: Home is ready behind the doors, so the cover colour goes */
-.gu-opening--opening,
-.gu-opening--fastOpen { background: transparent; }
+/* opening: the doors swing over the real Home */
 .gu-opening--opening { animation: gu-opening-out 300ms ease-in 700ms forwards; }
 .gu-opening--opening .gu-opening__door--left { animation: gu-door-left-open 700ms cubic-bezier(0.45, 0, 0.2, 1) forwards; }
 .gu-opening--opening .gu-opening__door--right { animation: gu-door-right-open 700ms cubic-bezier(0.45, 0, 0.2, 1) forwards; }
@@ -146,6 +156,7 @@
 .gu-opening--fastOpen .gu-opening__seam { animation: gu-fade-out 120ms ease-out forwards; }
 
 @keyframes gu-doors-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gu-cover-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes gu-panda-bob { from { transform: translateY(0); } to { transform: translateY(-6px); } }
 @keyframes gu-seam-pulse { from { opacity: 0.55; } to { opacity: 1; } }
 @keyframes gu-door-left-open { from { transform: rotateY(0deg); } to { transform: rotateY(-100deg); } }
