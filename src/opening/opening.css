@@ -41,13 +41,13 @@
   animation: gu-doors-in 150ms ease-out both;
 }
 
-/* Light behind the doors: shows over the real Home as they swing open. */
+/* Warm light behind the doors: bright in the middle, gone at the edges, over the real Home. */
 .gu-opening__glow {
   position: absolute;
   inset: 0;
   z-index: 1;
   opacity: 0;
-  background: radial-gradient(ellipse at 50% 45%, #fff4d6 0%, #f3e2ad 38%, rgba(233, 229, 205, 0.92) 75%);
+  background: radial-gradient(ellipse at 50% 45%, rgba(255, 244, 214, 0.9) 0%, rgba(243, 226, 173, 0.55) 40%, rgba(233, 229, 205, 0) 75%);
 }
 
 .gu-opening__door {
@@ -66,8 +66,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  object-fit: fill; /* squeeze, never crop: cropping would cut off the hinges or the handle */
   pointer-events: none;
 }
 .gu-opening__door--right img { transform: scaleX(-1); }
@@ -144,8 +143,8 @@
 .gu-opening--opening .gu-opening__door::after { animation: gu-door-shade 700ms ease-in forwards; }
 .gu-opening--opening .gu-opening__plaque { animation: gu-fade-out 150ms ease-out forwards; }
 .gu-opening--opening .gu-opening__panda { animation: gu-panda-leave 350ms ease-in forwards; }
-.gu-opening--opening .gu-opening__seam { animation: gu-seam-open 350ms ease-out 350ms forwards; }
-.gu-opening--opening .gu-opening__glow { animation: gu-glow-in 400ms ease-out 400ms forwards; }
+.gu-opening--opening .gu-opening__seam { animation: gu-fade-out 200ms ease-out forwards; }
+.gu-opening--opening .gu-opening__glow { animation: gu-glow-in 350ms ease-out 100ms forwards; }
 
 /* fastOpen: everything at once, 200 ms */
 .gu-opening--fastOpen { animation: gu-opening-fast 200ms ease-in forwards; }
@@ -168,7 +167,6 @@
   20% { transform: rotate(-8deg); opacity: 1; }
   100% { transform: translateY(12%) scale(0.92); opacity: 0; }
 }
-@keyframes gu-seam-open { from { transform: scaleX(1); opacity: 1; } to { transform: scaleX(60); opacity: 0.9; } }
 @keyframes gu-glow-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes gu-opening-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes gu-opening-fast { from { opacity: 1; } to { opacity: 0; } }
