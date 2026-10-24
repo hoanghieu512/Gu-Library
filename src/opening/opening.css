@@ -1,0 +1,163 @@
+/* Bookcase doors on a cold start (spec 2026-10-24-mo-cua-tu-sach §4, §5.3).
+   Only transform and opacity move. Durations mirror openingMachine.ts:
+   doors 700 ms + fade into Home 300 ms = OPEN_MS; skip = FAST_MS 200 ms; doors fade in 150 ms. */
+
+.gu-opening {
+  position: fixed;
+  inset: 0;
+  z-index: 30000; /* Ionic overlays start at 20000 */
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  appearance: none;
+  background: #E9E5CD; /* same cream as the splash and the WebView */
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gu-opening__stage {
+  position: absolute;
+  inset: 0;
+  perspective: 1400px;
+  animation: gu-doors-in 150ms ease-out both;
+}
+
+/* Light behind the doors: shows over the real Home as they swing open. */
+.gu-opening__glow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 45%, #fff4d6 0%, #f3e2ad 38%, rgba(233, 229, 205, 0.92) 75%);
+}
+
+.gu-opening__door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  z-index: 2;
+  overflow: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+.gu-opening__door--left { left: 0; transform-origin: left center; }
+.gu-opening__door--right { right: 0; transform-origin: right center; }
+.gu-opening__door img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+.gu-opening__door--right img { transform: scaleX(-1); }
+
+/* Shade that darkens a door as it turns away from the light. */
+.gu-opening__door::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+}
+
+/* Until the generated door lands: wood in the Home cabinet's colours, one raised panel. */
+.gu-opening__door--placeholder { background: linear-gradient(135deg, #825731, #5b3d1c); }
+.gu-opening__door--placeholder::before {
+  content: '';
+  position: absolute;
+  inset: 9% 14%;
+  border: 3px solid rgba(231, 197, 110, 0.35);
+  border-radius: 6px;
+}
+
+/* Thin golden line in the gap between the doors. */
+.gu-opening__seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 6px;
+  margin-left: -3px;
+  z-index: 3;
+  background: linear-gradient(90deg, transparent, #e7c56e 35%, #fff6d8 50%, #e7c56e 65%, transparent);
+}
+
+.gu-opening__plaque {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  z-index: 4;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #f1d58a, #c9a24e 55%, #a77f32);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  color: #4a3407;
+  font-family: var(--gu-serif);
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.gu-opening__panda {
+  position: absolute;
+  left: 50%;
+  bottom: calc(6vh + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  height: min(36vh, 60vw);
+  width: auto;
+  margin-left: calc(min(36vh, 60vw) / -2);
+  transform-origin: 50% 100%;
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* closed: doors shut, panda bobs, the seam breathes */
+.gu-opening--closed .gu-opening__panda { animation: gu-panda-bob 1.2s ease-in-out infinite alternate; }
+.gu-opening--closed .gu-opening__seam { animation: gu-seam-pulse 1.2s ease-in-out infinite alternate; }
+
+/* opening: Home is ready behind the doors, so the cover colour goes */
+.gu-opening--opening,
+.gu-opening--fastOpen { background: transparent; }
+.gu-opening--opening { animation: gu-opening-out 300ms ease-in 700ms forwards; }
+.gu-opening--opening .gu-opening__door--left { animation: gu-door-left-open 700ms cubic-bezier(0.45, 0, 0.2, 1) forwards; }
+.gu-opening--opening .gu-opening__door--right { animation: gu-door-right-open 700ms cubic-bezier(0.45, 0, 0.2, 1) forwards; }
+.gu-opening--opening .gu-opening__door::after { animation: gu-door-shade 700ms ease-in forwards; }
+.gu-opening--opening .gu-opening__plaque { animation: gu-fade-out 150ms ease-out forwards; }
+.gu-opening--opening .gu-opening__panda { animation: gu-panda-leave 350ms ease-in forwards; }
+.gu-opening--opening .gu-opening__seam { animation: gu-seam-open 350ms ease-out 350ms forwards; }
+.gu-opening--opening .gu-opening__glow { animation: gu-glow-in 400ms ease-out 400ms forwards; }
+
+/* fastOpen: everything at once, 200 ms */
+.gu-opening--fastOpen { animation: gu-opening-fast 200ms ease-in forwards; }
+.gu-opening--fastOpen .gu-opening__door--left { animation: gu-door-left-open 200ms ease-in forwards; }
+.gu-opening--fastOpen .gu-opening__door--right { animation: gu-door-right-open 200ms ease-in forwards; }
+.gu-opening--fastOpen .gu-opening__plaque,
+.gu-opening--fastOpen .gu-opening__panda,
+.gu-opening--fastOpen .gu-opening__seam { animation: gu-fade-out 120ms ease-out forwards; }
+
+@keyframes gu-doors-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gu-panda-bob { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+@keyframes gu-seam-pulse { from { opacity: 0.55; } to { opacity: 1; } }
+@keyframes gu-door-left-open { from { transform: rotateY(0deg); } to { transform: rotateY(-100deg); } }
+@keyframes gu-door-right-open { from { transform: rotateY(0deg); } to { transform: rotateY(100deg); } }
+@keyframes gu-door-shade { from { opacity: 0; } to { opacity: 0.35; } }
+@keyframes gu-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes gu-panda-leave {
+  0% { transform: rotate(0deg); opacity: 1; }
+  20% { transform: rotate(-8deg); opacity: 1; }
+  100% { transform: translateY(12%) scale(0.92); opacity: 0; }
+}
+@keyframes gu-seam-open { from { transform: scaleX(1); opacity: 1; } to { transform: scaleX(60); opacity: 0.9; } }
+@keyframes gu-glow-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gu-opening-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes gu-opening-fast { from { opacity: 1; } to { opacity: 0; } }
