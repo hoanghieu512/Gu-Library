@@ -105,6 +105,14 @@ let whatsNewChecked = false;
  * the app at the start of every test.
  */
 export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 'Tìm'): Promise<void> {
+  const tab = screen.getByRole('tab', { name: exact(name) });
+  // Since 1.44.0 every app.open() cold-starts behind the opening doors, which cover Home for up to
+  // about 4 s (2.5 s deadline + 1.3 s to open); a tap meant for a tab would land on them and only
+  // skip them. Once the tree has loaded (the tab bar is in it), wait for the doors to leave. Wait,
+  // do not tap: if they finished between the check and the tap, the tap would fall through onto Home.
+  await tab.waitFor({ timeout: 10000 }).catch(() => {});
+  const doors = screen.getByRole('button', { name: exact('Bỏ qua hiệu ứng mở cửa') });
+  if (await doors.isVisible()) await doors.waitFor({ state: 'hidden', timeout: 6000 });
   if (!whatsNewChecked) {
     whatsNewChecked = true;
     // CrashNotice's alert has a "Đã hiểu" button too: should both be up, tap until none is left.
@@ -128,7 +136,6 @@ export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 
     await back.tap();
     await new Promise((r) => setTimeout(r, 600));
   }
-  const tab = screen.getByRole('tab', { name: exact(name) });
   // Right after app.open() the WebView's first accessibility snapshot is often empty (lazy tree):
   // wait for the tab bar before handing the job to the agent, which costs model calls (seen on the
   // 1.41.1 slide test's cold run: 2 calls just to "find" a tab bar that was loading).
