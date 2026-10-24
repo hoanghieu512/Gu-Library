@@ -14,6 +14,7 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 - V8 chỉ trả bộ nhớ khi tự thu gom: ở nền trong 10 s đến 2 phút; ở tiền cảnh không có áp lực thì PSS chưa giảm (Viewer 3 phút 30 giây ngang bản cũ), có áp lực (`am send-trim-memory … RUNNING_CRITICAL`) thì giảm ngay (UBS1 299 xuống 210 MB).
 - Quay lại màn Tìm sau khi đã nhả: WebView bận khoảng 1 s lúc nạp lại (bàn phím hiện sau 1,2 s so với 0,2 s khi chỉ mục còn giữ); "đang cập nhật chỉ mục…" tắt sau 3,3 s (UBS1) và 4,4 s (dGen1). Mở lại app khi đang ở màn Tìm: tỉ lệ khung giật thấp hơn bản cũ, nhưng p99 trên UBS1 là 77 ms so với 57 ms.
 - Code ở phiên Claude cloud 21/10 (kèm review độc lập), kiểm trên máy ở phiên local 21-22/10, merge `185eefb`. Còn mở từ review: test trang "quay lại trong 3 phút" trả đồng hồ thật trước khi `enter`; chưa có test trang khoá việc giữ danh sách cũ trong 130 ms chờ gõ khi đang giữ chỉ mục.
+- e2e: kho QA thêm môn "Hình sự" (23/10, xếp đầu) đẩy "Luật Công Chứng" trong bộ chọn của khung dưới xuống dưới thanh tab trên UBS1, test Mục lục chia đôi chạm trúng tab "Thêm". Test nay chờ từng hàng của bộ chọn và kéo nó lên khỏi thanh tab trước khi chạm (`revealAboveTabBar`).
 
 ## [1.43.0] (2026-10-21): Mục lục Điều trong Viewer
 ### Added
