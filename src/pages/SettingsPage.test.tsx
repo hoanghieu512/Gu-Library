@@ -33,6 +33,24 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); });
 
+describe('SettingsPage: "Hiệu ứng mở cửa"', () => {
+  it('shows on by default and turns off on tap', async () => {
+    render(<SettingsPage />);
+    const row = await screen.findByRole('button', { name: 'Hiệu ứng mở cửa: bật' });
+    fireEvent.click(row);
+    await screen.findByRole('button', { name: 'Hiệu ứng mở cửa: tắt' });
+    expect(prefs.get('opening_doors')).toBe('off');
+  });
+
+  it('shows off when stored off, and back on after a tap', async () => {
+    prefs.set('opening_doors', 'off');
+    render(<SettingsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Hiệu ứng mở cửa: tắt' }));
+    await screen.findByRole('button', { name: 'Hiệu ứng mở cửa: bật' });
+    expect(prefs.has('opening_doors')).toBe(false);
+  });
+});
+
 describe('SettingsPage: "Dựng lại chỉ mục tìm kiếm"', () => {
   it('clears the index of a kho that lists', async () => {
     render(<SettingsPage />);
