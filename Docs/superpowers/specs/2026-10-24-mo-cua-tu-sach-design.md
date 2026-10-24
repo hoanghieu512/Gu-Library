@@ -38,7 +38,7 @@ Mở app hiện nay đi thẳng từ splash native (vẫn là ảnh mặc địn
 
 **0. Bấm icon.** Splash native nền kem, giữa màn là đầu panda tóc giả.
 
-**1. Cửa đóng, trong lúc Trang chủ nạp kho phía sau.** Hai cánh cửa tủ gỗ phủ kín màn, cùng tông nâu với khung tủ ở Trang chủ, tay nắm đồng ở mép trong. Một tấm bảng đồng nhỏ "Gú's Library" (chữ HTML, Merriweather) nằm ngang khe cửa ở khoảng một phần năm chiều cao. Panda toàn thân đứng ở nửa dưới màn, nhún nhẹ. Một vệt sáng vàng mảnh dọc khe giữa hai cánh, sáng dần. Cửa đứng ít nhất 0,4 s và đứng tới khi Trang chủ vẽ xong; quá hạn 2,5 s kể từ khi lớp cửa gắn vào (ngay khi React chạy) thì cửa vẫn mở, Trang chủ tự hiện trạng thái của nó.
+**1. Cửa đóng, trong lúc Trang chủ nạp kho phía sau.** Hai cánh cửa tủ gỗ phủ kín màn, cùng tông nâu với khung tủ ở Trang chủ, tay nắm đồng ở mép trong. Một tấm bảng đồng nhỏ "Gú's Library" (chữ HTML, Merriweather) nằm ngang khe cửa ở khoảng một phần năm chiều cao. Panda toàn thân đứng ở nửa dưới màn, nhún nhẹ. Một vệt sáng vàng mảnh dọc khe giữa hai cánh, sáng dần. Cửa đứng ít nhất 0,4 s và đứng tới khi Trang chủ vẽ xong; quá hạn 4 s kể từ khi lớp cửa gắn vào (ngay khi React chạy) thì cửa vẫn mở, Trang chủ tự hiện trạng thái của nó.
 
 **2. Mở cửa, khoảng 0,7 s.** Bảng đồng mờ đi. Panda nghiêng đầu chào rồi lùi xuống, mờ dần. Hai cánh xoay ra ngoài quanh bản lề ở mép màn, có phối cảnh. Vệt sáng ở khe nở thành một mảng ánh vàng.
 
@@ -52,7 +52,7 @@ Mọi mảnh mới nằm trong `src/opening/`. Hằng số thời gian:
 
 ```ts
 export const MIN_SHOWN_MS = 400;   // doors stay at least this long once shown
-export const DEADLINE_MS = 2500;   // from mount: open even if Home is not ready
+export const DEADLINE_MS = 4000;   // from mount: open even if Home is not ready (was 2500, see §11)
 export const OPEN_MS = 1000;       // doors 700 + fade into Home 300
 export const FAST_MS = 200;        // skip
 export const DOORS_FADE_IN_MS = 150;
@@ -170,7 +170,7 @@ Code không chờ asset: cửa tạm là gradient CSS theo màu khung tủ, pand
 
 ## 7. Lỗi và trường hợp biên
 
-- Kho chậm hoặc lỗi, Trang chủ không bao giờ gọi `markHomeReady`: hạn 2,5 s mở cửa, Trang chủ hiện trạng thái của nó (chưa chọn kho, kho bị giấu, danh sách rỗng).
+- Kho chậm hoặc lỗi, Trang chủ không bao giờ gọi `markHomeReady`: hạn 4 s mở cửa, Trang chủ hiện trạng thái của nó (chưa chọn kho, kho bị giấu, danh sách rỗng).
 - Đọc công tắc treo: tới hạn mà còn ở `cover` thì vào `done`, không hiện cửa muộn.
 - Ảnh không giải mã được: coi như không chạy (`start{play:false}`).
 - Lần cài đầu chưa chọn kho: Trang chủ vẫn gọi `markHomeReady`, cửa mở ra màn "Chưa chọn folder kho".
@@ -182,7 +182,7 @@ Code không chờ asset: cửa tạm là gradient CSS theo màu khung tủ, pand
 
 TDD: test đỏ trước rồi mới viết code.
 
-- `openingMachine.test.ts`: bảng chuyển trạng thái ở 5.1, gồm: không chạy (công tắc tắt, giảm chuyển động, lỗi đọc) vào `done`; Trang chủ sẵn sàng trước 0,4 s vẫn chờ đủ; hạn 2,5 s; bỏ qua ở từng trạng thái; sự kiện tới sau `done` bị bỏ qua.
+- `openingMachine.test.ts`: bảng chuyển trạng thái ở 5.1, gồm: không chạy (công tắc tắt, giảm chuyển động, lỗi đọc) vào `done`; Trang chủ sẵn sàng trước 0,4 s vẫn chờ đủ; hạn 4 s; bỏ qua ở từng trạng thái; sự kiện tới sau `done` bị bỏ qua.
 - `homeReady.test.ts`: cờ và lý do bỏ qua tới trước khi đăng ký vẫn được giao; `openingDone` resolve đúng một lần.
 - `OpeningDoors.test.tsx` (jsdom, timer giả, giả `img.decode` và `matchMedia`): rời DOM khi `done`; chạm nút bỏ qua vào `done` sau `FAST_MS`; back cứng bỏ qua; unmount giữa chừng không để sót timer (`vi.getTimerCount()`) và không setState sau unmount.
 - `WhatsNewNotice`, `CrashNotice`, `ShareReceiver`: hiện sau `openingDone`, gọi `skipOpening` đúng lúc.
@@ -219,7 +219,7 @@ TDD: test đỏ trước rồi mới viết code.
 - WebView có phản ánh "Xoá hiệu ứng động" của Android qua `prefers-reduced-motion` không. Nếu không: thêm một phương thức native nhỏ đọc `Settings.Global.ANIMATOR_DURATION_SCALE` (bằng 0 là giảm chuyển động).
 - Thuộc tính splash trong theme có ăn không khi `BridgeActivity` của Capacitor không gọi `installSplashScreen()`. Nếu không: gọi `installSplashScreen()` trong `MainActivity.onCreate` trước `super.onCreate`.
 - Model ảnh có thể ra cửa không thẳng hoặc không chính diện, hoặc panda lệch khuôn mặt icon: sinh thêm lượt trong trần 3 USD; vượt trần thì hỏi huynh.
-- Máy của Gú có thể mở lạnh chậm hơn UBS1: hạn 2,5 s chặn trường hợp này; nếu đo thấy Trang chủ thường quá 2,5 s thì xem lại hạn.
+- Máy của Gú có thể mở lạnh chậm hơn UBS1: hạn mở cửa chặn trường hợp này. Đo nền 24/10 trên UBS1 (`Docs/perf/2026-10-24-opening-doors.md`): Trang chủ sẵn sàng khoảng 2,8 đến 3,0 s sau khi lớp cửa gắn, nên hạn nâng từ 2,5 s lên 4 s.
 
 ## 12. Ngoài phạm vi
 

@@ -157,7 +157,7 @@ hạn lượt).
   e2e đầu tiên sau khi cài APK cần kiểm — và che Trang chủ. `toTab` (lần gọi đầu mỗi file) chờ tối đa
   4 s, thấy "Đã hiểu" thì bấm; bấm rồi app nhớ là đã xem, các lần sau không hiện nữa.
 - **Cửa tủ sách lúc mở lạnh (app ≥ 1.44.0)** hiện sau mỗi `app.open()` và che Trang chủ tối đa khoảng
-  4 s. `toTab` chờ cây WebView nạp xong (thấy thanh tab) rồi chờ nút "Bỏ qua hiệu ứng mở cửa" biến
+  5 s. `toTab` chờ cây WebView nạp xong (thấy thanh tab) rồi chờ nút "Bỏ qua hiệu ứng mở cửa" biến
   mất; không bấm nút đó, vì cửa vừa xong thì cú bấm rơi xuống Trang chủ. Bảng "Có gì mới" hiện sau cửa.
 - **`textContent()` không chờ** node xuất hiện → đọc chữ một thẻ nạp bất đồng bộ (thẻ "Đang đọc dở"
   ở Trang chủ) phải `expect(...).toBeVisible()` trước.

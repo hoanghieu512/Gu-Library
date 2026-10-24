@@ -107,12 +107,12 @@ let whatsNewChecked = false;
 export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 'Tìm'): Promise<void> {
   const tab = screen.getByRole('tab', { name: exact(name) });
   // Since 1.44.0 every app.open() cold-starts behind the opening doors, which cover Home for up to
-  // about 4 s (2.5 s deadline + 1.3 s to open); a tap meant for a tab would land on them and only
+  // about 5.3 s (4 s deadline + 1.3 s to open); a tap meant for a tab would land on them and only
   // skip them. Once the tree has loaded (the tab bar is in it), wait for the doors to leave. Wait,
   // do not tap: if they finished between the check and the tap, the tap would fall through onto Home.
   await tab.waitFor({ timeout: 10000 }).catch(() => {});
   const doors = screen.getByRole('button', { name: exact('Bỏ qua hiệu ứng mở cửa') });
-  if (await doors.isVisible()) await doors.waitFor({ state: 'hidden', timeout: 6000 });
+  if (await doors.isVisible()) await doors.waitFor({ state: 'hidden', timeout: 8000 });
   if (!whatsNewChecked) {
     whatsNewChecked = true;
     // CrashNotice's alert has a "Đã hiểu" button too: should both be up, tap until none is left.

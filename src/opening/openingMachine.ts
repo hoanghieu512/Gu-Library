@@ -6,7 +6,7 @@
 //   done     overlay gone for good in this WebView load
 
 export const MIN_SHOWN_MS = 400;
-export const DEADLINE_MS = 2500;
+export const DEADLINE_MS = 4000; // spec said 2500; Home needs 2.8 to 3.0 s on UBS1 (Docs/perf/2026-10-24-opening-doors.md)
 export const OPEN_MS = 1000;
 export const FAST_MS = 200;
 export const DOORS_FADE_IN_MS = 150;

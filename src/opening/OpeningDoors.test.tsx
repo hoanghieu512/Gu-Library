@@ -76,7 +76,7 @@ describe('OpeningDoors: when it does not play', () => {
   it('read that never settles: gone at the deadline, doors never shown', async () => {
     vi.mocked(getOpeningEnabled).mockReturnValue(new Promise(() => {}));
     render(<OpeningDoors />);
-    await advance(2499);
+    await advance(3999);
     expect(stateOf()).toBe('cover');
     await advance(1);
     expect(btn()).toBeNull();
@@ -115,10 +115,12 @@ describe('OpeningDoors: playing', () => {
     expect(stateOf()).toBe('opening');
   });
 
-  it('deadline opens without Home ready', async () => {
+  // 4 s, not the spec's first 2.5 s: on UBS1 Home is ready 2.8 to 3.0 s after the overlay mounts
+  // (Docs/perf/2026-10-24-opening-doors.md).
+  it('deadline opens without Home ready, at 4 s', async () => {
     render(<OpeningDoors />);
     await flush();
-    await advance(2499);
+    await advance(3999);
     expect(stateOf()).toBe('closed');
     await advance(1);
     expect(stateOf()).toBe('opening');
@@ -191,7 +193,7 @@ describe('OpeningDoors: lifecycle', () => {
     await flush();
     expect(btn()).toBeNull();
     act(() => { markHomeReady(); skipOpening('tap'); });
-    await advance(3000);
+    await advance(5000);
     expect(btn()).toBeNull();
   });
 });
