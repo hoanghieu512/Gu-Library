@@ -4,8 +4,12 @@ import type { ReactNode } from 'react';
 import { Preferences } from '@capacitor/preferences';
 import WhatsNewNotice from './WhatsNewNotice';
 import { RELEASE_NOTES } from '../whatsNew/notes';
+import OpeningDoors from '../opening/OpeningDoors';
+import { finishOpening, resetOpeningForTest } from '../opening/homeReady';
 
 vi.mock('@capacitor/preferences', () => ({ Preferences: { get: vi.fn(), set: vi.fn() } }));
+// Only the 'switch off' test renders the doors: they read their switch as off and finish at once.
+vi.mock('../opening/openingPref', () => ({ getOpeningEnabled: async () => false }));
 // IonModal does not run in jsdom. The stand-in behaves like it where it matters: it stays mounted
 // when closed (data-open), shows the header "Đóng" and children only while open, and calls onClose
 // again when it goes from open to closed — Ionic's onDidDismiss after a dismiss.
@@ -30,6 +34,9 @@ const heading = (v: string) => new RegExp(`^Phiên bản ${v.replace(/\./g, '\\.
 const V = RELEASE_NOTES.map((n) => n.version);
 
 beforeEach(() => {
+  // The opening doors are already gone unless a test says otherwise.
+  resetOpeningForTest();
+  finishOpening();
   vi.mocked(Preferences.get).mockReset();
   vi.mocked(Preferences.set).mockReset().mockResolvedValue();
 });
@@ -86,5 +93,24 @@ describe('WhatsNewNotice — once after an update (v1.42.0)', () => {
     render(<WhatsNewNotice />);
     await settle();
     expect(screen.queryByText(/^Phiên bản/)).toBeNull();
+  });
+});
+
+describe('WhatsNewNotice: after the opening doors', () => {
+  it('waits for the doors before opening', async () => {
+    resetOpeningForTest();
+    vi.mocked(Preferences.get).mockResolvedValue({ value: V[1] });
+    render(<WhatsNewNotice />);
+    await settle();
+    expect(screen.queryByText(heading(V[0]))).toBeNull();
+    act(() => finishOpening());
+    expect(await screen.findByText(heading(V[0]))).toBeInTheDocument();
+  });
+
+  it('switch off: the sheet still shows, at once', async () => {
+    resetOpeningForTest();
+    vi.mocked(Preferences.get).mockResolvedValue({ value: V[1] });
+    render(<><OpeningDoors /><WhatsNewNotice /></>);
+    expect(await screen.findByText(heading(V[0]))).toBeInTheDocument();
   });
 });

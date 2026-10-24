@@ -33,6 +33,7 @@ import { encodeUriParam } from '../storage/uriParam';
 import { perfColdReady, afterPaint } from '../perf/perf';
 import { invalidateKho } from '../storage/khoSnapshot';
 import { KhoUnreadableError } from '../plugins/khoUnreadable';
+import { markHomeReady } from '../opening/homeReady';
 import KhoUnreadableNotice from '../components/KhoUnreadableNotice';
 
 export default function HomePage() {
@@ -75,7 +76,8 @@ export default function HomePage() {
     try { setPrintCount(await countPrintFlagged()); } catch { setPrintCount(0); }
     setRefreshTick((t) => t + 1);
     // Cold start: Trang chủ vẽ xong danh sách lần đầu (perfColdReady chỉ tính 1 lần/phiên).
-    afterPaint(perfColdReady);
+    // The same moment opens the bookcase doors (opening/homeReady.ts).
+    afterPaint(() => { perfColdReady(); markHomeReady(); });
   };
   // MỘT trigger tải lúc vào màn (useIonViewWillEnter bắn cả lần đầu) → hết reload đúp.
   useIonViewWillEnter(() => { reload(); });
