@@ -2,6 +2,19 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.43.1] (2026-10-24): Màn Tìm nhả chỉ mục khỏi RAM
+### Changed
+- **Màn Tìm nhả chỉ mục toàn kho khỏi RAM** (spec `Docs/superpowers/specs/2026-10-21-nha-chi-muc-ram-design.md`, plan `Docs/superpowers/plans/2026-10-21-nha-chi-muc-ram.md`): rời màn Tìm quá 3 phút (mở kết quả sang Viewer cũng tính) thì nhả, app vào nền (`pause`) thì nhả ngay kể cả khi đang ở màn Tìm; quay lại thì nạp lại dưới danh sách kết quả cũ (vẫn chạm được, giữ chỗ cuộn), dòng trạng thái dùng lại câu "đang cập nhật chỉ mục…". Trước đây Ionic giữ trang Tìm sống nên chỉ mục (khoảng 130 MB heap, đo 05/09) nằm trong RAM tới hết phiên.
+- Kiến trúc: luật giữ hay nhả thuần ở `src/search/indexHold.ts` (`HOLD_MS` 3 phút); hook `src/search/useSearchIndex.ts` giữ chỉ mục, mỗi lượt nạp mang một số thứ tự (`release` làm lượt về muộn vô hiệu, `acquire` lúc đang nạp thì xếp hàng, không bao giờ hai bản chỉ mục cùng được dựng), `release` commit hai lần bằng `flushSync` để React không giữ chỉ mục trên fiber alternate; `SearchPage` chỉ nối `useIonViewWillEnter`/`useIonViewDidLeave`, `pause`/`resume` của `@capacitor/app` và `onIndexCleared`. Kết quả nhớ kèm câu tra: lúc đã nhả, danh sách cũ chỉ hiện khi khớp câu trong ô.
+- Câu gợi ý khi không ra kết quả đổi em dash thành dấu hai chấm: "Thử bớt chữ, hoặc gõ không dấu cũng được: “to tung” ra “Tố tụng”." (huynh duyệt 21/10).
+### Fixed
+- **"Dựng lại chỉ mục" không có tác dụng nếu màn Tìm đã mở trong phiên**: màn Tìm giữ chỉ mục cũ trong state, không dựng lại cho tới khi khởi động lại app. Nay `clearIndex` phát `onIndexCleared` (kể cả khi xoá IndexedDB lỗi), màn Tìm bỏ chỉ mục đang giữ, lần vào sau dựng lại có tiến độ từ 0.
+### Notes
+- Đo trên UBS1 và dGen1 (PSS tiến trình chính cộng renderer đúng UID, so với 1.43.0): ở nền nhẹ hơn 90 đến 120 MB. UBS1 ở nền sau Viewer 60 s: 296 xuống 208 MB; dGen1: 362 xuống 269 MB. Lần đầu vào Tìm rồi chuyển sang app khác, sau 4 phút ở nền (UBS1): 260 xuống 166 MB, bản cũ còn bị đẩy thêm 122 MB sang zram.
+- V8 chỉ trả bộ nhớ khi tự thu gom: ở nền trong 10 s đến 2 phút; ở tiền cảnh không có áp lực thì PSS chưa giảm (Viewer 3 phút 30 giây ngang bản cũ), có áp lực (`am send-trim-memory … RUNNING_CRITICAL`) thì giảm ngay (UBS1 299 xuống 210 MB).
+- Quay lại màn Tìm sau khi đã nhả: WebView bận khoảng 1 s lúc nạp lại (bàn phím hiện sau 1,2 s so với 0,2 s khi chỉ mục còn giữ); "đang cập nhật chỉ mục…" tắt sau 3,3 s (UBS1) và 4,4 s (dGen1). Mở lại app khi đang ở màn Tìm: tỉ lệ khung giật thấp hơn bản cũ, nhưng p99 trên UBS1 là 77 ms so với 57 ms.
+- Code ở phiên Claude cloud 21/10 (kèm review độc lập), kiểm trên máy ở phiên local 21-22/10, merge `185eefb`. Còn mở từ review: test trang "quay lại trong 3 phút" trả đồng hồ thật trước khi `enter`; chưa có test trang khoá việc giữ danh sách cũ trong 130 ms chờ gõ khi đang giữ chỉ mục.
+
 ## [1.43.0] (2026-10-21): Mục lục Điều trong Viewer
 ### Added
 - **Mục lục Điều (bậc 1 của spec §8)**: bảng Chương và Điều của tài liệu đang mở, lấy từ sidecar (spec `Docs/superpowers/specs/2026-10-21-muc-luc-dieu-design.md`, plan `Docs/superpowers/plans/2026-10-21-muc-luc-dieu.md`). Chế độ đơn: nút `listOutline` cạnh 🔍 ở footer; split: chữ "Mục lục" trên vạch chia, áp cho pane dưới. Chạm một Điều là nhảy tới trang của nó; Điều đang đọc (các Điều bắt đầu trên trang hiện tại, không có thì Điều gần nhất phía trước) được đánh dấu "đang đọc" và tự cuộn tới khi mở sheet. Tài liệu không có unit `dieu` thì không có nút.
