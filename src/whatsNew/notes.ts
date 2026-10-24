@@ -5,6 +5,14 @@ import type { ReleaseNote } from './types';
 // fails when package.json's version has none. Technical history stays in CHANGELOG.md.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.43.1',
+    date: '24/10/2026',
+    items: [
+      { kind: 'improve', text: 'App nhẹ hơn khi Pé chuyển qua app khác: phần dùng để tìm kiếm giờ được cất đi lúc app nằm chờ, nên điện thoại ít phải đóng app hơn, quay lại thường vẫn ở chỗ đang đọc. Vì vậy rời màn Tìm một lúc rồi quay lại sẽ thấy dòng "đang cập nhật chỉ mục…" vài giây, kết quả cũ vẫn nằm đó và chạm được như thường.' },
+      { kind: 'fix', text: 'Bấm "Dựng lại chỉ mục tìm kiếm" trong Cài đặt rồi vào Tìm, trước đây nếu lúc trước Pé đã mở màn Tìm thì app vẫn tìm trên chỉ mục cũ cho tới khi tắt app mở lại. Giờ vào Tìm là app đọc lại kho ngay nha.' },
+    ],
+  },
+  {
     version: '1.43.0',
     date: '21/10/2026',
     items: [
