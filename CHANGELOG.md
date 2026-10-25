@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.45.0] (2026-10-26): Clip mở app theo dịp lễ, bắt đầu với Halloween
+### Added
+- **Clip Halloween, phát từ 24 tới hết 31/10:** panda đội mũ phù thủy trên bộ tóc giả, khoác áo choàng có sao, gõ đũa phép cho hai cánh cửa thư viện tự mở, bên trong có bí ngô cười, nến, dơi nhỏ; quay lại vẫy đũa. Làm bằng Grok Imagine trong Grok chat (Grok mặc đồ phù thủy cho khung đầu clip 1.44.1, rồi làm video từ ảnh đó), cắt về 4,20 s (1,6 · 1,3 · 1,6 lần), 1,65 MB.
+- `OpeningClip` (Java thuần, JUnit kiểm các ngày ở ranh giới) chọn clip theo ngày trên máy; `MainActivity` truyền ngày, `OpeningOverlay` phát clip được giao. Hết khoảng lễ tự về clip mặc định, không cần bản cập nhật. Không có tuỳ chọn trong Cài đặt để giữ bất ngờ; công tắc "Hiệu ứng mở cửa" vẫn tắt mọi clip.
+### Changed
+- `scripts/make-opening-video.sh <nguồn> [default|halloween]`: nhịp cắt của từng clip nằm cạnh tên clip; xoá cả file tạm của `mktemp` (Minor của review 25/10). Chạy lại cho clip mặc định ra đúng từng byte như bản 1.44.1.
+### Notes
+- APK 8 544 739 B, hơn 1.44.1 khoảng 1,86 MB (clip và hai ảnh Halloween).
+
 ## [1.44.1] (2026-10-25): Clip mở app làm lại bằng Grok Imagine
 ### Changed
 - **Clip mở app mới**, cùng câu chuyện (panda thẩm phán ôm sách đi tới, đẩy hai cánh cửa thư viện, bước vào, quay lại vẫy): làm bằng Grok Imagine trong Grok chat (gói X Premium của huynh), ảnh bắt đầu là khung giây 1,05 của clip 1.44.0 cắt về 720 × 1280. Tóc giả gọn hơn, hình nét hơn, hai cánh cửa xoay vào trong trên bản lề. Nguồn 720 × 1280, 24 hình/giây, 6,04 s; huynh chọn lượt 3 trong 3 lượt đạt.

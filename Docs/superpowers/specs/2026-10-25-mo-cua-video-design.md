@@ -28,6 +28,7 @@ Hướng mới là hướng A của buổi thảo luận 24/10: video dựng s�
 - **Phát bằng Android, không phát trong WebView:** `SurfaceView` và `MediaPlayer` có sẵn của Android, không dùng ExoPlayer. (Bản đầu dùng `TextureView`: đo trên UBS1 ngày 25/10, video đứng 1,3 s giữa clip vì WebView chặn luồng giao diện của app lúc Trang chủ vẽ lần đầu; `SurfaceView` nhận khung thẳng từ bộ giải mã nên không bị.) Đã bác: thẻ `<video>` trong WebView (khựng đúng lúc Trang chủ đứng hình, dễ lộ khung đen); giữ cửa CSS và cho panda cử động bằng sprite (cũng đứng hình theo WebView, không có cú máy đi vào thư viện).
 - **Quyết định phát hay không nằm ở native**, đọc thẳng `CapacitorStorage`: công tắc `opening_doors` và cờ `viewer_crash` đều ở đó. Native đọc được `ANIMATOR_DURATION_SCALE`, nên rủi ro "WebView không nhận Xoá hiệu ứng động" của spec cũ không còn.
 - **Giữ từ bản cửa CSS:** splash và nền cửa sổ màu kem, huy hiệu panda ở `index.html` (thấy khi công tắc tắt), công tắc trong Cài đặt, các chỗ chờ `whenOpeningDone()`, helper e2e chờ nút "Bỏ qua hiệu ứng mở cửa" biến mất.
+- **Clip theo dịp lễ (từ 1.45.0, chốt với huynh 26/10):** `OpeningClip.forDate` chọn clip theo ngày trên máy: Halloween từ 24 tới hết 31/10, các ngày khác phát clip mặc định; hết khoảng lễ tự về clip mặc định, không cần bản cập nhật. Không có tuỳ chọn trong Cài đặt, để clip lễ còn là bất ngờ; công tắc "Hiệu ứng mở cửa" vẫn tắt mọi clip. Mỗi clip mang video và hai ảnh tĩnh riêng. Đã bác: ra một bản cập nhật cho mỗi dịp (hai bản mỗi lễ, Gú phải cài đúng lúc), tuỳ chọn trong Cài đặt (mất bất ngờ).
 - **Bỏ:** lớp cửa CSS (`OpeningDoors.tsx`, `opening.css`, `art.ts`), máy trạng thái JS (`openingMachine.ts`), bộ chờ khung mượt (`smoothFrames.ts`), hai ảnh cửa và panda, `scripts/make-opening-assets.py`, `skipOpening` (native tự biết share và sự cố).
 
 ## 4. Pé thấy gì
@@ -95,6 +96,7 @@ Helper `toTab` giữ nguyên ý: chờ cây trợ năng nạp xong rồi chờ n
 - Clip gốc không commit. Ops doc §8.1 ghi nguồn từng clip. Bản 1.44.0: model (Higgsfield Genjutsu, style mặc định, 720p lượt free), ảnh tham chiếu (P1, C4, thư viện), prompt, clip tham chiếu do huynh quay (không công bố), ngày tạo. Bản 1.44.1: Grok Imagine trong Grok chat, ảnh bắt đầu, prompt tả bản lề, số lượt đạt.
 - Prompt đã dùng cho clip 1.44.0: như bản đệ gửi huynh ngày 25/10 (panda từ @image1, cửa @image2, thư viện @image3, đi vào từ trái, cúi chào, đẩy hai cánh cửa, máy đi theo vào thư viện, quay lại vẫy, không chữ).
 - APK đo được: 6 640 325 B, hơn 1.43.1 khoảng 1,3 MB (video 1,1 MB, hai ảnh tĩnh khoảng 160 KB, bộ splash kem). Bản 1.44.1 (clip Grok): 6 689 129 B (video 1,14 MB, hai ảnh tĩnh khoảng 180 KB).
+- Clip Halloween (1.45.0): Grok Imagine trong Grok chat, hai bước: Grok sửa khung đầu clip 1.44.1 cho panda đội mũ phù thủy, khoác áo choàng, cầm đũa phép, rồi làm video từ ảnh đó (prompt ở ops doc §8.1). Cắt bằng `scripts/make-opening-video.sh <nguồn> halloween`: 0 đến 1,4 s tua 1,6 lần, 1,4 đến 4,3 s tua 1,3 lần, 4,3 s tới hết tua 1,6 lần, ra 4,20 s, 1,65 MB, ghi `res/raw/opening_halloween.mp4` cùng `opening_halloween_first.webp` và `opening_halloween_last.webp`. APK 1.45.0: 8 544 739 B.
 
 ## 7. Lỗi và trường hợp biên
 
