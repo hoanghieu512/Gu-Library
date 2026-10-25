@@ -4,11 +4,12 @@
 #   scripts/make-opening-video.sh <source.mp4>
 #
 # One-off asset generator, needs ffmpeg and cwebp on the dev machine (not repo dependencies).
-# Source: Higgsfield Genjutsu, 696 x 1320, 24 fps, 5.96 s, approved by Gu on 25/10/2026. The source
-# clip is not committed; its prompt, reference images and model are recorded in the ops doc §8.
+# Source: Grok Imagine (in Grok chat), 720 x 1280, 24 fps, 6.04 s, chosen by huynh on 25/10/2026
+# for 1.44.1. The source clip is not committed; its prompt, start image and model are recorded in
+# the ops doc §8.1.
 #
-# The walk-in is sped up 1.7x, the push and the walk into the library 1.4x, the turn and the wave
-# 1.1x, for about 4.2 s in all. Writes the clip and its first and last frames.
+# The walk to the door is sped up 1.7x, the doors opening and the walk into the library 1.35x, the
+# turn and the wave 1.45x, for about 4.2 s in all. Writes the clip and its first and last frames.
 set -euo pipefail
 
 src=${1:?usage: make-opening-video.sh <source.mp4>}
@@ -20,9 +21,9 @@ last="$res/drawable-nodpi/opening_last.webp"
 mkdir -p "$res/raw" "$res/drawable-nodpi"
 
 ffmpeg -v error -y -i "$src" -filter_complex \
-  "[0:v]trim=start=0.15:end=1.6,setpts=(PTS-STARTPTS)/1.7[a];\
-[0:v]trim=start=1.6:end=4.6,setpts=(PTS-STARTPTS)/1.4[b];\
-[0:v]trim=start=4.6,setpts=(PTS-STARTPTS)/1.1[c];\
+  "[0:v]trim=start=0:end=1.15,setpts=(PTS-STARTPTS)/1.7[a];\
+[0:v]trim=start=1.15:end=3.4,setpts=(PTS-STARTPTS)/1.35[b];\
+[0:v]trim=start=3.4,setpts=(PTS-STARTPTS)/1.45[c];\
 [a][b][c]concat=n=3:v=1:a=0,fps=30,format=yuv420p[v]" \
   -map "[v]" -c:v libx264 -profile:v main -crf 23 -preset slow -movflags +faststart -an "$out"
 

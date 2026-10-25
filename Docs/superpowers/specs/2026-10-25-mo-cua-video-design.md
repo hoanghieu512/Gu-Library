@@ -23,8 +23,8 @@ Hướng mới là hướng A của buổi thảo luận 24/10: video dựng s�
 
 ## 3. Quyết định đã chốt (với huynh, 25/10)
 
-- **Clip:** clip dọc huynh làm bằng Higgsfield Genjutsu (chuyển động lấy từ một clip tham chiếu huynh quay, ảnh tham chiếu là panda P1, cặp cửa C4 và ảnh thư viện T1 hoặc T2, prompt ở §6), Gú đã duyệt. 696 × 1320, 24 hình/giây, 5,96 s, không có tiếng.
-- **Nhịp 4,2 s:** đoạn đi vào tua 1,7 lần, đoạn đẩy cửa và bước vào tua 1,4 lần, đoạn quay lại vẫy 1,1 lần (bản `mo-cua-video-4s.mp4` huynh đã xem).
+- **Clip (từ 1.44.1):** clip dọc làm bằng Grok Imagine trong Grok chat (gói X Premium của huynh), ảnh bắt đầu là khung giây 1,05 của clip Higgsfield cắt về 720 × 1280, prompt tả rõ bản lề cửa (ops doc §8.1); huynh chọn lượt 3 ngày 25/10. 720 × 1280, 24 hình/giây, 6,04 s, có tiếng (bỏ khi cắt). Bản 1.44.0 dùng clip Higgsfield Genjutsu (chuyển động lấy từ một clip tham chiếu huynh quay, ảnh tham chiếu là panda P1, cặp cửa C4 và ảnh thư viện T1 hoặc T2, prompt ở §6), Gú đã duyệt, 696 × 1320, 5,96 s.
+- **Nhịp 4,2 s:** clip 1.44.1 tua đoạn đi tới cửa 1,7 lần, đoạn cửa mở và bước vào 1,35 lần, đoạn quay lại vẫy 1,45 lần, ra 4,17 s. Clip 1.44.0 tua đoạn đi vào 1,7 lần, đoạn đẩy cửa và bước vào 1,4 lần, đoạn quay lại vẫy 1,1 lần (bản `mo-cua-video-4s.mp4` huynh đã xem).
 - **Phát bằng Android, không phát trong WebView:** `SurfaceView` và `MediaPlayer` có sẵn của Android, không dùng ExoPlayer. (Bản đầu dùng `TextureView`: đo trên UBS1 ngày 25/10, video đứng 1,3 s giữa clip vì WebView chặn luồng giao diện của app lúc Trang chủ vẽ lần đầu; `SurfaceView` nhận khung thẳng từ bộ giải mã nên không bị.) Đã bác: thẻ `<video>` trong WebView (khựng đúng lúc Trang chủ đứng hình, dễ lộ khung đen); giữ cửa CSS và cho panda cử động bằng sprite (cũng đứng hình theo WebView, không có cú máy đi vào thư viện).
 - **Quyết định phát hay không nằm ở native**, đọc thẳng `CapacitorStorage`: công tắc `opening_doors` và cờ `viewer_crash` đều ở đó. Native đọc được `ANIMATOR_DURATION_SCALE`, nên rủi ro "WebView không nhận Xoá hiệu ứng động" của spec cũ không còn.
 - **Giữ từ bản cửa CSS:** splash và nền cửa sổ màu kem, huy hiệu panda ở `index.html` (thấy khi công tắc tắt), công tắc trong Cài đặt, các chỗ chờ `whenOpeningDone()`, helper e2e chờ nút "Bỏ qua hiệu ứng mở cửa" biến mất.
@@ -91,10 +91,10 @@ Helper `toTab` giữ nguyên ý: chờ cây trợ năng nạp xong rồi chờ n
 
 ## 6. Asset
 
-- `scripts/make-opening-video.sh <clip gốc>` (ffmpeg, cwebp): cắt 0,15 đến 1,6 s tua 1,7 lần, 1,6 đến 4,6 s tua 1,4 lần, 4,6 s tới hết tua 1,1 lần; 30 hình/giây; H.264 main, CRF 23, `+faststart`, không tiếng; ghi `android/app/src/main/res/raw/opening.mp4` (khoảng 1,1 MB), khung đầu `opening_first.webp` và khung cuối `opening_last.webp` trong `android/app/src/main/res/drawable-nodpi/`.
-- Clip gốc không commit. Ops doc §8 ghi: model (Higgsfield Genjutsu, style mặc định, 720p lượt free), ảnh tham chiếu (P1, C4, thư viện), prompt, clip tham chiếu do huynh quay (không công bố), ngày tạo.
-- Prompt đã dùng: như bản đệ gửi huynh ngày 25/10 (panda từ @image1, cửa @image2, thư viện @image3, đi vào từ trái, cúi chào, đẩy hai cánh cửa, máy đi theo vào thư viện, quay lại vẫy, không chữ).
-- APK đo được: 6 640 325 B, hơn 1.43.1 khoảng 1,3 MB (video 1,1 MB, hai ảnh tĩnh khoảng 160 KB, bộ splash kem).
+- `scripts/make-opening-video.sh <clip gốc>` (ffmpeg, cwebp): cắt 0 đến 1,15 s tua 1,7 lần, 1,15 đến 3,4 s tua 1,35 lần, 3,4 s tới hết tua 1,45 lần (1.44.1; bản 1.44.0 cắt 0,15 đến 1,6 s tua 1,7 lần, 1,6 đến 4,6 s tua 1,4 lần, 4,6 s tới hết tua 1,1 lần); 30 hình/giây; H.264 main, CRF 23, `+faststart`, không tiếng; ghi `android/app/src/main/res/raw/opening.mp4` (khoảng 1,1 MB), khung đầu `opening_first.webp` và khung cuối `opening_last.webp` trong `android/app/src/main/res/drawable-nodpi/`.
+- Clip gốc không commit. Ops doc §8.1 ghi nguồn từng clip. Bản 1.44.0: model (Higgsfield Genjutsu, style mặc định, 720p lượt free), ảnh tham chiếu (P1, C4, thư viện), prompt, clip tham chiếu do huynh quay (không công bố), ngày tạo. Bản 1.44.1: Grok Imagine trong Grok chat, ảnh bắt đầu, prompt tả bản lề, số lượt đạt.
+- Prompt đã dùng cho clip 1.44.0: như bản đệ gửi huynh ngày 25/10 (panda từ @image1, cửa @image2, thư viện @image3, đi vào từ trái, cúi chào, đẩy hai cánh cửa, máy đi theo vào thư viện, quay lại vẫy, không chữ).
+- APK đo được: 6 640 325 B, hơn 1.43.1 khoảng 1,3 MB (video 1,1 MB, hai ảnh tĩnh khoảng 160 KB, bộ splash kem). Bản 1.44.1 (clip Grok): 6 689 129 B (video 1,14 MB, hai ảnh tĩnh khoảng 180 KB).
 
 ## 7. Lỗi và trường hợp biên
 

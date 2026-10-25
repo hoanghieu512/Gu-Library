@@ -2,6 +2,15 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.44.1] (2026-10-25): Clip mở app làm lại bằng Grok Imagine
+### Changed
+- **Clip mở app mới**, cùng câu chuyện (panda thẩm phán ôm sách đi tới, đẩy hai cánh cửa thư viện, bước vào, quay lại vẫy): làm bằng Grok Imagine trong Grok chat (gói X Premium của huynh), ảnh bắt đầu là khung giây 1,05 của clip 1.44.0 cắt về 720 × 1280. Tóc giả gọn hơn, hình nét hơn, hai cánh cửa xoay vào trong trên bản lề. Nguồn 720 × 1280, 24 hình/giây, 6,04 s; huynh chọn lượt 3 trong 3 lượt đạt.
+- `scripts/make-opening-video.sh` cắt lại cho nguồn mới: đoạn đi tới cửa tua 1,7 lần, cửa mở và bước vào 1,35 lần, quay lại vẫy 1,45 lần, ra 4,17 s. Hai ảnh tĩnh giờ 720 × 1280, bộ nhớ ngang bản cũ.
+### Notes
+- Prompt: lượt đầu (prompt ngắn) cả 2 clip mở cửa sai (cánh trượt ngang như cửa lùa rồi teo thành mảnh gỗ); lượt hai tả rõ bản lề (hai cánh cứng xoay vào trong quanh mép ngoài, không trượt, không gập, máy quay đứng yên ngoài cửa) thì 3 trên 3 clip đúng. Prompt ở ops doc §8.1.
+- Đo trên UBS1, đo song song với 1.44.0 cùng ngày bằng cùng script (chạm icon ở launcher, 3 lượt mỗi bản): Trang chủ đứng yên trung vị 4,55 s so với 4,58 s; PSS app giây 13 trung vị 105,0 MB cả hai bản; trong clip không có lúc nào quá 0,2 s không có khung mới. Script mới tính từ khung đầu rời launcher nên số thấp hơn bảng ngày 25/10 sáng khoảng 0,5 s; chỉ so được giữa hai bản đo cùng lúc. APK 6 689 129 B (hơn 1.44.0 48 KB).
+- APK nghiệm thu cài đè UBS1 và dGen1, mở bằng `monkey`: clip chạy rồi bảng "Có gì mới" hiện mục 1.44.1 trên cả hai. e2e 10/10, 5 ph 1 s, $0.
+
 ## [1.44.0] (2026-10-25): Mở app bằng video panda mở cửa thư viện
 ### Added
 - **Video mở app** (spec `Docs/superpowers/specs/2026-10-25-mo-cua-video-design.md`, plan `Docs/superpowers/plans/2026-10-25-mo-cua-video.md`): mỗi lần mở lạnh, panda thẩm phán ôm sách đi tới đẩy hai cánh cửa thư viện, bước vào rồi quay lại vẫy; clip 4,2 s (`res/raw/opening.mp4`, 1,1 MB, không tiếng) phát bằng lớp Android nằm trên WebView, Trang chủ nạp phía sau; hết clip thì giữ khung cuối tới khi Trang chủ báo đã vẽ (tối đa 2 s) rồi mờ 300 ms. Chạm vào đâu hoặc bấm back là bỏ qua (mờ 200 ms). Không chạy khi: tắt công tắc, máy bật "Xoá hiệu ứng động", mở qua share, mở lại sau sự cố renderer, quay lại từ nền; share tới giữa clip thì bỏ qua clip.
