@@ -20,6 +20,16 @@ public class OpeningClipTest {
     }
 
     @Test
+    public void eachClipPlaysItsOwnVideoAndStills() {
+        assertEquals(R.raw.opening, OpeningClip.DEFAULT.video);
+        assertEquals(R.drawable.opening_first, OpeningClip.DEFAULT.firstFrame);
+        assertEquals(R.drawable.opening_last, OpeningClip.DEFAULT.lastFrame);
+        assertEquals(R.raw.opening_halloween, OpeningClip.HALLOWEEN.video);
+        assertEquals(R.drawable.opening_halloween_first, OpeningClip.HALLOWEEN.firstFrame);
+        assertEquals(R.drawable.opening_halloween_last, OpeningClip.HALLOWEEN.lastFrame);
+    }
+
+    @Test
     public void theDefaultClipOnOtherDays() {
         assertEquals(OpeningClip.DEFAULT, OpeningClip.forDate(1, 1));
         assertEquals(OpeningClip.DEFAULT, OpeningClip.forDate(9, 30));
