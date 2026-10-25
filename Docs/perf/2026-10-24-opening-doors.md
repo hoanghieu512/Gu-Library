@@ -64,3 +64,27 @@ Bản có cửa `b9778b9` trên UBS1 (Android 14), ghi hình mỗi ca và đếm
 - Cửa thêm khoảng 1,9 s cho tới lúc Trang chủ đứng yên, nhiều hơn mục tiêu "khoảng 1 s" của spec. Phần lớn là chờ: cửa không mở được trong hai lần WebView đứng hình sau khi Trang chủ vẽ xong. Ở bản 1.43.1, hai lần đứng đó vẫn có nhưng không lộ ra vì màn hình lúc ấy đứng yên, và Trang chủ trong lúc đó cũng không nhận chạm. Phần còn lại là chính hiệu ứng 1 s và 0,1 s chờ vẽ mượt.
 - Số khung vẽ cao hơn vì panda nhún và vệt sáng nhấp nháy suốt lúc cửa đóng; số khung giật tuyệt đối gần như nhau. Không tuyên bố 60 FPS: các lần đứng hình là của Trang chủ, cửa không làm chúng ngắn đi.
 - PSS cao hơn khoảng 8 MB sau khi cửa đã rời DOM: ảnh đã giải mã còn trong bộ nhớ đệm ảnh của WebView. Chưa đo lại sau vài phút ở tiền cảnh.
+
+## Video native thay cho cửa CSS (25/10/2026)
+
+Spec `Docs/superpowers/specs/2026-10-25-mo-cua-video-design.md`. Clip 4,2 s phát bằng lớp Android nằm trên WebView. Cách đo như mục A/B ở trên (chạm icon ở launcher, 3 lượt, UBS1, kho QA, `am force-stop` trước mỗi lượt). Bản dựng từ nhánh `feat/opening-doors`, version vẫn ghi 1.43.1.
+
+**Bản đầu dùng `TextureView`:** Trang chủ đứng yên ở 5,40 · 5,04 · 5,06 s, nhưng video đứng 1,27 đến 1,30 s ngay giữa clip (khung 3,85 s là panda bước vào thư viện, khung kế tiếp 5,13 s đã là panda vẫy tay ở cuối). Lúc Trang chủ vẽ lần đầu, WebView chặn luồng giao diện của app, mà `TextureView` chỉ cập nhật khi luồng đó vẽ. Đây cũng là lý do animation CSS của bản cửa đứng hình.
+
+**Bản dùng `SurfaceView`** (bộ giải mã đẩy khung thẳng lên compositor, khung đầu và khung cuối là ảnh tĩnh):
+
+| | 1.43.1 | Video `SurfaceView` |
+|---|---|---|
+| Trang chủ đứng yên (3 lượt) | 4,73 · 4,34 · 4,45 s | 5,59 · 5,13 · 5,14 s |
+| **Trung vị** | **4,45 s** | **5,14 s (+0,69 s)** |
+| Video đứng hình giữa clip | | Không có khoảng nào quá 0,2 s trong clip |
+| PSS app + renderer 13 s sau khi mở | 99,4 + 89,3 MB | 106,4 + 87,6 MB (trung vị) |
+| APK | 5 342 714 B | 6 640 325 B (+1,30 MB) |
+
+**Danh sách kiểm (UBS1, Android 14):** chạm và back giữa clip vào Trang chủ ngay (đang nạp thì thấy trạng thái nạp); bấm Home giữa clip rồi mở lại là Trang chủ, không phát lại; share PDF lúc app tắt: không có clip, bảng "Lưu vào môn nào?" hiện; share tới lúc clip đang chạy: clip bỏ qua, bảng hiện; tắt công tắc: không có clip (đã bật lại). Chưa kiểm "Xoá hiệu ứng động" (cần đổi thang hiệu ứng hệ thống).
+
+**dGen1 (Android 15, màn vuông):** mở lần đầu sau khi cài bằng `monkey`. Splash hệ thống hiện huy hiệu panda trên nền kem; clip cắt vuông vẫn đủ đoạn đi vào, đẩy cửa, thư viện, vẫy tay (mặt panda ở khung cuối lệch xuống góc nhưng rõ); không đứng hình; bảng "Có gì mới" hiện sau clip.
+
+**e2e:** 10/10, 5 ph 1 s, $0.
+
+**Đọc số:** Trang chủ hiện chậm hơn 1.43.1 khoảng 0,7 s, vượt nhẹ mức "khoảng 0,5 s" của spec. Giờ thời gian bị chặn bởi độ dài clip (4,2 s, nhịp huynh đã duyệt) cộng khoảng 0,2 s khởi động và 0,3 s mờ, không còn bởi Trang chủ: Trang chủ đã sẵn sàng trước khi clip hết. Muốn về dưới 0,5 s thì cắt clip thêm khoảng 0,2 s hoặc mờ 200 ms thay vì 300 ms.
