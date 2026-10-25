@@ -10,6 +10,7 @@ Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một
 - `scripts/make-opening-video.sh <nguồn> [default|halloween]`: nhịp cắt của từng clip nằm cạnh tên clip; xoá cả file tạm của `mktemp` (Minor của review 25/10). Chạy lại cho clip mặc định ra đúng từng byte như bản 1.44.1.
 ### Notes
 - APK 8 544 739 B, hơn 1.44.1 khoảng 1,86 MB (clip và hai ảnh Halloween).
+- Kiểm (hai máy để ngày 26/10): APK cài đè UBS1 và dGen1, mở bằng `monkey`, clip Halloween chạy rồi bảng "Có gì mới" hiện mục 1.45.0 trên cả hai. Đo song song với 1.44.1 trên UBS1: Trang chủ đứng yên trung vị 4,58 s so với 4,56 s; trong clip không có lúc nào quá 0,2 s không có khung mới. e2e 10/10, 4 ph 59 s, $0.
 
 ## [1.44.1] (2026-10-25): Clip mở app làm lại bằng Grok Imagine
 ### Changed
