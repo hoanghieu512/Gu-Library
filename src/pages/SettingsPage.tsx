@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonSegment, IonSegmentButton, IonLabel,
+  IonSegment, IonSegmentButton, IonLabel, IonToggle,
 } from '@ionic/react';
 import {
-  folderOutline, syncOutline, textOutline, phonePortraitOutline, searchOutline,
+  folderOutline, syncOutline, textOutline, phonePortraitOutline, searchOutline, enterOutline,
 } from 'ionicons/icons';
 import { getRootUri, pickAndSaveRoot } from '../storage/repo';
 import { readableTreePath } from '../storage/safPath';
@@ -20,6 +20,7 @@ import { assertKhoListed } from '../storage/khoRoot';
 import { KhoUnreadableError, KHO_UNREADABLE_MESSAGE } from '../plugins/khoUnreadable';
 import { useGuToast } from '../lib/useGuToast';
 import { SYNC_MAP } from '../sync/syncLabels';
+import { getOpeningEnabled, setOpeningEnabled } from '../opening/openingPref';
 
 // Settings: every item is a paper card (`SettingsRow`). Only the LOOK is shared: every behaviour
 // (pick the folder, open the Sync/Perf modals, change the Viewer font size) stays here.
@@ -29,6 +30,8 @@ export default function SettingsPage() {
   const [syncOpen, setSyncOpen] = useState(false);
   const [deviceId, setDeviceId] = useState<string>('');
   const [scale, setScale] = useState<string>('1');
+  // null until read; a read error shows off, since the doors do not play then either.
+  const [openingOn, setOpeningOn] = useState<boolean | null>(null);
   // Trạng thái đồng bộ: dùng LẠI hook + bộ nhãn của SyncPill (cùng nguồn với đèn ở Home).
   const { light } = useSyncStatus();
   const sync = SYNC_MAP[light];
@@ -37,10 +40,17 @@ export default function SettingsPage() {
   useEffect(() => {
     getDeviceId().then(setDeviceId).catch(() => setDeviceId(''));
     getBaseScale().then((v) => setScale(String(v))).catch(() => setScale('1'));
+    getOpeningEnabled().then(setOpeningOn).catch(() => setOpeningOn(false));
   }, []);
 
   const pick = async () => { await pickAndSaveRoot(); setRoot(await getRootUri()); };
   const changeScale = (v: string) => { setScale(v); setBaseScale(parseFloat(v)); };
+  const toggleOpening = () => {
+    if (openingOn === null) return;
+    const next = !openingOn;
+    setOpeningOn(next);
+    setOpeningEnabled(next).catch(() => { /* the row shows it; next launch reads the old value */ });
+  };
 
   const chevron = <Chevron />;
 
@@ -85,6 +95,14 @@ export default function SettingsPage() {
             ))}
           </IonSegment>
         </Row>
+
+        {/* The whole card is the control; the toggle only shows the state. Takes effect next cold start. */}
+        <Row
+          icon={enterOutline} title="Hiệu ứng mở cửa" hint="Panda mở cửa thư viện mỗi lần khởi động app"
+          onClick={toggleOpening}
+          ariaLabel={openingOn === null ? 'Hiệu ứng mở cửa' : `Hiệu ứng mở cửa: ${openingOn ? 'bật' : 'tắt'}`}
+          trailing={<IonToggle checked={openingOn === true} aria-hidden style={{ pointerEvents: 'none' }} />}
+        />
 
         <Row
           icon={phonePortraitOutline} title="Thông tin máy này"

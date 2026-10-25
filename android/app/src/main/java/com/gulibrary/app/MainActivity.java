@@ -1,10 +1,12 @@
 package com.gulibrary.app;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
+import android.provider.Settings;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
@@ -13,11 +15,14 @@ import com.getcapacitor.WebViewListener;
 import java.util.ArrayList;
 
 public class MainActivity extends BridgeActivity {
+    private OpeningOverlay opening;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(SafPlugin.class);
         registerPlugin(SyncthingPlugin.class);
         registerPlugin(ShareTargetPlugin.class);
+        registerPlugin(OpeningPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Lưới an toàn "chết cho đẹp": khi WebView renderer bị Android kill (OOM — vd PDF quá
@@ -35,6 +40,27 @@ public class MainActivity extends BridgeActivity {
         });
 
         handleSendIntent(getIntent());
+
+        // Opening clip above the WebView, only on a real cold start (OpeningGate). The switch and the
+        // crash flag live in CapacitorStorage, where @capacitor/preferences and the listener above write.
+        SharedPreferences store = getSharedPreferences("CapacitorStorage", MODE_PRIVATE);
+        float animatorScale = Settings.Global.getFloat(getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
+        if (OpeningGate.shouldPlay(savedInstanceState == null, getIntent().getAction(),
+                store.getString(OpeningGate.SWITCH_KEY, null), store.getString(OpeningGate.CRASH_KEY, null), animatorScale)) {
+            opening = OpeningOverlay.attach(this);
+            opening.whenDone(() -> opening = null); // nothing of the clip outlives it
+        }
+    }
+
+    /** The opening clip's layer, or null when it did not play. */
+    OpeningOverlay opening() {
+        return opening;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (opening != null) opening.onPause(); // Home key mid-clip: back in the app is Home
     }
 
     @Override
@@ -42,6 +68,10 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleSendIntent(intent);
+        String action = intent.getAction();
+        if (opening != null && (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action))) {
+            opening.skip(); // a share arrived mid-clip: straight to the destination sheet
+        }
     }
 
     // Nạp file share vào ShareTargetPlugin.pending. ACTION_SEND = 1 file;

@@ -4,8 +4,12 @@ import type { ReactNode } from 'react';
 import { Preferences } from '@capacitor/preferences';
 import WhatsNewNotice from './WhatsNewNotice';
 import { RELEASE_NOTES } from '../whatsNew/notes';
+import { Opening } from '../plugins/opening';
+import { resetOpeningForTest } from '../opening/homeReady';
 
 vi.mock('@capacitor/preferences', () => ({ Preferences: { get: vi.fn(), set: vi.fn() } }));
+// The native clip is gone unless a test says otherwise.
+vi.mock('../plugins/opening', () => ({ Opening: { homeReady: vi.fn(), whenDone: vi.fn() } }));
 // IonModal does not run in jsdom. The stand-in behaves like it where it matters: it stays mounted
 // when closed (data-open), shows the header "Đóng" and children only while open, and calls onClose
 // again when it goes from open to closed — Ionic's onDidDismiss after a dismiss.
@@ -30,6 +34,8 @@ const heading = (v: string) => new RegExp(`^Phiên bản ${v.replace(/\./g, '\\.
 const V = RELEASE_NOTES.map((n) => n.version);
 
 beforeEach(() => {
+  resetOpeningForTest();
+  vi.mocked(Opening.whenDone).mockReset().mockResolvedValue();
   vi.mocked(Preferences.get).mockReset();
   vi.mocked(Preferences.set).mockReset().mockResolvedValue();
 });
@@ -86,5 +92,18 @@ describe('WhatsNewNotice — once after an update (v1.42.0)', () => {
     render(<WhatsNewNotice />);
     await settle();
     expect(screen.queryByText(/^Phiên bản/)).toBeNull();
+  });
+});
+
+describe('WhatsNewNotice: after the opening clip', () => {
+  it('waits for the clip before opening', async () => {
+    let finishClip: () => void = () => {};
+    vi.mocked(Opening.whenDone).mockReturnValue(new Promise<void>((r) => { finishClip = r; }));
+    vi.mocked(Preferences.get).mockResolvedValue({ value: V[1] });
+    render(<WhatsNewNotice />);
+    await settle();
+    expect(screen.queryByText(heading(V[0]))).toBeNull();
+    act(() => finishClip());
+    expect(await screen.findByText(heading(V[0]))).toBeInTheDocument();
   });
 });

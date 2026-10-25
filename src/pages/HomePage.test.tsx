@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { IonApp, IonRouterOutlet } from '@ionic/react';
 import { IonReactMemoryRouter } from '@ionic/react-router';
@@ -9,10 +9,15 @@ import { fakeKho, ROOT, type FakeKho } from '../test/fakeSaf';
 import { invalidateKho } from '../storage/khoSnapshot';
 import HomePage from './HomePage';
 import { prefs } from '../test/fakePreferences';
+import { markHomeReady } from '../opening/homeReady';
 
 vi.mock('@capacitor/preferences', () => import('../test/fakePreferences'));
 vi.mock('@capacitor/app', () => ({ App: { addListener: async () => ({ remove: () => {} }) } }));
 vi.mock('../plugins/safNative', () => ({ SafNative: {} }));
+vi.mock('../opening/homeReady', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../opening/homeReady')>()),
+  markHomeReady: vi.fn(),
+}));
 vi.mock('../sync/useSyncStatus', () => ({ useSyncStatus: () => ({ light: 'unconfigured', refresh: () => {} }) }));
 
 // MonShelf measures the shelf; jsdom has no ResizeObserver.
@@ -28,6 +33,7 @@ beforeEach(() => {
   kho.mkdir('Logic');
   kho.mkdir('_inbox');
   invalidateKho();
+  vi.mocked(markHomeReady).mockClear();
 });
 
 function renderHome() {
@@ -57,5 +63,19 @@ describe('HomePage: a kho Android will not list', () => {
     expect(await screen.findByText(/Khởi động lại máy/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Tạo môn mới')).not.toBeInTheDocument();
     expect(screen.queryByText('Chưa có môn nào trong kho.')).not.toBeInTheDocument();
+  });
+});
+
+describe('HomePage: tells the opening doors it has drawn', () => {
+  it('marks Home ready after the first load', async () => {
+    renderHome();
+    await waitFor(() => expect(markHomeReady).toHaveBeenCalled());
+  });
+
+  it('marks Home ready with no kho chosen', async () => {
+    // A fresh install opens the doors onto "Chưa chọn folder kho".
+    prefs.delete('saf_root_uri');
+    renderHome();
+    await waitFor(() => expect(markHomeReady).toHaveBeenCalled());
   });
 });

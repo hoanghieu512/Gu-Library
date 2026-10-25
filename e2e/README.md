@@ -156,6 +156,10 @@ hạn lượt).
 - **Bảng "Có gì mới" (app ≥ 1.42.0)** tự mở ở lần mở app đầu tiên sau khi cài bản mới — tức lượt
   e2e đầu tiên sau khi cài APK cần kiểm — và che Trang chủ. `toTab` (lần gọi đầu mỗi file) chờ tối đa
   4 s, thấy "Đã hiểu" thì bấm; bấm rồi app nhớ là đã xem, các lần sau không hiện nữa.
+- **Video mở cửa lúc mở lạnh (app ≥ 1.44.0)** là một lớp Android nằm trên WebView, hiện sau mỗi
+  `app.open()` và che Trang chủ tối đa khoảng 6,5 s. `toTab` chờ cây nạp xong (thấy thanh tab) rồi
+  chờ nút "Bỏ qua hiệu ứng mở cửa" biến mất; không bấm nút đó, vì video vừa xong thì cú bấm rơi xuống
+  Trang chủ. Bảng "Có gì mới" hiện sau video.
 - **`textContent()` không chờ** node xuất hiện → đọc chữ một thẻ nạp bất đồng bộ (thẻ "Đang đọc dở"
   ở Trang chủ) phải `expect(...).toBeVisible()` trước.
 - **Telemetry** tắt sẵn (`E2E_TELEMETRY_DISABLED=1` trong script `test`/`explore`).

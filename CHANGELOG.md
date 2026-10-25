@@ -2,6 +2,20 @@
 
 Theo [Semantic Versioning](https://semver.org/). Mỗi milestone Phase 1 = một minor; polish/sửa lỗi = patch.
 
+## [1.44.0] (2026-10-25): Mở app bằng video panda mở cửa thư viện
+### Added
+- **Video mở app** (spec `Docs/superpowers/specs/2026-10-25-mo-cua-video-design.md`, plan `Docs/superpowers/plans/2026-10-25-mo-cua-video.md`): mỗi lần mở lạnh, panda thẩm phán ôm sách đi tới đẩy hai cánh cửa thư viện, bước vào rồi quay lại vẫy; clip 4,2 s (`res/raw/opening.mp4`, 1,1 MB, không tiếng) phát bằng lớp Android nằm trên WebView, Trang chủ nạp phía sau; hết clip thì giữ khung cuối tới khi Trang chủ báo đã vẽ (tối đa 2 s) rồi mờ 300 ms. Chạm vào đâu hoặc bấm back là bỏ qua (mờ 200 ms). Không chạy khi: tắt công tắc, máy bật "Xoá hiệu ứng động", mở qua share, mở lại sau sự cố renderer, quay lại từ nền; share tới giữa clip thì bỏ qua clip.
+- Kiến trúc: `OpeningGate` (quyết định phát, thuần Java), `OpeningFlow` (máy trạng thái, thuần Java), `OpeningOverlay` (`SurfaceView` + `MediaPlayer`, ảnh khung đầu che lúc bộ giải mã khởi động, ảnh khung cuối để giữ và mờ, thả cả hai khi xong), plugin `Opening` (`homeReady`, `whenDone`; bản web trả ngay). JS: `markHomeReady` ở Trang chủ, bảng "Có gì mới" và thông báo sự cố chờ `whenOpeningDone()`.
+- Công tắc **"Hiệu ứng mở cửa"** trong Cài đặt (khoá `opening_doors` trong Preferences, mặc định bật); cả thẻ là nút, có trạng thái cho trình đọc màn hình.
+- Asset: clip làm bằng Higgsfield Genjutsu (chuyển động từ một clip tham chiếu huynh quay, ảnh tham chiếu là panda P1, cặp cửa C4 và ảnh thư viện sinh bằng OpenRouter), cắt và nén bằng `scripts/make-opening-video.sh`; nguồn và prompt ở ops doc §8.1.
+### Changed
+- **Không còn khung trắng lúc mở app:** splash hệ thống, nền cửa sổ, nền WebView (`backgroundColor` của Capacitor) và `body` của `index.html` cùng màu kem `#E9E5CD`; `index.html` vẽ huy hiệu panda trong lúc bundle nạp (thấy khi tắt công tắc). Ảnh splash là WebP vẽ bằng `scripts/make-splash.py` (bộ PNG mặc định của Capacitor 1,3 MB xuống 116 KB); không dùng `@capacitor/assets` vì nó ghi đè icon thích ứng đã chỉnh tay. Tiêu đề trang thành "Gú's Library".
+### Notes
+- Đo trên UBS1 (chạm icon ở launcher, 3 lượt, so với 1.43.1): Trang chủ hiện ở trung vị 5,14 s so với 4,45 s (+0,69 s, huynh chấp nhận; thời gian do độ dài clip quyết định, Trang chủ đã sẵn sàng trước khi clip hết); clip không đứng hình; PSS app ở giây 13 là 98,5 MB so với 99,4 MB; APK 6,64 MB so với 5,34 MB. dGen1 (màn vuông): clip cắt giữa vẫn đủ đoạn, bảng "Có gì mới" hiện sau clip. Số đo đầy đủ ở `Docs/perf/2026-10-24-opening-doors.md`.
+- Đã thử và bỏ trên cùng nhánh: cửa tủ vẽ bằng CSS có panda đứng chào (spec `2026-10-24-mo-cua-tu-sach-design.md`). Huynh và Gú thấy panda rời rạc; và vì WebView đứng 1,2 đến 1,9 s ngay sau khi Trang chủ vẽ lần đầu (chặn cả luồng giao diện của app), cửa phải chờ qua lúc đó mới mở được, Trang chủ chậm 1,9 s. Bản video đầu dùng `TextureView` cũng đứng 1,3 s giữa clip vì lý do đó; `SurfaceView` thì không.
+- Hai lượt review độc lập (cửa CSS, rồi video). Đã sửa: hạn mở cửa của màn kem, chạm giữa lúc cửa mở, panda lệch tâm (bản CSS); hai ảnh tĩnh của video bị giữ suốt phiên, khoảng 7 MB (PSS app giây 13: 106,4 xuống 98,5 MB). Để lại: chưa kiểm "Xoá hiệu ứng động" trên máy; xoay máy giữa clip; hai ảnh tĩnh giải mã trên luồng chính; TalkBack vẫn với tới Trang chủ dưới lớp video; vài ca còn thiếu trong `OpeningFlowTest`.
+- e2e: `toTab` chờ nút "Bỏ qua hiệu ứng mở cửa" (lớp video) biến mất trước khi bấm tab; 10/10, khoảng 5 ph.
+
 ## [1.43.1] (2026-10-24): Màn Tìm nhả chỉ mục khỏi RAM
 ### Changed
 - **Màn Tìm nhả chỉ mục toàn kho khỏi RAM** (spec `Docs/superpowers/specs/2026-10-21-nha-chi-muc-ram-design.md`, plan `Docs/superpowers/plans/2026-10-21-nha-chi-muc-ram.md`): rời màn Tìm quá 3 phút (mở kết quả sang Viewer cũng tính) thì nhả, app vào nền (`pause`) thì nhả ngay kể cả khi đang ở màn Tìm; quay lại thì nạp lại dưới danh sách kết quả cũ (vẫn chạm được, giữ chỗ cuộn), dòng trạng thái dùng lại câu "đang cập nhật chỉ mục…". Trước đây Ionic giữ trang Tìm sống nên chỉ mục (khoảng 130 MB heap, đo 05/09) nằm trong RAM tới hết phiên.
