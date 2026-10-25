@@ -21,6 +21,15 @@ case "$clip" in
 [0:v]trim=start=1.15:end=3.4,setpts=(PTS-STARTPTS)/1.35[b];\
 [0:v]trim=start=3.4,setpts=(PTS-STARTPTS)/1.45[c]"
     ;;
+  halloween)
+    # Grok Imagine (in Grok chat), 720 x 1280, 24 fps, 6.04 s, approved by huynh on 26/10/2026 for
+    # 1.45.0. The wand tap and its sparkles 1.6x, the doors opening, the walk in and the turn 1.3x,
+    # the wand wave 1.6x: 4.19 s.
+    name=opening_halloween
+    cut="[0:v]trim=start=0:end=1.4,setpts=(PTS-STARTPTS)/1.6[a];\
+[0:v]trim=start=1.4:end=4.3,setpts=(PTS-STARTPTS)/1.3[b];\
+[0:v]trim=start=4.3,setpts=(PTS-STARTPTS)/1.6[c]"
+    ;;
   *)
     echo "unknown clip: $clip (default, halloween)" >&2
     exit 2
