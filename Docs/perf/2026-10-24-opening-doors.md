@@ -90,3 +90,20 @@ Spec `Docs/superpowers/specs/2026-10-25-mo-cua-video-design.md`. Clip 4,2 s phá
 **e2e:** 10/10, 5 ph 1 s, $0.
 
 **Đọc số:** Trang chủ hiện chậm hơn 1.43.1 khoảng 0,7 s, vượt nhẹ mức "khoảng 0,5 s" của spec. Giờ thời gian bị chặn bởi độ dài clip (4,2 s, nhịp huynh đã duyệt) cộng khoảng 0,2 s khởi động và 0,3 s mờ, không còn bởi Trang chủ: Trang chủ đã sẵn sàng trước khi clip hết. Muốn về dưới 0,5 s thì cắt clip thêm khoảng 0,2 s hoặc mờ 200 ms thay vì 300 ms.
+
+## Clip Grok (1.44.1), 25/10/2026
+
+Clip mới làm bằng Grok Imagine, cắt về 4,17 s (spec §3, §6). Đo song song 1.44.0 và 1.44.1 trên UBS1 cùng buổi tối, kho QA, bằng cùng một script: `am force-stop`, `screenrecord` 15 s, chạm icon ở launcher (toạ độ lấy từ `uiautomator dump`), PSS bằng `dumpsys meminfo` ở giây 13. "Trang chủ đứng yên" tính từ khung đầu rời launcher tới khung đầu giống hẳn khung cuối (ảnh thu nhỏ, bỏ thanh trạng thái), nên thấp hơn bảng ở mục trên khoảng 0,5 s; chỉ so được giữa hai bản trong bảng này. 1.44.0 cài lại bằng `adb install -r -d` rồi cài 1.44.1 lên lại.
+
+| | 1.44.0 (clip Higgsfield) | 1.44.1 (clip Grok) |
+|---|---|---|
+| Trang chủ đứng yên (3 lượt) | 4,63 · 4,58 · 4,57 s | 4,59 · 4,55 · 4,55 s |
+| **Trung vị** | **4,58 s** | **4,55 s** |
+| Khoảng lâu nhất không có khung mới, trong clip | 0,11 đến 0,20 s | 0,14 đến 0,18 s |
+| Khoảng đó ở 0,45 s cuối clip (đoạn vẫy chậm và lúc đổi sang ảnh tĩnh) | 0,20 đến 0,29 s | 0,22 đến 0,26 s |
+| PSS app giây 13 | 107,4 · 104,8 · 105,0 MB | 104,7 · 105,0 · 105,1 MB |
+| APK | 6 640 717 B | 6 689 129 B |
+
+**Đọc số:** hai bản ngang nhau. PSS ở giây 13 tối nay cao hơn số 98,5 MB đo buổi sáng ở cả hai bản, nên chênh là do điều kiện đo (máy, kho, thời điểm), không do clip. Bằng các bản ghi cũ, cùng script cho 1.43.1 là 4,09 · 3,98 · 3,93 s và bản `SurfaceView` buổi sáng là 5,03 · 4,58 · 4,56 s.
+
+**dGen1 và UBS1, mở lần đầu sau khi cài (`monkey`):** clip chạy đủ, bảng "Có gì mới" hiện đúng mục 1.44.1 trên cả hai. dGen1 cắt vuông vẫn thấy cửa mở, panda bước vào và vẫy (phần dưới thân bị cắt như clip cũ).
