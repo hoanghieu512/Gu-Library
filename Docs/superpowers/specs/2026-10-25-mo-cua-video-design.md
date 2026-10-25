@@ -25,7 +25,7 @@ Hướng mới là hướng A của buổi thảo luận 24/10: video dựng s�
 
 - **Clip:** clip dọc huynh làm bằng Higgsfield Genjutsu (chuyển động lấy từ một clip tham chiếu huynh quay, ảnh tham chiếu là panda P1, cặp cửa C4 và ảnh thư viện T1 hoặc T2, prompt ở §6), Gú đã duyệt. 696 × 1320, 24 hình/giây, 5,96 s, không có tiếng.
 - **Nhịp 4,2 s:** đoạn đi vào tua 1,7 lần, đoạn đẩy cửa và bước vào tua 1,4 lần, đoạn quay lại vẫy 1,1 lần (bản `mo-cua-video-4s.mp4` huynh đã xem).
-- **Phát bằng Android, không phát trong WebView:** `TextureView` và `MediaPlayer` có sẵn của Android, không dùng ExoPlayer. Đã bác: thẻ `<video>` trong WebView (khựng đúng lúc Trang chủ đứng hình, dễ lộ khung đen); giữ cửa CSS và cho panda cử động bằng sprite (cũng đứng hình theo WebView, không có cú máy đi vào thư viện).
+- **Phát bằng Android, không phát trong WebView:** `SurfaceView` và `MediaPlayer` có sẵn của Android, không dùng ExoPlayer. (Bản đầu dùng `TextureView`: đo trên UBS1 ngày 25/10, video đứng 1,3 s giữa clip vì WebView chặn luồng giao diện của app lúc Trang chủ vẽ lần đầu; `SurfaceView` nhận khung thẳng từ bộ giải mã nên không bị.) Đã bác: thẻ `<video>` trong WebView (khựng đúng lúc Trang chủ đứng hình, dễ lộ khung đen); giữ cửa CSS và cho panda cử động bằng sprite (cũng đứng hình theo WebView, không có cú máy đi vào thư viện).
 - **Quyết định phát hay không nằm ở native**, đọc thẳng `CapacitorStorage`: công tắc `opening_doors` và cờ `viewer_crash` đều ở đó. Native đọc được `ANIMATOR_DURATION_SCALE`, nên rủi ro "WebView không nhận Xoá hiệu ứng động" của spec cũ không còn.
 - **Giữ từ bản cửa CSS:** splash và nền cửa sổ màu kem, huy hiệu panda ở `index.html` (thấy khi công tắc tắt), công tắc trong Cài đặt, các chỗ chờ `whenOpeningDone()`, helper e2e chờ nút "Bỏ qua hiệu ứng mở cửa" biến mất.
 - **Bỏ:** lớp cửa CSS (`OpeningDoors.tsx`, `opening.css`, `art.ts`), máy trạng thái JS (`openingMachine.ts`), bộ chờ khung mượt (`smoothFrames.ts`), hai ảnh cửa và panda, `scripts/make-opening-assets.py`, `skipOpening` (native tự biết share và sự cố).
@@ -65,7 +65,7 @@ Trạng thái: `POSTER` (ảnh khung đầu), `PLAYING`, `HOLDING` (giữ khung 
 ### 5.3 `OpeningOverlay.java` (MỚI)
 
 - Tạo trong `MainActivity.onCreate` sau `super.onCreate` (khi đó WebView đã có), gắn bằng `addContentView` nên nằm trên WebView, chỉ khi `OpeningGate.shouldPlay` đúng.
-- Gồm `TextureView` phát `res/raw/opening.mp4` bằng `MediaPlayer` (`prepareAsync`, không tiếng) với ma trận cắt giữa (`scale = max(rộng view / rộng video, cao view / cao video)`), và trên nó một `ImageView` khung đầu (`centerCrop`, cùng cách cắt) ẩn đi khi `MediaPlayer` báo `MEDIA_INFO_VIDEO_RENDERING_START`.
+- Gồm `SurfaceView` phát `res/raw/opening.mp4` bằng `MediaPlayer` (`prepareAsync`, không tiếng), kích thước đặt để phủ kín lớp và căn giữa (`scale = max(rộng lớp / rộng video, cao lớp / cao video)`); trên nó hai ảnh tĩnh `centerCrop`: khung đầu (ẩn khi `MediaPlayer` báo `MEDIA_INFO_VIDEO_RENDERING_START`) và khung cuối (hiện khi video hết, thay cho mặt video lúc giữ và lúc mờ, vì mặt video không mờ được như nhau trên mọi đời Android). Bỏ qua giữa clip thì ẩn mặt video và mờ phần còn lại.
 - Gốc của lớp nhận chạm (bỏ qua), có `contentDescription` "Bỏ qua hiệu ứng mở cửa" và được báo cho trợ năng là nút (để e2e tìm bằng role button).
 - Nút back: một `OnBackPressedCallback` đăng ký sau `super.onCreate` (nên được gọi trước callback của plugin App), chỉ bật khi lớp còn hiện, gọi bỏ qua.
 - `onNewIntent` có `SEND` lúc lớp còn hiện: bỏ qua. `onPause`: `DONE`.
@@ -91,7 +91,7 @@ Helper `toTab` giữ nguyên ý: chờ cây trợ năng nạp xong rồi chờ n
 
 ## 6. Asset
 
-- `scripts/make-opening-video.sh <clip gốc>` (ffmpeg): cắt 0,15 đến 1,6 s tua 1,7 lần, 1,6 đến 4,6 s tua 1,4 lần, 4,6 s tới hết tua 1,1 lần; 30 hình/giây; H.264 main, CRF 23, `+faststart`, không tiếng; ghi `android/app/src/main/res/raw/opening.mp4` (khoảng 1,1 MB) và khung đầu thành `android/app/src/main/res/drawable-nodpi/opening_first.webp`.
+- `scripts/make-opening-video.sh <clip gốc>` (ffmpeg, cwebp): cắt 0,15 đến 1,6 s tua 1,7 lần, 1,6 đến 4,6 s tua 1,4 lần, 4,6 s tới hết tua 1,1 lần; 30 hình/giây; H.264 main, CRF 23, `+faststart`, không tiếng; ghi `android/app/src/main/res/raw/opening.mp4` (khoảng 1,1 MB), khung đầu `opening_first.webp` và khung cuối `opening_last.webp` trong `android/app/src/main/res/drawable-nodpi/`.
 - Clip gốc không commit. Ops doc §8 ghi: model (Higgsfield Genjutsu, style mặc định, 720p lượt free), ảnh tham chiếu (P1, C4, thư viện), prompt, clip tham chiếu do huynh quay (không công bố), ngày tạo.
 - Prompt đã dùng: như bản đệ gửi huynh ngày 25/10 (panda từ @image1, cửa @image2, thư viện @image3, đi vào từ trái, cúi chào, đẩy hai cánh cửa, máy đi theo vào thư viện, quay lại vẫy, không chữ).
 - APK dự kiến: 1.43.1 cộng khoảng 1,1 MB (video và khung đầu, trừ đi hai ảnh cửa và panda đã bỏ).

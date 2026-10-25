@@ -8,8 +8,7 @@
 # clip is not committed; its prompt, reference images and model are recorded in the ops doc §8.
 #
 # The walk-in is sped up 1.7x, the push and the walk into the library 1.4x, the turn and the wave
-# 1.1x, for about 4.2 s in all. Writes the clip and its first frame (shown while the decoder starts,
-# so there is never a black frame).
+# 1.1x, for about 4.2 s in all. Writes the clip and its first and last frames.
 set -euo pipefail
 
 src=${1:?usage: make-opening-video.sh <source.mp4>}
@@ -17,6 +16,7 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 res="$root/android/app/src/main/res"
 out="$res/raw/opening.mp4"
 first="$res/drawable-nodpi/opening_first.webp"
+last="$res/drawable-nodpi/opening_last.webp"
 mkdir -p "$res/raw" "$res/drawable-nodpi"
 
 ffmpeg -v error -y -i "$src" -filter_complex \
@@ -26,11 +26,15 @@ ffmpeg -v error -y -i "$src" -filter_complex \
 [a][b][c]concat=n=3:v=1:a=0,fps=30,format=yuv420p[v]" \
   -map "[v]" -c:v libx264 -profile:v main -crf 23 -preset slow -movflags +faststart -an "$out"
 
-# ffmpeg builds often lack libwebp: take the frame as PNG, encode with cwebp (libwebp tools).
-tmp=$(mktemp -t opening-first).png
+# First and last frames as stills: the first covers the decoder's start, the last is what the
+# layer holds and fades (a still fades the same on every Android version; the video surface does not).
+# ffmpeg builds often lack libwebp: take each frame as PNG, encode with cwebp (libwebp tools).
+tmp=$(mktemp -t opening-frame).png
 ffmpeg -v error -y -i "$out" -frames:v 1 "$tmp"
 cwebp -quiet -q 85 "$tmp" -o "$first"
+ffmpeg -v error -y -sseof -0.3 -i "$out" -update 1 "$tmp"
+cwebp -quiet -q 85 "$tmp" -o "$last"
 rm -f "$tmp"
 
 ffprobe -v error -show_entries format=duration,size:stream=width,height,codec_name -of compact "$out"
-ls -l "$first"
+ls -l "$first" "$last"

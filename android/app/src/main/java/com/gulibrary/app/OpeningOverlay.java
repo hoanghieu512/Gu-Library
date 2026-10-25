@@ -1,13 +1,12 @@
 package com.gulibrary.app;
 
 import android.content.res.AssetFileDescriptor;
-import android.graphics.Matrix;
-import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Surface;
-import android.view.TextureView;
+import android.view.Gravity;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -18,9 +17,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
 import java.util.List;
 
-// The opening clip above the WebView (spec 2026-10-25-mo-cua-video-design.md §5.3). Native, so the
-// WebView's freezes while Home first draws (1.2 to 1.9 s on UBS1) never stall it. OpeningFlow holds
-// the rules; this class turns the player, the timers and the user into its events. Main thread only.
+// The opening clip above the WebView (spec 2026-10-25-mo-cua-video-design.md §5.3). While Home first
+// draws, the WebView blocks the app's UI thread for 1.2 to 1.9 s (UBS1): a TextureView froze for that
+// long mid-clip. A SurfaceView gets its frames straight from the decoder to the compositor, so the
+// clip keeps playing. Stills cover what a surface cannot do: the first frame while the decoder starts
+// (no black frame), the last frame for the hold and the fade. OpeningFlow holds the rules; this class
+// turns the player, the timers and the user into its events. Main thread only.
 final class OpeningOverlay {
     private static final long CLIP_ESTIMATE_MS = 4200; // cap before the player knows the duration
     private static final int MATCH = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -29,14 +31,14 @@ final class OpeningOverlay {
     private final OpeningFlow flow = new OpeningFlow();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final FrameLayout root;
-    private final TextureView video;
+    private final SurfaceView video;
     private final ImageView poster;
+    private final ImageView last;
     private final OnBackPressedCallback back;
     private final List<Runnable> doneListeners = new ArrayList<>();
     private final Runnable holdTimeout = () -> on(OpeningFlow.Event.HOLD_TIMEOUT);
     private final Runnable capTimeout = () -> on(OpeningFlow.Event.CAP_TIMEOUT);
     private MediaPlayer player;
-    private Surface surface;
 
     static OpeningOverlay attach(AppCompatActivity activity) {
         OpeningOverlay overlay = new OpeningOverlay(activity);
@@ -48,14 +50,14 @@ final class OpeningOverlay {
         this.activity = activity;
         root = new FrameLayout(activity);
         root.setBackgroundColor(0xFFE9E5CD); // cream, as the splash, should the poster ever lag
-        video = new TextureView(activity);
-        poster = new ImageView(activity);
-        poster.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        poster.setImageResource(R.drawable.opening_first);
+        video = new SurfaceView(activity);
+        poster = still(activity, R.drawable.opening_first);
+        last = still(activity, R.drawable.opening_last);
+        last.setVisibility(View.GONE);
         video.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        poster.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        root.addView(video, new FrameLayout.LayoutParams(MATCH, MATCH));
+        root.addView(video, new FrameLayout.LayoutParams(MATCH, MATCH, Gravity.CENTER));
         root.addView(poster, new FrameLayout.LayoutParams(MATCH, MATCH));
+        root.addView(last, new FrameLayout.LayoutParams(MATCH, MATCH));
 
         // The whole layer is the skip button, labelled for TalkBack and the e2e suite.
         root.setClickable(true);
@@ -78,42 +80,45 @@ final class OpeningOverlay {
         };
     }
 
+    private static ImageView still(AppCompatActivity activity, int drawable) {
+        ImageView image = new ImageView(activity);
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP); // same crop as the video below
+        image.setImageResource(drawable);
+        image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return image;
+    }
+
     private void start() {
         activity.addContentView(root, new ViewGroup.LayoutParams(MATCH, MATCH));
         activity.getOnBackPressedDispatcher().addCallback(activity, back);
         handler.postDelayed(capTimeout, CLIP_ESTIMATE_MS + OpeningFlow.CAP_SLACK_MS);
-        video.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+        video.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
-            public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
-                prepare(texture);
+            public void surfaceCreated(SurfaceHolder holder) {
+                if (player == null) prepare(holder);
+                else player.setDisplay(holder);
             }
 
             @Override
-            public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
-                applyCrop();
-            }
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
 
             @Override
-            public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
-                return true;
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                if (player != null) player.setDisplay(null);
             }
-
-            @Override
-            public void onSurfaceTextureUpdated(SurfaceTexture texture) {}
         });
     }
 
-    private void prepare(SurfaceTexture texture) {
+    private void prepare(SurfaceHolder holder) {
         if (flow.state() == OpeningFlow.State.DONE) return;
         try (AssetFileDescriptor fd = activity.getResources().openRawResourceFd(R.raw.opening)) {
             player = new MediaPlayer();
-            surface = new Surface(texture);
-            player.setSurface(surface);
+            player.setDisplay(holder);
             player.setVolume(0f, 0f);
             // MediaPlayer keeps its own copy of the descriptor: closing ours after this is safe.
             player.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
             player.setOnPreparedListener(mp -> {
-                applyCrop();
+                coverWithVideo(mp.getVideoWidth(), mp.getVideoHeight());
                 handler.removeCallbacks(capTimeout);
                 handler.postDelayed(capTimeout, mp.getDuration() + OpeningFlow.CAP_SLACK_MS);
                 mp.start();
@@ -133,18 +138,21 @@ final class OpeningOverlay {
         }
     }
 
-    /** TextureView stretches the clip to the view: undo that and scale to cover, centred. */
-    private void applyCrop() {
-        if (player == null) return;
-        int vw = player.getVideoWidth();
-        int vh = player.getVideoHeight();
-        int w = video.getWidth();
-        int h = video.getHeight();
+    /** Centre-crop, like the stills: size the surface to cover the layer, centred, clipped by it. */
+    private void coverWithVideo(int vw, int vh) {
+        int w = root.getWidth();
+        int h = root.getHeight();
         if (vw == 0 || vh == 0 || w == 0 || h == 0) return;
         float scale = Math.max((float) w / vw, (float) h / vh);
-        Matrix m = new Matrix();
-        m.setScale(vw * scale / w, vh * scale / h, w / 2f, h / 2f);
-        video.setTransform(m);
+        video.setLayoutParams(new FrameLayout.LayoutParams(Math.round(vw * scale), Math.round(vh * scale), Gravity.CENTER));
+    }
+
+    /** From here on only stills show: the surface cannot hold or fade the same on every Android. */
+    private void showLastFrame() {
+        if (last.getVisibility() == View.VISIBLE) return;
+        last.setVisibility(View.VISIBLE);
+        poster.setVisibility(View.GONE);
+        video.setVisibility(View.GONE);
     }
 
     void homeReady() {
@@ -175,9 +183,18 @@ final class OpeningOverlay {
                 poster.setVisibility(View.GONE);
                 break;
             case HOLDING:
+                showLastFrame();
                 handler.postDelayed(holdTimeout, OpeningFlow.HOLD_MAX_MS);
                 break;
             case FADING:
+                // After the clip: fade its last frame. A skip mid-clip: drop the surface and fade the
+                // cream (or the first frame, if the decoder had not started) onto Home.
+                if (event == OpeningFlow.Event.VIDEO_ENDED || event == OpeningFlow.Event.HOME_READY
+                        || event == OpeningFlow.Event.HOLD_TIMEOUT) {
+                    showLastFrame();
+                } else {
+                    video.setVisibility(View.GONE);
+                }
                 handler.removeCallbacks(holdTimeout);
                 handler.removeCallbacks(capTimeout);
                 root.animate()
@@ -202,10 +219,6 @@ final class OpeningOverlay {
         if (player != null) {
             player.release();
             player = null;
-        }
-        if (surface != null) {
-            surface.release();
-            surface = null;
         }
         List<Runnable> listeners = new ArrayList<>(doneListeners);
         doneListeners.clear();

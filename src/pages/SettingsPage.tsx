@@ -98,7 +98,7 @@ export default function SettingsPage() {
 
         {/* The whole card is the control; the toggle only shows the state. Takes effect next cold start. */}
         <Row
-          icon={enterOutline} title="Hiệu ứng mở cửa" hint="Cửa tủ sách mở ra mỗi lần khởi động app"
+          icon={enterOutline} title="Hiệu ứng mở cửa" hint="Panda mở cửa thư viện mỗi lần khởi động app"
           onClick={toggleOpening}
           ariaLabel={openingOn === null ? 'Hiệu ứng mở cửa' : `Hiệu ứng mở cửa: ${openingOn ? 'bật' : 'tắt'}`}
           trailing={<IonToggle checked={openingOn === true} aria-hidden style={{ pointerEvents: 'none' }} />}
