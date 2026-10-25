@@ -215,6 +215,9 @@ final class OpeningOverlay {
         root.animate().cancel();
         ViewGroup parent = (ViewGroup) root.getParent();
         if (parent != null) parent.removeView(root);
+        // Two 696 x 1320 stills are about 7 MB of bitmap: let them go with the layer (review 25/10).
+        poster.setImageDrawable(null);
+        last.setImageDrawable(null);
         back.remove();
         if (player != null) {
             player.release();

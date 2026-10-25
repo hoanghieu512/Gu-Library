@@ -48,6 +48,7 @@ public class MainActivity extends BridgeActivity {
         if (OpeningGate.shouldPlay(savedInstanceState == null, getIntent().getAction(),
                 store.getString(OpeningGate.SWITCH_KEY, null), store.getString(OpeningGate.CRASH_KEY, null), animatorScale)) {
             opening = OpeningOverlay.attach(this);
+            opening.whenDone(() -> opening = null); // nothing of the clip outlives it
         }
     }
 

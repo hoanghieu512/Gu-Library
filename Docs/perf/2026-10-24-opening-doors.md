@@ -81,6 +81,8 @@ Spec `Docs/superpowers/specs/2026-10-25-mo-cua-video-design.md`. Clip 4,2 s phá
 | PSS app + renderer 13 s sau khi mở | 99,4 + 89,3 MB | 106,4 + 87,6 MB (trung vị) |
 | APK | 5 342 714 B | 6 640 325 B (+1,30 MB) |
 
+**Sau review (thả hai ảnh tĩnh khi lớp video đi):** PSS app ở giây 13 là 101,7 · 98,5 · 98,5 MB (trung vị 98,5 MB, ngang 1.43.1 ở 99,4 MB); trước khi sửa là 106,4 MB, đúng bằng hai bitmap 696 × 1320 (khoảng 7,3 MB) còn bị giữ.
+
 **Danh sách kiểm (UBS1, Android 14):** chạm và back giữa clip vào Trang chủ ngay (đang nạp thì thấy trạng thái nạp); bấm Home giữa clip rồi mở lại là Trang chủ, không phát lại; share PDF lúc app tắt: không có clip, bảng "Lưu vào môn nào?" hiện; share tới lúc clip đang chạy: clip bỏ qua, bảng hiện; tắt công tắc: không có clip (đã bật lại). Chưa kiểm "Xoá hiệu ứng động" (cần đổi thang hiệu ứng hệ thống).
 
 **dGen1 (Android 15, màn vuông):** mở lần đầu sau khi cài bằng `monkey`. Splash hệ thống hiện huy hiệu panda trên nền kem; clip cắt vuông vẫn đủ đoạn đi vào, đẩy cửa, thư viện, vẫy tay (mặt panda ở khung cuối lệch xuống góc nhưng rõ); không đứng hình; bảng "Có gì mới" hiện sau clip.
