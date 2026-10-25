@@ -1,6 +1,6 @@
 # Bài học và quyết định đã chốt
 
-Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 24/10/2026 (main = 1.43.1, tag `v1.43.1`; máy Gú chạy 1.43.0 từ 21/10).
+Bản tóm cho mọi phiên Claude Code, local lẫn cloud. Nguồn gốc là memory trên Mac và log phiên trong vault Obsidian, hai thứ không có trên GitHub. Repo này **public**: chỉ ghi điều kỹ thuật, không thông tin riêng tư, không khoá hay mật khẩu. Cập nhật lần cuối 25/10/2026 (nhánh `release/1.44.0` chờ huynh duyệt và merge; main = 1.43.1, tag `v1.43.1`; máy Gú chạy 1.43.0 từ 21/10).
 
 Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-prod.md` §8.1. File này chỉ giữ thứ dễ quên hoặc đã từng cắn.
 
@@ -19,6 +19,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Split-screen: pane trên để đọc (ghi tiến độ), pane dưới để tra (không ghi). Đổi tài liệu pane dưới làm tuần tự: unmount pane cũ rồi mới nạp cái mới, không bao giờ ba tài liệu cùng sống. Thanh chia kéo được, mỗi pane tối thiểu 132 px, tỉ lệ nhớ trong phiên.
 - Lưu tiến độ đọc qua `src/reading/progressSaver.ts`: một lần lưu mỗi lúc, chỉ coi là đã lưu khi thành công, trang lỗi chờ 2 s mới thử lại. Kho bị giấu thì im lặng; lỗi khác đi `logWarn`.
 - Kho bị Android giấu (dGen1, 17/10, sau một lần boot lỗi): mọi folder liệt kê rỗng nhưng tạo folder vẫn được. Native trả `KHO_HIDDEN` khi provider đổi tên bản mới thành `x (k)` mà danh sách không thấy `x`; `src/plugins/saf.ts` đổi lỗi đó thành `KhoUnreadableError` cho mọi lệnh gọi; màn hình báo khởi động lại máy và app không ghi gì.
+- Video mở app (1.44.0): clip 4,2 s phát bằng lớp Android `OpeningOverlay` (`SurfaceView` + `MediaPlayer`) nằm trên WebView. Quyết định phát ở native, `OpeningGate`: mở lạnh thật (`savedInstanceState == null`), không phải intent share, công tắc `opening_doors` khác `"off"`, không có cờ `viewer_crash`, `ANIMATOR_DURATION_SCALE` khác 0. Luật chạy ở `OpeningFlow` (thuần Java, có JUnit). JS chỉ báo Trang chủ đã vẽ (`markHomeReady`) và chờ `whenOpeningDone()` qua plugin `Opening`. Khung đầu và khung cuối là ảnh tĩnh; xong thì thả cả hai (giữ lại là khoảng 7 MB bitmap trong PSS của app).
 
 ## Bẫy SAF và Android
 
@@ -45,6 +46,8 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Bản release không in `console.*` ra logcat. **Đừng bật `loggingBehavior`** trong `capacitor.config.ts`: khi đó Capacitor stringify và in nội dung mọi lệnh plugin (sidecar, nội dung `writeFile`). Cảnh báo cần thấy ở bản release thì gọi `logWarn` (`src/plugins/appLog.ts`, đọc bằng `adb logcat -s GuApp`).
 - `react-pdf` 10.4.1 ghim cùng `pdfjs-dist` 5.4.296 (lệch version là lỗi worker). Viewer lazy-load vì react-pdf cần `DOMMatrix`, jsdom không có.
 - Mọi thứ khổ cố định đặt lên kệ Home (máy ép sách, bookend) phải nằm trong mảng bề rộng đưa cho `packShelves`.
+- Ngay sau khi Trang chủ vẽ xong lần đầu lúc mở lạnh, WebView đứng 1,2 đến 1,9 s (UBS1, đo bằng khoảng cách `requestAnimationFrame` qua `logWarn`) và chặn luôn luồng giao diện của app: animation CSS (kể cả chỉ `transform`) và cả `TextureView` native đều đứng theo. Hiệu ứng cần chạy lúc đó phải dùng `SurfaceView` (bộ giải mã đẩy khung thẳng lên compositor), hoặc chờ WebView vẽ mượt lại rồi mới chạy.
+- Splash hệ thống tắt ngay khi Activity vẽ khung đầu, trong khi WebView còn khởi động khoảng 0,8 s, nên icon splash thường không kịp hiện (UBS1, kể cả mở từ launcher). Thứ cần thấy trong khoảng đó vẽ ở `index.html`. Splash, `windowBackground`, `backgroundColor` của Capacitor và nền `body` cùng một màu kem thì không còn khung trắng.
 
 ## Bẫy test, build, đo
 
@@ -62,6 +65,8 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Đo bộ nhớ phải cộng tiến trình renderer `…:sandboxed_process0`, và đúng renderer của app (UID dạng `u0a<uid>i<n>`). Cắt số theo từng lượt thao tác, đừng hồi quy cả pha. PSS cao sau phiên nặng phần lớn là trang đã swap sang zram, không phải rò.
 - `am send-trim-memory` nhận mỗi mức một lần cho một tiến trình: gửi lại cùng mức hay mức thấp hơn thì báo "Unable to set a higher trim level than current level". Một lượt đo chỉ ép được theo thứ tự tăng (vd `RUNNING_CRITICAL` rồi `COMPLETE`); muốn ép lại thì mở tiến trình mới.
 - Bỏ tham chiếu tới một đối tượng lớn trong WebView không làm PSS giảm ngay: V8 chỉ trả bộ nhớ khi tự thu gom. Ở tiền cảnh không có áp lực thì có thể không thu (chỉ mục Tìm đã nhả mà Trang chủ sau 3 phút vẫn ngang bản cũ); ở nền thì thu trong 10 s đến 2 phút. Biết đã nhả hay chưa thì nhìn hành vi (mở lại có nạp lại); thấy số giảm thì ép `RUNNING_CRITICAL` hoặc chờ ở nền 2 phút.
+- Đo mở lạnh: `monkey` tự mất khoảng 6 s mới khởi động, mở bằng chạm icon ở launcher (`input tap`) cho mốc đúng hơn. `screenrecord` chỉ ghi khung khi màn đổi: khoảng trống giữa lúc có animation là đứng hình thật, lúc màn đứng yên thì không kết luận được.
+- `npx @capacitor/assets generate` ghi đè cả icon và `mipmap-anydpi-v26/ic_launcher.xml` đã chỉnh tay: splash vẽ bằng `scripts/make-splash.py`. ffmpeg cài trên Mac không có libwebp: xuất PNG rồi dùng `cwebp`.
 - Truy vấn theo role của Testing Library chậm trong jsdom (khoảng 0,4 s mỗi lần trên 50 đến 120 hàng): đếm nhiều hàng bằng `querySelectorAll` theo `role` và `aria-label`, tìm nút bằng `queryByText(…, { selector: 'button' })`. Test phân trang của `DocSearchSheet` từng quá hạn 5 s khi cả bộ chạy song song trên Mac bận (5,4 đến 7,3 s), nay khoảng 0,9 s.
 
 ## Bẫy thiết bị (chỉ ở local)
@@ -84,11 +89,15 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Kho có lưới lùi `.stversions` khoảng 30 ngày, nên câu xác nhận xoá không doạ "không thể hoàn tác".
 - Ghi chú phát hành (`src/whatsNew/notes.ts`) viết cho "Pé", chỉ nói điều Pé thấy hoặc cảm được; huynh duyệt câu chữ mỗi bản.
 - Mục lục Điều (chốt 21/10): nút riêng ở footer, ở split là chữ "Mục lục" trên vạch chia cho pane dưới; lọc theo số khớp đúng trước rồi khớp phần đầu; danh sách phẳng có dòng tiêu đề Chương, không có Khoản; đánh dấu và tự cuộn tới Điều đang đọc; ô lọc không tự focus và không nhớ khi đóng; tài liệu không có Điều thì không hiện nút.
+- Mở app (chốt 24-25/10): video panda tóc giả đi tới đẩy cửa thư viện, bước vào, quay lại vẫy; 4,2 s; chạm hoặc back để bỏ qua; công tắc "Hiệu ứng mở cửa" trong Cài đặt, mặc định bật; không chạy khi quay lại từ nền, mở qua share, sau sự cố, khi máy xoá hiệu ứng động. Trang chủ hiện chậm hơn 1.43.1 khoảng 0,7 s, huynh chấp nhận. Đã thử và bỏ: cửa tủ vẽ bằng CSS có panda đứng chào (rời rạc, và phải chờ WebView hết đứng hình nên chậm 1,9 s).
+- Asset AI: model ảnh không giữ được một bộ (máy ép, cửa), nên sinh ít mảnh và suy phần còn lại bằng code. Higgsfield Genjutsu cần một clip tham chiếu làm chuyển động và cho ra khổ theo clip đó (muốn video dọc thì quay clip tham chiếu dọc). OpenRouter có nano-banana nhưng hay bị giới hạn lượt; `google/gemini-3.1-flash-image` thay được.
 - Lớp nền `KhoRow`, `GuSheet`, `GuDialog`: danh sách hành động do màn truyền vào. Bảy beat liên tiếp không phải sửa interface của chúng; giữ như vậy.
 
-## Việc còn mở (24/10/2026)
+## Việc còn mở (25/10/2026)
 
-- 1.43.1 đã merge và tag (APK nghiệm thu `7502667`, e2e 10/10), máy Gú còn 1.43.0 (từ 21/10); Gú cài thì chép APK vào `releases/` và sửa dòng Prod trong ops doc.
+- 1.44.0 (video mở app) nằm ở nhánh `release/1.44.0`, chờ huynh duyệt câu chữ và cho merge, tag, push. 1.43.1 đã merge và tag (APK nghiệm thu `7502667`), máy Gú còn 1.43.0 (từ 21/10); Gú cài bản nào thì chép APK đó vào `releases/` và sửa dòng Prod trong ops doc.
+- Video mở app: chưa kiểm "Xoá hiệu ứng động" trên máy (cần đổi thang hiệu ứng hệ thống). Để lại từ review: xoay máy giữa clip thì mặt video giữ kích thước cũ; hai ảnh tĩnh giải mã trên luồng chính lúc khởi động; lỗi đồng bộ trong `prepare()` gỡ view giữa callback của nó; script video để sót file tạm; TalkBack vẫn với tới Trang chủ dưới lớp video; vài ca rẻ còn thiếu trong `OpeningFlowTest`.
+- Trang chủ tự đứng hình 1,2 đến 1,9 s ngay sau lần vẽ đầu (lúc mở lạnh, UBS1): việc của chính Trang chủ (dựng kệ, đếm tài liệu), chưa tìm ra phần nào nặng. Gỡ được thì mở app nhanh hơn ở mọi bản.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
 - Xoay ngang thì pane trên hiện trắng (chưa rõ có từ trước hay không).
 - Nhả chỉ mục tìm kiếm khỏi RAM ra ở 1.43.1 (ở nền nhẹ hơn khoảng 90 đến 120 MB; số đo ở CHANGELOG và ops doc §8.1). Còn để lại: quay lại màn Tìm sau khi đã nhả thì WebView bận khoảng 1 s; hai Minor của review; toast "Đã xoá chỉ mục" ở Cài đặt còn em dash.
