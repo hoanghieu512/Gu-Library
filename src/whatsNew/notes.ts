@@ -5,6 +5,14 @@ import type { ReleaseNote } from './types';
 // fails when package.json's version has none. Technical history stays in CHANGELOG.md.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.44.0',
+    date: '25/10/2026',
+    items: [
+      { kind: 'new', text: 'Mỗi lần mở app, Pé sẽ thấy bạn panda thẩm phán ôm sách đi tới đẩy cửa thư viện, bước vào rồi quay lại vẫy chào. Vội thì chạm vào đâu cũng vào luôn Trang chủ. Không thích thì vào Cài đặt, gạt tắt "Hiệu ứng mở cửa" nha.' },
+      { kind: 'improve', text: 'Lúc vừa bấm mở app không còn chớp màn trắng nữa.' },
+    ],
+  },
+  {
     version: '1.43.1',
     date: '24/10/2026',
     items: [
