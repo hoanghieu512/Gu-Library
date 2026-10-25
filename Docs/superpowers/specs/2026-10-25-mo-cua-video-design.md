@@ -15,7 +15,7 @@ Hướng mới là hướng A của buổi thảo luận 24/10: video dựng s�
 
 1. Mở lạnh app, Pé thấy panda thẩm phán đi tới hai cánh cửa gỗ, đẩy cửa, bước vào thư viện và quay lại vẫy, rồi Trang chủ hiện ra.
 2. Video không khựng, không có khung đen ở đầu.
-3. Từ lúc chạm icon tới lúc Trang chủ hiện, chậm hơn 1.43.1 không quá khoảng 0,5 s (đo trên UBS1 như cách đo ở perf doc).
+3. Từ lúc chạm icon tới lúc Trang chủ hiện, chậm hơn 1.43.1 không quá khoảng 0,5 s (đo trên UBS1 như cách đo ở perf doc). Đo ngày 25/10: chậm hơn 0,69 s (trung vị 5,14 s so với 4,45 s), vì thời gian giờ do độ dài clip quyết định chứ không còn do Trang chủ; huynh chốt giữ nguyên nhịp 4,2 s và lần mờ 300 ms, chấp nhận mức này.
 4. Chạm vào đâu hoặc bấm back thì bỏ qua ngay, không thoát app.
 5. Không phát khi: công tắc "Hiệu ứng mở cửa" tắt, máy bật "Xoá hiệu ứng động", mở qua "Chia sẻ" file, mở lại sau sự cố renderer, quay lại từ nền.
 6. Bảng "Có gì mới" và thông báo sự cố hiện sau khi video xong.
@@ -38,7 +38,7 @@ Hướng mới là hướng A của buổi thảo luận 24/10: video dựng s�
 4. Video hết thì dừng ở khung panda vẫy. Trang chủ đã báo sẵn sàng thì lớp video mờ dần 300 ms để lộ Trang chủ; chưa thì giữ khung cuối tới khi Trang chủ báo, tối đa 2 s.
 5. Bảng "Có gì mới" hiện sau đó nếu bản mới có ghi chú.
 
-Chạm hoặc back lúc đang hiện: mờ 200 ms rồi vào Trang chủ (có thể đang nạp). Ước tính Trang chủ hiện khoảng 4,5 đến 4,7 s sau khi chạm; phải đo trên máy (§9).
+Chạm hoặc back lúc đang hiện: mờ 200 ms rồi vào Trang chủ (có thể đang nạp). Đo trên UBS1 (25/10): Trang chủ hiện ở trung vị 5,14 s sau khi chạm, 1.43.1 là 4,45 s (`Docs/perf/2026-10-24-opening-doors.md`).
 
 ## 5. Thiết kế kỹ thuật
 
@@ -74,7 +74,7 @@ Trạng thái: `POSTER` (ảnh khung đầu), `PLAYING`, `HOLDING` (giữ khung 
 
 ### 5.4 `OpeningPlugin.java` (MỚI) và `src/plugins/opening.ts` (MỚI)
 
-- `homeReady()`: báo cho `OpeningFlow`. `whenDone()`: trả ngay nếu không phát hoặc đã xong, không thì giữ lời gọi (`setKeepAlive(true)`) tới `DONE`.
+- `homeReady()`: báo cho `OpeningFlow`. `whenDone()`: trả ngay nếu không phát hoặc đã xong, không thì giữ tham chiếu tới lời gọi và trả một lần khi `DONE` (không cần `setKeepAlive`, chỉ dành cho lời gọi trả nhiều lần). Khi `DONE`, `MainActivity` bỏ tham chiếu tới lớp video và lớp thả hai ảnh tĩnh (khoảng 7 MB bitmap), nên các lời gọi sau đó trả ngay.
 - `opening.ts`: `registerPlugin('Opening', { web })` với bản web trả ngay cả hai hàm, nên trình duyệt, jsdom và test không treo.
 - Đăng ký trong `MainActivity` cùng các plugin khác (trước `super.onCreate`).
 
@@ -94,7 +94,7 @@ Helper `toTab` giữ nguyên ý: chờ cây trợ năng nạp xong rồi chờ n
 - `scripts/make-opening-video.sh <clip gốc>` (ffmpeg, cwebp): cắt 0,15 đến 1,6 s tua 1,7 lần, 1,6 đến 4,6 s tua 1,4 lần, 4,6 s tới hết tua 1,1 lần; 30 hình/giây; H.264 main, CRF 23, `+faststart`, không tiếng; ghi `android/app/src/main/res/raw/opening.mp4` (khoảng 1,1 MB), khung đầu `opening_first.webp` và khung cuối `opening_last.webp` trong `android/app/src/main/res/drawable-nodpi/`.
 - Clip gốc không commit. Ops doc §8 ghi: model (Higgsfield Genjutsu, style mặc định, 720p lượt free), ảnh tham chiếu (P1, C4, thư viện), prompt, clip tham chiếu do huynh quay (không công bố), ngày tạo.
 - Prompt đã dùng: như bản đệ gửi huynh ngày 25/10 (panda từ @image1, cửa @image2, thư viện @image3, đi vào từ trái, cúi chào, đẩy hai cánh cửa, máy đi theo vào thư viện, quay lại vẫy, không chữ).
-- APK dự kiến: 1.43.1 cộng khoảng 1,1 MB (video và khung đầu, trừ đi hai ảnh cửa và panda đã bỏ).
+- APK đo được: 6 640 325 B, hơn 1.43.1 khoảng 1,3 MB (video 1,1 MB, hai ảnh tĩnh khoảng 160 KB, bộ splash kem).
 
 ## 7. Lỗi và trường hợp biên
 
@@ -125,8 +125,8 @@ Helper `toTab` giữ nguyên ý: chờ cây trợ năng nạp xong rồi chờ n
 
 ## 11. Rủi ro còn mở
 
-- `MediaPlayer` mất bao lâu từ `prepareAsync` tới khung đầu trên máy yếu: ảnh khung đầu che khoảng đó, nhưng nếu quá lâu thì video ngắn lại so với cảm giác. Đo trên UBS1 và dGen1.
-- `TextureView` mờ dần bằng `alpha` trên máy cũ: kiểm độ mượt; nếu giật thì mờ bằng một lớp màu kem phủ lên.
+- `MediaPlayer` mất bao lâu từ `prepareAsync` tới khung đầu trên máy yếu: ảnh khung đầu che khoảng đó. Trên UBS1 và dGen1 không thấy khung đen hay đoạn bị mất; chưa có số đo trên máy của Gú.
+- Mặt video của `SurfaceView` không mờ như nhau trên các đời Android cũ: đã tránh bằng ảnh khung cuối (lúc giữ và lúc mờ chỉ có ảnh tĩnh); bỏ qua giữa clip thì ẩn mặt video ngay.
 - Máy của Gú (chưa rõ đời Android) có thể nạp Trang chủ chậm hơn: hạn giữ 2 s chặn trường hợp này.
 
 ## 12. Ngoài phạm vi
