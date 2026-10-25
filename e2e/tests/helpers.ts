@@ -106,10 +106,11 @@ let whatsNewChecked = false;
  */
 export async function toTab(screen: Screen, agent: Agent, name: 'Trang chủ' | 'Tìm'): Promise<void> {
   const tab = screen.getByRole('tab', { name: exact(name) });
-  // Since 1.44.0 every app.open() cold-starts behind the opening doors, which cover Home for up to
-  // about 5.3 s (4 s deadline + 1.3 s to open); a tap meant for a tab would land on them and only
-  // skip them. Once the tree has loaded (the tab bar is in it), wait for the doors to leave. Wait,
-  // do not tap: if they finished between the check and the tap, the tap would fall through onto Home.
+  // Since 1.44.0 every app.open() cold-starts behind the opening clip, a native layer above the
+  // WebView that covers Home for up to about 6.5 s (4.2 s clip + 2 s hold + 0.3 s fade); a tap meant
+  // for a tab would land on it and only skip it. Once the tree has loaded (the tab bar is in it),
+  // wait for the layer (labelled like a button) to leave. Wait, do not tap: if it left between the
+  // check and the tap, the tap would fall through onto Home.
   await tab.waitFor({ timeout: 10000 }).catch(() => {});
   const doors = screen.getByRole('button', { name: exact('Bỏ qua hiệu ứng mở cửa') });
   if (await doors.isVisible()) await doors.waitFor({ state: 'hidden', timeout: 8000 });
