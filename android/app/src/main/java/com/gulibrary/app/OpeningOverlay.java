@@ -28,6 +28,7 @@ final class OpeningOverlay {
     private static final int MATCH = ViewGroup.LayoutParams.MATCH_PARENT;
 
     private final AppCompatActivity activity;
+    private final OpeningClip clip;
     private final OpeningFlow flow = new OpeningFlow();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final FrameLayout root;
@@ -40,19 +41,20 @@ final class OpeningOverlay {
     private final Runnable capTimeout = () -> on(OpeningFlow.Event.CAP_TIMEOUT);
     private MediaPlayer player;
 
-    static OpeningOverlay attach(AppCompatActivity activity) {
-        OpeningOverlay overlay = new OpeningOverlay(activity);
+    static OpeningOverlay attach(AppCompatActivity activity, OpeningClip clip) {
+        OpeningOverlay overlay = new OpeningOverlay(activity, clip);
         overlay.start();
         return overlay;
     }
 
-    private OpeningOverlay(AppCompatActivity activity) {
+    private OpeningOverlay(AppCompatActivity activity, OpeningClip clip) {
         this.activity = activity;
+        this.clip = clip;
         root = new FrameLayout(activity);
         root.setBackgroundColor(0xFFE9E5CD); // cream, as the splash, should the poster ever lag
         video = new SurfaceView(activity);
-        poster = still(activity, R.drawable.opening_first);
-        last = still(activity, R.drawable.opening_last);
+        poster = still(activity, clip.firstFrame);
+        last = still(activity, clip.lastFrame);
         last.setVisibility(View.GONE);
         video.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         root.addView(video, new FrameLayout.LayoutParams(MATCH, MATCH, Gravity.CENTER));
@@ -111,7 +113,7 @@ final class OpeningOverlay {
 
     private void prepare(SurfaceHolder holder) {
         if (flow.state() == OpeningFlow.State.DONE) return;
-        try (AssetFileDescriptor fd = activity.getResources().openRawResourceFd(R.raw.opening)) {
+        try (AssetFileDescriptor fd = activity.getResources().openRawResourceFd(clip.video)) {
             player = new MediaPlayer();
             player.setDisplay(holder);
             player.setVolume(0f, 0f);

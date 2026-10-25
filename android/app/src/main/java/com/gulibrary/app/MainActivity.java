@@ -13,6 +13,7 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.WebViewListener;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class MainActivity extends BridgeActivity {
     private OpeningOverlay opening;
@@ -41,13 +42,16 @@ public class MainActivity extends BridgeActivity {
 
         handleSendIntent(getIntent());
 
-        // Opening clip above the WebView, only on a real cold start (OpeningGate). The switch and the
-        // crash flag live in CapacitorStorage, where @capacitor/preferences and the listener above write.
+        // Opening clip above the WebView, only on a real cold start (OpeningGate); the date picks which
+        // clip (OpeningClip). The switch and the crash flag live in CapacitorStorage, where
+        // @capacitor/preferences and the listener above write.
         SharedPreferences store = getSharedPreferences("CapacitorStorage", MODE_PRIVATE);
         float animatorScale = Settings.Global.getFloat(getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
         if (OpeningGate.shouldPlay(savedInstanceState == null, getIntent().getAction(),
                 store.getString(OpeningGate.SWITCH_KEY, null), store.getString(OpeningGate.CRASH_KEY, null), animatorScale)) {
-            opening = OpeningOverlay.attach(this);
+            Calendar today = Calendar.getInstance(); // the phone's local date
+            OpeningClip clip = OpeningClip.forDate(today.get(Calendar.MONTH) + 1, today.get(Calendar.DAY_OF_MONTH));
+            opening = OpeningOverlay.attach(this, clip);
             opening.whenDone(() -> opening = null); // nothing of the clip outlives it
         }
     }

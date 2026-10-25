@@ -107,3 +107,20 @@ Clip mới làm bằng Grok Imagine, cắt về 4,17 s (spec §3, §6). Đo song
 **Đọc số:** hai bản ngang nhau. PSS ở giây 13 tối nay cao hơn số 98,5 MB đo buổi sáng ở cả hai bản, nên chênh là do điều kiện đo (máy, kho, thời điểm), không do clip. Bằng các bản ghi cũ, cùng script cho 1.43.1 là 4,09 · 3,98 · 3,93 s và bản `SurfaceView` buổi sáng là 5,03 · 4,58 · 4,56 s.
 
 **dGen1 và UBS1, mở lần đầu sau khi cài (`monkey`):** clip chạy đủ, bảng "Có gì mới" hiện đúng mục 1.44.1 trên cả hai. dGen1 cắt vuông vẫn thấy cửa mở, panda bước vào và vẫy (phần dưới thân bị cắt như clip cũ).
+
+## Clip Halloween (1.45.0), 26/10/2026
+
+Hai máy test để ngày 26/10, nằm trong khoảng Halloween, nên 1.45.0 phát clip Halloween còn 1.44.1 phát clip mặc định: đúng thứ Gú sẽ thấy. Đo trên UBS1 bằng cùng script với mục trên, cùng buổi; 1.44.1 cài lại từ `releases/` bằng `adb install -r -d` rồi cài 1.45.0 lên lại.
+
+| | 1.44.1 (clip mặc định) | 1.45.0 (clip Halloween) |
+|---|---|---|
+| Trang chủ đứng yên | 4,73 · 4,56 · 4,53 s | 5,49 · 4,57 · 4,54 · 4,58 s |
+| **Trung vị** | **4,56 s** | **4,58 s** (4 lượt) |
+| Khoảng lâu nhất không có khung mới, trong clip | 0,13 đến 0,20 s | 0,15 đến 0,18 s (lượt 2 đến 4) |
+| PSS app giây 13 | 104,1 · 103,9 · 104,4 MB | 98,4 · 103,0 · 101,3 · 106,5 MB |
+| APK | 6 689 129 B | 8 544 739 B |
+
+**Đọc số:** hai bản ngang nhau. Lượt 1 của 1.45.0 là lượt đầu sau khi máy vừa thức (màn tắt mấy phút lúc sạc): Trang chủ nạp chậm nên lớp video giữ khung cuối khoảng 0,9 s rồi mới mờ; clip không đứng giữa chừng (khoảng 0,57 s không có khung mới nằm ở khung cuối). Lượt đầu của 1.44.1 (ngay sau khi cài) cũng chậm hơn hai lượt sau. Lượt thứ tư của 1.45.0, ngay sau khi cài lại, ra 4,58 s.
+
+**Mở lần đầu sau khi cài (`monkey`):** UBS1 và dGen1 đều phát clip Halloween rồi hiện bảng "Có gì mới" mục 1.45.0. Trên dGen1 khoảng lâu nhất không có khung mới trong clip là 0,05 s.
+
