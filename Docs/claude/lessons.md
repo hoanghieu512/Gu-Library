@@ -95,7 +95,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 
 ## Việc còn mở (25/10/2026)
 
-- 1.44.1 (clip mở app làm bằng Grok) đã merge, tag, push ngày 25/10. Máy Gú còn 1.43.0 (từ 21/10) và sẽ lên thẳng 1.44.1: APK `75cb7e6` nằm ở `releases/`, trạng thái chờ Gú cài. Gú cài thì sửa dòng đó trong `releases/README.txt` và dòng Prod trong ops doc.
+- 1.44.1 (clip mở app làm bằng Grok) đã merge, tag, push ngày 25/10; Gú cài ngày 26/10 (lên thẳng từ 1.43.0), APK `75cb7e6` ở `releases/`.
 - Video mở app: chưa kiểm "Xoá hiệu ứng động" trên máy (cần đổi thang hiệu ứng hệ thống). Để lại từ review: xoay máy giữa clip thì mặt video giữ kích thước cũ; hai ảnh tĩnh giải mã trên luồng chính lúc khởi động; lỗi đồng bộ trong `prepare()` gỡ view giữa callback của nó; script video để sót file tạm; TalkBack vẫn với tới Trang chủ dưới lớp video; vài ca rẻ còn thiếu trong `OpeningFlowTest`.
 - Trang chủ tự đứng hình 1,2 đến 1,9 s ngay sau lần vẽ đầu (lúc mở lạnh, UBS1): việc của chính Trang chủ (dựng kệ, đếm tài liệu), chưa tìm ra phần nào nặng. Gỡ được thì mở app nhanh hơn ở mọi bản.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
