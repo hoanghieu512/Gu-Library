@@ -4,8 +4,9 @@
 Obsidian. File này dành cho huynh (và cả hai CC khi cần dựng lại) — không phải tài liệu cho Gú.*
 
 - **App** *(Mac ghi dòng này)*: **Prod (máy Gú) = v1.43.0** (cài 2026-10-21, APK `d8b7b7d`) ·
-  **main = v1.44.0** (tag `v1.44.0`, merge `14b1337`: mở app bằng video panda mở cửa thư viện; APK
-  nghiệm thu 1.44.0 `b04e43e` chưa lên máy Gú; 1.43.1 `7502667` cũng chưa) · cập nhật 2026-10-25
+  **main = v1.44.1** (tag `v1.44.1`, merge `8d9d106`: clip mở app làm lại bằng Grok Imagine; APK
+  nghiệm thu 1.44.1 `75cb7e6` chưa lên máy Gú; 1.44.0 `b04e43e` và 1.43.1 `7502667` cũng chưa) ·
+  cập nhật 2026-10-25
 
 - **Worker** *(Atomman ghi dòng này)*: v0.20.2 (OCR trang ảnh: QA + Prod đã bật, tồn đã xong) · cập nhật 2026-10-08
 
