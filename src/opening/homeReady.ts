@@ -1,59 +1,26 @@
-// Signals between the app and the opening doors (spec 2026-10-24-mo-cua-tu-sach §5.2).
-// Home says it has drawn; ShareReceiver and CrashNotice say to skip; What's New and the crash alert
-// wait for the doors to be gone. Flags are kept so a listener that subscribes late still hears
-// what already happened.
-import type { OpeningEvent, SkipReason } from './openingMachine';
+// Between the app and the native opening clip (spec 2026-10-25-mo-cua-video-design.md §5.5).
+// Home reports it has drawn so the clip may fade once over; What's New and the crash alert wait
+// for the clip's layer to leave. Native decides on its own when the clip does not play (switch
+// off, share, crash, restored activity, animations removed); whenDone then resolves at once.
+import { Opening } from '../plugins/opening';
 
-type Listener = (e: OpeningEvent) => void;
+let homeReported = false;
+let done: Promise<void> | null = null;
 
-let homeReady = false;
-let firstSkip: SkipReason | null = null;
-let listeners = new Set<Listener>();
-let finished = false;
-let resolveDone: () => void = () => {};
-let done = newDone();
-
-function newDone(): Promise<void> {
-  return new Promise<void>((resolve) => { resolveDone = resolve; });
-}
-
-function emit(e: OpeningEvent): void {
-  for (const l of [...listeners]) l(e);
-}
-
+/** Home has drawn. Told to native once per load; a missing plugin is not an error. */
 export function markHomeReady(): void {
-  if (homeReady) return;
-  homeReady = true;
-  emit({ type: 'homeReady' });
+  if (homeReported) return;
+  homeReported = true;
+  Opening.homeReady().catch(() => { /* no clip to tell */ });
 }
 
-export function skipOpening(reason: SkipReason): void {
-  if (firstSkip === null) firstSkip = reason;
-  emit({ type: 'skip', reason });
-}
-
-/** Replays homeReady and the first skip synchronously, then delivers live events. */
-export function subscribeOpening(listener: Listener): () => void {
-  listeners.add(listener);
-  if (homeReady) listener({ type: 'homeReady' });
-  if (firstSkip !== null) listener({ type: 'skip', reason: firstSkip });
-  return () => { listeners.delete(listener); };
-}
-
-export function finishOpening(): void {
-  if (finished) return;
-  finished = true;
-  resolveDone();
-}
-
+/** Resolves when the clip's layer has left; a failing plugin counts as done, nothing waits forever. */
 export function whenOpeningDone(): Promise<void> {
+  done ??= Opening.whenDone().catch(() => {});
   return done;
 }
 
 export function resetOpeningForTest(): void {
-  homeReady = false;
-  firstSkip = null;
-  listeners = new Set();
-  finished = false;
-  done = newDone();
+  homeReported = false;
+  done = null;
 }

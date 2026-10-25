@@ -1,67 +1,62 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { OpeningEvent } from './openingMachine';
-import {
-  markHomeReady, skipOpening, subscribeOpening, finishOpening, whenOpeningDone, resetOpeningForTest,
-} from './homeReady';
+import { Opening } from '../plugins/opening';
+import { markHomeReady, whenOpeningDone, resetOpeningForTest } from './homeReady';
 
-beforeEach(() => resetOpeningForTest());
+vi.mock('../plugins/opening', () => ({ Opening: { homeReady: vi.fn(), whenDone: vi.fn() } }));
 
-describe('homeReady signals', () => {
-  it('replays homeReady to a late subscriber, once', () => {
+const settle = () => new Promise((r) => setTimeout(r, 0));
+
+beforeEach(() => {
+  resetOpeningForTest();
+  vi.mocked(Opening.homeReady).mockReset().mockResolvedValue();
+  vi.mocked(Opening.whenDone).mockReset().mockResolvedValue();
+});
+
+describe('homeReady (native opening clip)', () => {
+  it('markHomeReady tells native once', () => {
     markHomeReady();
     markHomeReady();
-    const seen: OpeningEvent[] = [];
-    subscribeOpening((e) => seen.push(e));
-    expect(seen).toEqual([{ type: 'homeReady' }]);
+    expect(Opening.homeReady).toHaveBeenCalledTimes(1);
   });
 
-  it('replays the first skip reason to a late subscriber', () => {
-    skipOpening('share');
-    skipOpening('crash');
-    const seen: OpeningEvent[] = [];
-    subscribeOpening((e) => seen.push(e));
-    expect(seen).toEqual([{ type: 'skip', reason: 'share' }]);
+  it('a failing homeReady is swallowed', async () => {
+    vi.mocked(Opening.homeReady).mockRejectedValue(new Error('no plugin'));
+    expect(() => markHomeReady()).not.toThrow();
+    await settle(); // an unhandled rejection would fail the run
   });
 
-  it('delivers live events and stops after unsubscribe', () => {
-    const seen: OpeningEvent[] = [];
-    const off = subscribeOpening((e) => seen.push(e));
-    skipOpening('tap');
-    off();
-    markHomeReady();
-    expect(seen).toEqual([{ type: 'skip', reason: 'tap' }]);
-  });
-
-  it('a live homeReady reaches the subscriber only the first time', () => {
-    const seen: OpeningEvent[] = [];
-    subscribeOpening((e) => seen.push(e));
-    markHomeReady();
-    markHomeReady();
-    expect(seen).toEqual([{ type: 'homeReady' }]);
-  });
-
-  it('whenOpeningDone resolves once, on the first finishOpening', async () => {
+  it('whenOpeningDone waits for native', async () => {
+    let finish: () => void = () => {};
+    vi.mocked(Opening.whenDone).mockReturnValue(new Promise<void>((r) => { finish = r; }));
     const cb = vi.fn();
     whenOpeningDone().then(cb);
-    await Promise.resolve();
+    await settle();
     expect(cb).not.toHaveBeenCalled();
-    finishOpening();
-    finishOpening();
-    await whenOpeningDone();
+    finish();
+    await settle();
     expect(cb).toHaveBeenCalledTimes(1);
   });
 
-  it('reset gives a fresh pending promise and clears the flags', async () => {
+  it('whenOpeningDone asks native once per load', () => {
+    const a = whenOpeningDone();
+    const b = whenOpeningDone();
+    expect(a).toBe(b);
+    expect(Opening.whenDone).toHaveBeenCalledTimes(1);
+  });
+
+  // Plugin missing or broken: What's New and the crash alert must still show.
+  it('a failing whenDone counts as done', async () => {
+    vi.mocked(Opening.whenDone).mockRejectedValue(new Error('no plugin'));
+    await expect(whenOpeningDone()).resolves.toBeUndefined();
+  });
+
+  it('reset forgets both', () => {
     markHomeReady();
-    skipOpening('crash');
-    finishOpening();
+    whenOpeningDone();
     resetOpeningForTest();
-    const seen: OpeningEvent[] = [];
-    subscribeOpening((e) => seen.push(e));
-    expect(seen).toEqual([]);
-    const cb = vi.fn();
-    whenOpeningDone().then(cb);
-    await Promise.resolve();
-    expect(cb).not.toHaveBeenCalled();
+    markHomeReady();
+    whenOpeningDone();
+    expect(Opening.homeReady).toHaveBeenCalledTimes(2);
+    expect(Opening.whenDone).toHaveBeenCalledTimes(2);
   });
 });

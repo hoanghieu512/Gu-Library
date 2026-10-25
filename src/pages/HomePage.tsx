@@ -76,7 +76,7 @@ export default function HomePage() {
     try { setPrintCount(await countPrintFlagged()); } catch { setPrintCount(0); }
     setRefreshTick((t) => t + 1);
     // Cold start: Trang chủ vẽ xong danh sách lần đầu (perfColdReady chỉ tính 1 lần/phiên).
-    // The same moment opens the bookcase doors (opening/homeReady.ts).
+    // The same moment lets the opening clip fade once it is over (opening/homeReady.ts).
     afterPaint(() => { perfColdReady(); markHomeReady(); });
   };
   // MỘT trigger tải lúc vào màn (useIonViewWillEnter bắn cả lần đầu) → hết reload đúp.

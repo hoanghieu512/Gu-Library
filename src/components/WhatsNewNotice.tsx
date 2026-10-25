@@ -13,7 +13,7 @@ import { whenOpeningDone } from '../opening/homeReady';
 // The sheet stays mounted and closes through `isOpen`: unmounting an open IonModal skips Ionic's
 // dismiss, which left aria-hidden on the router outlet and hid Home from screen readers and the
 // e2e suite (UBS1, 11/10). Closing then fires onClose twice (the button, then onDidDismiss), so the
-// seen mark is written once. It opens only once the opening doors are gone (opening/homeReady.ts).
+// seen mark is written once. It opens only once the opening clip is gone (opening/homeReady.ts).
 export default function WhatsNewNotice() {
   const [notes, setNotes] = useState<ReleaseNote[]>([]);
   const [open, setOpen] = useState(false);
