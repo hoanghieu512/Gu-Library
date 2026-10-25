@@ -30,9 +30,9 @@ File này chỉ chứa luật của dự án. Thói quen cá nhân (cách xưng 
 ## Phát hành (chỉ ở local, có máy thật)
 
 1. Nhánh `release/X.Y.Z`: bump `package.json` cùng commit với mục mới trong `src/whatsNew/notes.ts` (`notes.test` đỏ nếu thiếu). Ghi chú viết cho "Pé", chỉ điều Pé thấy được; huynh duyệt câu chữ trước khi merge.
-2. `CHANGELOG.md`, rồi ops doc §8.1 sau khi kiểm: APK nghiệm thu cài UBS1 và dGen1 (mở lần đầu bằng `monkey`, dGen1 không force-stop), bảng "Có gì mới" hiện, e2e đạt hết (10/10 từ khi có test Mục lục).
+2. `CHANGELOG.md`, rồi ops doc §8.1 sau khi kiểm: APK nghiệm thu cài UBS1 và dGen1 (mở lần đầu bằng `monkey`, dGen1 không force-stop), bảng "Có gì mới" hiện, e2e đạt hết (10/10 từ khi có test Mục lục). Kiểm xong chép ngay APK đó từ `android/app/build/outputs/apk/release/` (Gradle ghi đè mỗi lần build) vào `releases/`, thêm dòng `SHA1SUMS` và dòng "QA, waiting for Gu" trong `releases/README.txt`.
 3. Merge `--no-ff` vào `main`, tag nhẹ `vX.Y.Z`, push. Sửa dòng trạng thái App trong ops doc, chạy `scripts/sync-ops-doc.sh` rồi `scripts/sync-ops-doc.sh --publish` (đồng bộ sang repo worker và vault).
-4. `releases/` (gitignored) chỉ chứa APK đã lên máy Gú; chép vào sau khi Gú cài, thêm dòng `SHA1SUMS` và `README.txt`.
+4. `releases/` (gitignored) là chỗ duy nhất cất APK, mỗi bản đã nghiệm thu một file. Gú cài bản nào thì sửa dòng của bản đó trong `README.txt` thành "Prod since <ngày>" và sửa dòng Prod trong ops doc; bản Gú bỏ qua thì xoá (cần thì build lại từ tag). Không cất APK ở chỗ khác, không để bản build thử trên nhánh tính năng vào đây.
 
 ## Phiên cloud (biến môi trường `CLAUDE_CODE_REMOTE=true`)
 

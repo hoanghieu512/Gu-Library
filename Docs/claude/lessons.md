@@ -59,7 +59,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 - Vòng đời Ionic trong jsdom: `useIonViewWillEnter`/`DidEnter` bắn lúc mount, nhưng đẩy trang khác lên thì KHÔNG bắn `leave`; `willLeave`/`didLeave` chỉ bắn muộn khi back. Test trang cần `leave` thì mock các hook này (`src/pages/SearchPage.test.tsx`), việc Ionic bắn thật thì kiểm trên máy.
 - jsdom không có `Element.prototype.scrollIntoView`: gán `vi.fn` trong `beforeEach`, trả bản gốc trong `afterEach`.
 - `ViewerPage` test được trong jsdom (`src/pages/ViewerPage.test.tsx`) bằng cách giả `DocPane` (pdf.js cần `DOMMatrix`) và stub `ResizeObserver`; pane giả có nút để test tự quyết lúc nào "vẽ xong trang đầu".
-- `./gradlew assembleRelease` ghi đè APK trong `android/app/build/outputs/apk/release/`: sao lưu APK nghiệm thu trước khi build lại.
+- `./gradlew assembleRelease` ghi đè APK trong `android/app/build/outputs/apk/release/`: kiểm xong là chép APK nghiệm thu vào `releases/` (chỗ cất APK duy nhất) trước khi build lại. Không cất APK ở thư mục nào khác trong `build/`.
 - Shell giữ cwd sau `cd android`: mọi lệnh sau đó dùng đường dẫn tuyệt đối. Muốn chắc bundle đã vào APK thì grep trong `android/app/src/main/assets/public/assets/*.js`, đừng tin dòng "BUILD SUCCESSFUL".
 - Version được nướng vào APK lúc build: bump `package.json` thì phải build lại. Bản release đè bản debug phải gỡ trước (khác chữ ký).
 - Đo bộ nhớ phải cộng tiến trình renderer `…:sandboxed_process0`, và đúng renderer của app (UID dạng `u0a<uid>i<n>`). Cắt số theo từng lượt thao tác, đừng hồi quy cả pha. PSS cao sau phiên nặng phần lớn là trang đã swap sang zram, không phải rò.
@@ -95,7 +95,7 @@ Chi tiết từng bản nằm ở `CHANGELOG.md` và `Docs/gu-library-ops-qa-pro
 
 ## Việc còn mở (25/10/2026)
 
-- 1.44.0 (video mở app) nằm ở nhánh `release/1.44.0`, chờ huynh duyệt câu chữ và cho merge, tag, push. 1.43.1 đã merge và tag (APK nghiệm thu `7502667`), máy Gú còn 1.43.0 (từ 21/10); Gú cài bản nào thì chép APK đó vào `releases/` và sửa dòng Prod trong ops doc.
+- 1.44.1 (clip mở app làm bằng Grok) đã merge, tag, push ngày 25/10. Máy Gú còn 1.43.0 (từ 21/10) và sẽ lên thẳng 1.44.1: APK `75cb7e6` nằm ở `releases/`, trạng thái chờ Gú cài. Gú cài thì sửa dòng đó trong `releases/README.txt` và dòng Prod trong ops doc.
 - Video mở app: chưa kiểm "Xoá hiệu ứng động" trên máy (cần đổi thang hiệu ứng hệ thống). Để lại từ review: xoay máy giữa clip thì mặt video giữ kích thước cũ; hai ảnh tĩnh giải mã trên luồng chính lúc khởi động; lỗi đồng bộ trong `prepare()` gỡ view giữa callback của nó; script video để sót file tạm; TalkBack vẫn với tới Trang chủ dưới lớp video; vài ca rẻ còn thiếu trong `OpeningFlowTest`.
 - Trang chủ tự đứng hình 1,2 đến 1,9 s ngay sau lần vẽ đầu (lúc mở lạnh, UBS1): việc của chính Trang chủ (dựng kệ, đếm tài liệu), chưa tìm ra phần nào nặng. Gỡ được thì mở app nhanh hơn ở mọi bản.
 - Chưa tái hiện được trạng thái provider giấu kho trên máy. Nhập lô dừng giữa chừng và `createDir` không xoá được bản trùng chưa kiểm trên máy.
